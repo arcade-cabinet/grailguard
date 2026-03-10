@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import gameConfig from '../data/gameConfig.json';
 import type { BuildingType } from '../engine/constants';
 
 export interface MetaState {
@@ -12,11 +13,15 @@ export interface MetaState {
 }
 
 const defaultUnlocks: Record<BuildingType, boolean> = {
-  wall: true,
-  hut: true,
-  range: false,
-  temple: false,
-  keep: false,
+  wall: gameConfig.market.initialUnlocks.includes('wall'),
+  hut: gameConfig.market.initialUnlocks.includes('hut'),
+  range: gameConfig.market.initialUnlocks.includes('range'),
+  temple: gameConfig.market.initialUnlocks.includes('temple'),
+  keep: gameConfig.market.initialUnlocks.includes('keep'),
+  turret: gameConfig.market.initialUnlocks.includes('turret'),
+  ballista: gameConfig.market.initialUnlocks.includes('ballista'),
+  cannon: gameConfig.market.initialUnlocks.includes('cannon'),
+  catapult: gameConfig.market.initialUnlocks.includes('catapult'),
 };
 
 export const useMetaStore = create<MetaState>()(

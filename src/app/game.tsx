@@ -1,5 +1,4 @@
-import { useFrame, useThree } from '@react-three/fiber';
-import { Canvas } from '@react-three/fiber/native';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useRouter } from 'expo-router';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -19,10 +18,17 @@ import { BuildingMesh } from '../components/3d/Entities/BuildingMesh';
 import { UnitMesh } from '../components/3d/Entities/UnitMesh';
 import { Environment } from '../components/3d/Environment';
 import { FloatingTextSystem } from '../components/3d/FloatingTextSystem';
+import { GovernorController } from '../components/3d/GovernorController';
+import { GameScene } from '../components/3d/game/GameScene';
 import { MapGrid, SceneryInstances } from '../components/3d/MapGrid';
-import { emitParticles, ParticleSystem } from '../components/3d/ParticleSystem';
+import { emitDust, emitParticles, ParticleSystem } from '../components/3d/ParticleSystem';
 import { Sanctuary } from '../components/3d/Sanctuary';
 import { BezelLayout, HUDStat } from '../components/ui/BezelLayout';
+import { BottomHUD } from '../components/ui/hud/BottomHUD';
+import { GameOverModal } from '../components/ui/hud/GameOverModal';
+import { UpgradeModal } from '../components/ui/UpgradeModal';
+import { destroyAudioBridge, initAudioBridge } from '../engine/audio/AudioBridge';
+import { playHealSound, playHitSound, playSmiteSound } from '../engine/audio/SoundManager';
 import {
   BUILDING_COST,
   BUILDING_SPAWN_INTERVAL,
@@ -36,6 +42,7 @@ import {
   UNIT_STATS,
   type UnitType,
 } from '../engine/constants';
+import { findPathAStar } from '../engine/mapGenerator';
 import { useGameStore } from '../store/useGameStore';
 import { useMetaStore } from '../store/useMetaStore';
 import { gridToWorld, worldToGrid } from '../utils/math';
@@ -127,55 +134,6 @@ function SceneRaycaster({
   return null;
 }
 
-/**
- * Compose and render the complete 3D game scene: world, controllers, effects, buildings, and unit meshes.
- *
- * @param ghostPos - World-space position of the placement preview (or `null` to hide the preview)
- * @param ghostValid - Whether the current ghost position is a valid placement
- * @param ndcRef - Mutable ref containing normalized device coordinates `{ x, y }` used for raycasting from touch input
- * @param onRayHit - Callback invoked with the world-space intersection point when the scene raycaster hits the ground plane
- * @returns A React element containing the assembled 3D scene and its runtime systems
- */
-function GameScene({
-  ghostPos,
-  ghostValid,
-  ndcRef,
-  onRayHit,
-}: {
-  ghostPos: [number, number, number] | null;
-  ghostValid: boolean;
-  ndcRef: React.MutableRefObject<{ x: number; y: number } | null>;
-  onRayHit: (pos: THREE.Vector3) => void;
-}) {
-  // Subscribe to low-frequency unitIds (NOT to units directly).
-  // React only re-renders when units are added/removed, not on position updates.
-  const unitIds = useGameStore((s) => s.unitIds);
-  const buildings = useGameStore((s) => s.buildings);
-
-  return (
-    <>
-      <Environment />
-      <CameraRig />
-      <MapGrid />
-      <SceneryInstances />
-      <Sanctuary />
-      <CombatController />
-      <BuildingController />
-      <SceneRaycaster ndcRef={ndcRef} onHit={onRayHit} />
-      <GhostMesh position={ghostPos} valid={ghostValid} />
-      <ParticleSystem />
-      <FloatingTextSystem />
-      {Object.values(buildings).map((b) => (
-        <BuildingMesh key={b.id} building={b} />
-      ))}
-      {/* UnitMesh receives only entityId and reads live state in useFrame */}
-      {unitIds.map((id) => (
-        <UnitMesh key={id} entityId={id} />
-      ))}
-    </>
-  );
-}
-
 // ─── Enemy wave composition ───────────────────────────────────────────────
 let _eid = 0;
 /**
@@ -200,277 +158,31 @@ type EnemyType = Extract<UnitType, 'goblin' | 'orc' | 'troll' | 'boss'>;
  * - Waves > 5: one `troll`, two `orc`, and up to `min(wave, 8)` `goblin`.
  */
 function buildWaveList(wave: number): EnemyType[] {
+  const list: EnemyType[] = [];
+
+  // Every 5th wave is a Boss wave
   if (wave % 5 === 0 && wave > 0) {
-    return ['boss', 'orc', 'orc', 'orc', 'goblin', 'goblin', 'goblin'];
+    const bossCount = Math.floor(wave / 5);
+    for (let i = 0; i < bossCount; i++) list.push('boss');
+    list.push(...Array<EnemyType>(Math.floor(wave * 1.5)).fill('orc'));
+    list.push(...Array<EnemyType>(Math.floor(wave * 2)).fill('goblin'));
+  } else {
+    // Normal wave scaling
+    const goblinCount = Math.floor(wave * 2.5 + 3);
+    const orcCount = wave >= 3 ? Math.floor(wave * 1.2) : 0;
+    const trollCount = wave >= 5 ? Math.floor(wave / 2) : 0;
+
+    list.push(...Array<EnemyType>(trollCount).fill('troll'));
+    list.push(...Array<EnemyType>(orcCount).fill('orc'));
+    list.push(...Array<EnemyType>(goblinCount).fill('goblin'));
   }
-  if (wave <= 2) return Array<EnemyType>(3 + wave).fill('goblin');
-  if (wave <= 5)
-    return [...Array<EnemyType>(2).fill('orc'), ...Array<EnemyType>(wave).fill('goblin')];
-  return ['troll', 'orc', 'orc', ...Array<EnemyType>(Math.min(wave, 8)).fill('goblin')];
+
+  return list;
 }
 
-// ─── Bottom HUD ───────────────────────────────────────────────────────────
-const BUILDING_EMOJI: Record<BuildingType, string> = {
-  wall: '🧱',
-  hut: '🏠',
-  range: '🏹',
-  temple: '⛪',
-  keep: '🏰',
-};
-const BUILDING_NAME: Record<BuildingType, string> = {
-  wall: 'Wall',
-  hut: 'Hut',
-  range: 'Range',
-  temple: 'Temple',
-  keep: 'Keep',
-};
+import { resetYuka } from '../engine/ai/EntityManager';
 
-/**
- * Render the bottom heads-up display containing building selection, Divine Smite, game speed toggle, and Send Wave controls.
- *
- * @param selectedBuilding - Currently selected building type, or `null` when none is selected.
- * @param onSelectBuilding - Callback invoked with a building type when the player selects it.
- * @param phase - Current game phase, either `"build"` (shows Send Wave) or `"defend"`.
- * @param onStartWave - Callback invoked to start the next wave.
- * @param smiteCd - Remaining Divine Smite cooldown in seconds; buttons are disabled while greater than zero.
- * @param onDivineSmite - Callback invoked to trigger Divine Smite.
- * @param gold - Current player gold used to determine affordability of buildings.
- * @param unlocks - Record mapping each BuildingType to a boolean indicating whether it is unlocked.
- * @param gameSpeed - Current game speed multiplier displayed on the speed button.
- * @param onSpeedToggle - Callback invoked to cycle the game speed.
- * @returns The bottom HUD React element with building pickers, smite button, speed control, and optional Send Wave button.
- */
-function BottomHUD({
-  selectedBuilding,
-  onSelectBuilding,
-  phase,
-  onStartWave,
-  smiteCd,
-  onDivineSmite,
-  gold,
-  unlocks,
-  gameSpeed,
-  onSpeedToggle,
-}: {
-  selectedBuilding: BuildingType | null;
-  onSelectBuilding: (t: BuildingType) => void;
-  phase: 'build' | 'defend';
-  onStartWave: () => void;
-  smiteCd: number;
-  onDivineSmite: () => void;
-  gold: number;
-  unlocks: Record<BuildingType, boolean>;
-  gameSpeed: number;
-  onSpeedToggle: () => void;
-}) {
-  const types: BuildingType[] = ['wall', 'hut', 'range', 'temple', 'keep'];
-  return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        paddingVertical: 2,
-      }}
-    >
-      {types
-        .filter((t) => unlocks[t])
-        .map((t) => {
-          const cost = BUILDING_COST[t];
-          const canAfford = gold >= cost;
-          const isSelected = selectedBuilding === t;
-          return (
-            <TouchableOpacity
-              key={t}
-              onPress={() => onSelectBuilding(t)}
-              style={{
-                backgroundColor: isSelected ? '#7a5540' : '#3e2723',
-                borderWidth: isSelected ? 2 : 1,
-                borderColor: isSelected ? '#ffd700' : '#5c4033',
-                borderRadius: 8,
-                padding: 6,
-                minWidth: 58,
-                alignItems: 'center',
-                opacity: canAfford ? 1 : 0.45,
-              }}
-            >
-              <Text style={{ fontSize: 18 }}>{BUILDING_EMOJI[t]}</Text>
-              <Text style={{ color: '#eaddcf', fontSize: 9 }}>{BUILDING_NAME[t]}</Text>
-              <Text style={{ color: canAfford ? '#ffd700' : '#888', fontSize: 9 }}>{cost}g</Text>
-            </TouchableOpacity>
-          );
-        })}
-
-      <View style={{ width: 8 }} />
-
-      {/* Divine Smite */}
-      <TouchableOpacity
-        onPress={onDivineSmite}
-        disabled={smiteCd > 0}
-        style={{
-          backgroundColor: smiteCd > 0 ? '#333' : '#6622aa',
-          borderRadius: 8,
-          paddingHorizontal: 10,
-          paddingVertical: 6,
-          alignItems: 'center',
-          minWidth: 58,
-          borderWidth: 1,
-          borderColor: smiteCd > 0 ? '#555' : '#9944dd',
-        }}
-      >
-        <Text style={{ fontSize: 16 }}>☄️</Text>
-        <Text style={{ color: '#ddd', fontSize: 9 }}>Smite</Text>
-        {smiteCd > 0 && <Text style={{ color: '#aaa', fontSize: 8 }}>{Math.ceil(smiteCd)}s</Text>}
-      </TouchableOpacity>
-
-      {/* Speed Toggle */}
-      <TouchableOpacity
-        onPress={onSpeedToggle}
-        style={{
-          backgroundColor: '#2a1a10',
-          borderRadius: 8,
-          paddingHorizontal: 10,
-          paddingVertical: 6,
-          alignItems: 'center',
-          borderWidth: 1,
-          borderColor: '#5c4033',
-          minWidth: 44,
-        }}
-      >
-        <Text style={{ color: '#ffd700', fontSize: 14, fontWeight: 'bold' }}>{gameSpeed}×</Text>
-        <Text style={{ color: '#aaa', fontSize: 8 }}>speed</Text>
-      </TouchableOpacity>
-
-      {/* Send Wave */}
-      {phase === 'build' && (
-        <TouchableOpacity
-          onPress={onStartWave}
-          style={{
-            backgroundColor: '#bb2200',
-            borderRadius: 8,
-            paddingHorizontal: 12,
-            paddingVertical: 8,
-            alignItems: 'center',
-            borderWidth: 1,
-            borderColor: '#ff4422',
-          }}
-        >
-          <Text style={{ color: '#fff', fontSize: 13, fontWeight: 'bold' }}>⚔ SEND</Text>
-          <Text style={{ color: '#ffdddd', fontSize: 8 }}>WAVE</Text>
-        </TouchableOpacity>
-      )}
-    </ScrollView>
-  );
-}
-
-/**
- * Modal displayed when the player is defeated, presenting final stats and actions.
- *
- * Shows the number of waves survived and coins earned, and exposes buttons to restart the game or return to the main menu.
- *
- * @param wave - The number of waves the player survived.
- * @param coins - The amount of coins awarded at game over.
- * @param onRestart - Callback invoked when the "Play Again" button is pressed.
- * @param onMenu - Callback invoked when the "Main Menu" button is pressed.
- */
-function GameOverModal({
-  visible,
-  wave,
-  coins,
-  onRestart,
-  onMenu,
-}: {
-  visible: boolean;
-  wave: number;
-  coins: number;
-  onRestart: () => void;
-  onMenu: () => void;
-}) {
-  return (
-    <Modal visible={visible} transparent animationType="fade">
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: 'rgba(0,0,0,0.78)',
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}
-      >
-        <View
-          style={{
-            backgroundColor: '#eaddcf',
-            borderWidth: 3,
-            borderColor: '#5c4033',
-            borderRadius: 16,
-            padding: 32,
-            width: 300,
-            alignItems: 'center',
-          }}
-        >
-          <Text style={{ color: '#3e2723', fontSize: 28, fontWeight: 'bold', marginBottom: 4 }}>
-            ☠ FALLEN
-          </Text>
-          <Text style={{ color: '#5c4033', fontSize: 13, marginBottom: 18, textAlign: 'center' }}>
-            The Sacred Grail has been taken…
-          </Text>
-          <View
-            style={{
-              backgroundColor: '#d4c5b0',
-              borderRadius: 8,
-              padding: 12,
-              width: '100%',
-              marginBottom: 20,
-            }}
-          >
-            <Text style={{ color: '#3e2723', fontSize: 16, textAlign: 'center', marginBottom: 4 }}>
-              Waves Survived: <Text style={{ fontWeight: 'bold' }}>{wave}</Text>
-            </Text>
-            <Text style={{ color: '#8B6914', fontSize: 16, textAlign: 'center' }}>
-              Coins Earned: <Text style={{ fontWeight: 'bold' }}>⚜ {coins}</Text>
-            </Text>
-          </View>
-          <TouchableOpacity
-            onPress={onRestart}
-            style={{
-              backgroundColor: '#5c4033',
-              borderRadius: 8,
-              paddingHorizontal: 24,
-              paddingVertical: 10,
-              marginBottom: 8,
-              width: '100%',
-              alignItems: 'center',
-            }}
-          >
-            <Text style={{ color: '#eaddcf', fontWeight: 'bold', fontSize: 15 }}>⚔ Play Again</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={onMenu}
-            style={{
-              backgroundColor: '#3e2723',
-              borderRadius: 8,
-              paddingHorizontal: 24,
-              paddingVertical: 10,
-              width: '100%',
-              alignItems: 'center',
-            }}
-          >
-            <Text style={{ color: '#eaddcf', fontSize: 13 }}>Main Menu</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
-/**
- * Render the main game screen including the 3D scene, HUD, bottom controls, building placement, wave/spawn logic, and game lifecycle (smite, speed, game over).
- *
- * This component wires game state (units, buildings, gold, health, wave, phase, unlocks) to the UI and 3D Canvas, manages touch-driven placement with a ghost preview, launches waves, performs the Divine Smite AoE, handles camera shake and particle effects, and presents the Game Over modal with restart/menu actions.
- *
- * @returns The main game screen React element used as the game's primary UI and scene container.
- */
+// ─── Main Game Screen ───────────────────────────────────────────────────────
 export default function GameScreen() {
   const router = useRouter();
   const gold = useGameStore((s) => s.gold);
@@ -486,15 +198,26 @@ export default function GameScreen() {
   const awardCoins = useMetaStore((s) => s.awardCoins);
 
   const [selectedBuilding, setSelectedBuilding] = useState<BuildingType | null>(null);
+  const [upgradeBuildingId, setUpgradeBuildingId] = useState<string | null>(null);
   const [ghostPos, setGhostPos] = useState<[number, number, number] | null>(null);
   const [ghostValid, setGhostValid] = useState(false);
-  const [gameOver, setGameOver] = useState(false);
+  const [gameOver, setGameOver] = useState<'playing' | 'victory' | 'defeat'>('playing');
   const [earnedCoins, setEarnedCoins] = useState(0);
 
   const ndcRef = useRef<{ x: number; y: number } | null>(null);
   // Track wave-spawn timeout IDs so they can be cancelled on unmount / game reset
   const spawnTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const { width: screenW, height: screenH } = Dimensions.get('window');
+
+  const autoGovernor = useGameStore((s) => s.autoGovernor);
+  const setAutoGovernor = useGameStore((s) => s.setAutoGovernor);
+  const triggerWave = useGameStore((s) => s.triggerWave);
+  const setTriggerWave = useGameStore((s) => s.setTriggerWave);
+
+  useEffect(() => {
+    initAudioBridge();
+    return () => destroyAudioBridge();
+  }, []);
 
   // Cancel any pending spawn timers when the component unmounts
   useEffect(() => {
@@ -514,14 +237,28 @@ export default function GameScreen() {
       const { x: wx, z: wz } = gridToWorld(gx, gz, CELL_SIZE);
       setGhostPos([wx, 0.75, wz]);
       const tile = grid[gx]?.[gz];
-      setGhostValid(
+
+      let isValid =
         gx >= 0 &&
-          gx < GRID_SIZE &&
-          gz >= 0 &&
-          gz < GRID_SIZE &&
-          gold >= BUILDING_COST[selectedBuilding] &&
-          (selectedBuilding === 'wall' ? tile === TILE.PATH : tile === TILE.GRASS),
-      );
+        gx < GRID_SIZE &&
+        gz >= 0 &&
+        gz < GRID_SIZE &&
+        gold >= BUILDING_COST[selectedBuilding] &&
+        (selectedBuilding === 'wall'
+          ? tile === TILE.PATH || tile === TILE.GRASS
+          : tile === TILE.GRASS);
+
+      // If we are placing something that might block the path, ensure a path still exists
+      if (isValid && (selectedBuilding === 'wall' || tile === TILE.PATH)) {
+        const testGrid = grid.map((row) => [...row]);
+        testGrid[gx][gz] = selectedBuilding === 'wall' ? TILE.BARRICADE : TILE.BUILDING;
+        const store = useGameStore.getState();
+        const spawnPt = store.pathCoords[0] || { x: 0, z: store.spawnZ };
+        const path = findPathAStar(testGrid, spawnPt, { x: 10, z: 11 });
+        if (!path) isValid = false;
+      }
+
+      setGhostValid(isValid);
     },
     [selectedBuilding, grid, gold],
   );
@@ -542,8 +279,9 @@ export default function GameScreen() {
         const { x: gx, z: gz } = worldToGrid(ghostPos[0], ghostPos[2], CELL_SIZE);
         const store = useGameStore.getState();
         if (store.spendGold(BUILDING_COST[selectedBuilding])) {
+          const buildingId = `b_${Date.now()}`;
           const building: Building = {
-            id: `b_${Date.now()}`,
+            id: buildingId,
             type: selectedBuilding,
             gridX: gx,
             gridZ: gz,
@@ -553,8 +291,33 @@ export default function GameScreen() {
             timer: BUILDING_SPAWN_INTERVAL[selectedBuilding],
           };
           store.addBuilding(building);
+
+          // Spawn wall or tower as a unit so it has HP and can be attacked/attack
+          const isUnitBuilding = ['wall', 'turret', 'ballista', 'cannon', 'catapult'].includes(
+            selectedBuilding,
+          );
+          if (isUnitBuilding) {
+            const stats = UNIT_STATS[selectedBuilding as UnitType];
+            store.spawnUnit({
+              id: buildingId, // Share ID so we know they are linked
+              type: selectedBuilding as UnitType,
+              team: 'ally',
+              maxHp: stats.maxHp,
+              hp: stats.maxHp,
+              damage: stats.damage,
+              speed: stats.speed,
+              attackRange: stats.attackRange,
+              attackSpeed: stats.attackSpeed,
+              cooldown: 0,
+              position: { x: ghostPos[0], y: 0, z: ghostPos[2] },
+              targetId: null,
+              pathIndex: -1,
+              isHealer: false,
+            });
+          }
+
           store.triggerCameraShake(0.25);
-          emitParticles([ghostPos[0], 0.8, ghostPos[2]], '#ffd700', 8);
+          emitDust([ghostPos[0], 0.8, ghostPos[2]], 15);
         }
       }
       ndcRef.current = null;
@@ -613,12 +376,21 @@ export default function GameScreen() {
     spawnTimersRef.current.push(annoId);
   }, [pathCoords]);
 
+  // Handle external trigger for wave (e.g. from Auto-Governor)
+  useEffect(() => {
+    if (triggerWave) {
+      setTriggerWave(false);
+      handleStartWave();
+    }
+  }, [triggerWave, handleStartWave, setTriggerWave]);
+
   // Divine Smite (AoE all enemies)
   const handleDivineSmite = useCallback(() => {
     const store = useGameStore.getState();
     if (store.divineSmiteCooldown > 0) return;
     store.setDivineSmiteCooldown(15);
     const enemies = Object.values(store.units).filter((u) => u.team === 'enemy');
+    playSmiteSound();
     for (const u of enemies) {
       store.damageUnit(u.id, 250);
       emitParticles([u.position.x, 1, u.position.z], '#ffdd00', 12);
@@ -634,21 +406,29 @@ export default function GameScreen() {
 
   // Game-over detection
   useEffect(() => {
-    if (health <= 0 && !gameOver) {
-      const coins = wave * 10;
-      awardCoins(coins);
-      setEarnedCoins(coins);
-      setGameOver(true);
+    if (gameOver === 'playing') {
+      if (health <= 0) {
+        const coins = wave * 10;
+        awardCoins(coins);
+        setEarnedCoins(coins);
+        setGameOver('defeat');
+      } else if (wave >= 15 && phase === 'build') {
+        const coins = wave * 10 + 500; // Bonus for winning
+        awardCoins(coins);
+        setEarnedCoins(coins);
+        setGameOver('victory');
+      }
     }
-  }, [health, wave, gameOver, awardCoins]);
+  }, [health, wave, gameOver, phase, awardCoins]);
 
   const handleRestart = useCallback(() => {
     // Cancel any pending wave-spawn timers before resetting
     for (const id of spawnTimersRef.current) clearTimeout(id);
     spawnTimersRef.current = [];
-    setGameOver(false);
+    setGameOver('playing');
     setSelectedBuilding(null);
     setGhostPos(null);
+    resetYuka();
     useGameStore.getState().resetGame();
   }, []);
 
@@ -687,10 +467,24 @@ export default function GameScreen() {
           onStartWave={handleStartWave}
           smiteCd={smiteCd}
           onDivineSmite={handleDivineSmite}
+          onHealSpell={() => {
+            const store = useGameStore.getState();
+            if (store.castHealSpell()) {
+              playHealSound();
+            }
+          }}
+          onFreezeSpell={() => {
+            const store = useGameStore.getState();
+            if (store.castFreezeSpell()) {
+              playHitSound(); // generic icy hit sound
+            }
+          }}
           gold={gold}
           unlocks={unlocks}
           gameSpeed={gameSpeed}
           onSpeedToggle={handleSpeedToggle}
+          autoGovernor={autoGovernor}
+          onAutoGovernorToggle={() => setAutoGovernor(!autoGovernor)}
         />
       }
     >
@@ -705,6 +499,8 @@ export default function GameScreen() {
             ghostValid={ghostValid}
             ndcRef={ndcRef}
             onRayHit={handleRayHit}
+            autoGovernor={autoGovernor}
+            setUpgradeBuildingId={setUpgradeBuildingId}
           />
         </Canvas>
       </View>
@@ -741,7 +537,7 @@ export default function GameScreen() {
       )}
 
       {/* Placement hint when building is selected */}
-      {selectedBuilding && !gameOver && (
+      {selectedBuilding && gameOver === 'playing' && (
         <View
           pointerEvents="none"
           style={{ position: 'absolute', top: 8, left: 0, right: 0, alignItems: 'center' }}
@@ -762,12 +558,14 @@ export default function GameScreen() {
       )}
 
       <GameOverModal
-        visible={gameOver}
+        visible={gameOver !== 'playing'}
+        state={gameOver !== 'playing' ? gameOver : 'defeat'}
         wave={wave}
         coins={earnedCoins}
         onRestart={handleRestart}
         onMenu={handleMenu}
       />
+      <UpgradeModal buildingId={upgradeBuildingId} onClose={() => setUpgradeBuildingId(null)} />
     </BezelLayout>
   );
 }

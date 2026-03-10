@@ -1,3 +1,5 @@
+import gameConfig from '../data/gameConfig.json';
+
 export const GRID_SIZE = 22;
 export const CELL_SIZE = 2.5;
 export const HALF_GRID = (GRID_SIZE * CELL_SIZE) / 2;
@@ -12,8 +14,21 @@ export type UnitType =
   | 'goblin'
   | 'orc'
   | 'troll'
-  | 'boss';
-export type BuildingType = 'wall' | 'hut' | 'range' | 'temple' | 'keep';
+  | 'boss'
+  | 'turret'
+  | 'ballista'
+  | 'cannon'
+  | 'catapult';
+export type BuildingType =
+  | 'wall'
+  | 'hut'
+  | 'range'
+  | 'temple'
+  | 'keep'
+  | 'turret'
+  | 'cannon'
+  | 'ballista'
+  | 'catapult';
 
 // Grid tile IDs
 export const TILE = {
@@ -60,26 +75,34 @@ export interface Building {
   timer: number;
 }
 
-// Building costs
+// Map building costs dynamically from config
 export const BUILDING_COST: Record<BuildingType, number> = {
-  wall: 25,
-  hut: 50,
-  range: 100,
-  temple: 150,
-  keep: 200,
+  wall: gameConfig.buildings.wall.cost,
+  hut: gameConfig.buildings.hut.cost,
+  range: gameConfig.buildings.range.cost,
+  temple: gameConfig.buildings.temple.cost,
+  keep: gameConfig.buildings.keep.cost,
+  turret: gameConfig.buildings.turret.cost,
+  ballista: gameConfig.buildings.ballista.cost,
+  cannon: gameConfig.buildings.cannon.cost,
+  catapult: gameConfig.buildings.catapult.cost,
 };
 
-// Spawn interval (seconds)
+// Map spawn intervals dynamically from config
 export const BUILDING_SPAWN_INTERVAL: Record<BuildingType, number> = {
-  wall: 0,
-  hut: 3.5,
-  range: 4.5,
-  temple: 6.0,
-  keep: 8.0,
+  wall: gameConfig.buildings.wall.spawnInterval,
+  hut: gameConfig.buildings.hut.spawnInterval,
+  range: gameConfig.buildings.range.spawnInterval,
+  temple: gameConfig.buildings.temple.spawnInterval,
+  keep: gameConfig.buildings.keep.spawnInterval,
+  turret: gameConfig.buildings.turret.spawnInterval,
+  ballista: gameConfig.buildings.ballista.spawnInterval,
+  cannon: gameConfig.buildings.cannon.spawnInterval,
+  catapult: gameConfig.buildings.catapult.spawnInterval,
 };
 
-// Unit stats: [maxHp, speed, damage, attackRange, attackSpeed]
-export const UNIT_STATS: Record<
+// Unit stats mapped directly from config
+export const UNIT_STATS = gameConfig.units as Record<
   UnitType,
   {
     maxHp: number;
@@ -90,87 +113,17 @@ export const UNIT_STATS: Record<
     isHealer: boolean;
     reward?: number;
   }
-> = {
-  wall: { maxHp: 600, speed: 0.0, damage: 0, attackRange: 0.0, attackSpeed: 99.0, isHealer: false },
-  militia: {
-    maxHp: 40,
-    speed: 2.5,
-    damage: 10,
-    attackRange: 0.8,
-    attackSpeed: 1.0,
-    isHealer: false,
-  },
-  archer: {
-    maxHp: 20,
-    speed: 2.0,
-    damage: 15,
-    attackRange: 5.5,
-    attackSpeed: 1.5,
-    isHealer: false,
-  },
-  cleric: {
-    maxHp: 30,
-    speed: 1.8,
-    damage: -15,
-    attackRange: 4.0,
-    attackSpeed: 2.0,
-    isHealer: true,
-  },
-  knight: {
-    maxHp: 150,
-    speed: 1.5,
-    damage: 25,
-    attackRange: 1.0,
-    attackSpeed: 1.5,
-    isHealer: false,
-  },
-  goblin: {
-    maxHp: 30,
-    speed: 3.0,
-    damage: 5,
-    attackRange: 0.8,
-    attackSpeed: 0.8,
-    isHealer: false,
-    reward: 5,
-  },
-  orc: {
-    maxHp: 80,
-    speed: 1.8,
-    damage: 15,
-    attackRange: 1.0,
-    attackSpeed: 1.5,
-    isHealer: false,
-    reward: 12,
-  },
-  troll: {
-    maxHp: 250,
-    speed: 1.2,
-    damage: 30,
-    attackRange: 1.5,
-    attackSpeed: 2.0,
-    isHealer: false,
-    reward: 25,
-  },
-  boss: {
-    maxHp: 1200,
-    speed: 0.8,
-    damage: 50,
-    attackRange: 2.0,
-    attackSpeed: 3.0,
-    isHealer: false,
-    reward: 150,
-  },
-};
+>;
 
-// Building -> unit type it spawns
+// Building -> unit type it spawns (if applicable)
 export const BUILDING_SPAWNS: Partial<Record<BuildingType, UnitType>> = {
-  hut: 'militia',
-  range: 'archer',
-  temple: 'cleric',
-  keep: 'knight',
+  hut: gameConfig.buildings.hut.spawns as UnitType,
+  range: gameConfig.buildings.range.spawns as UnitType,
+  temple: gameConfig.buildings.temple.spawns as UnitType,
+  keep: gameConfig.buildings.keep.spawns as UnitType,
 };
 
 // Enemy wave composition by wave number
-export const ENEMY_WAVE_TYPES: UnitType[] = ['goblin', 'orc', 'troll'];
+export const ENEMY_WAVE_TYPES: UnitType[] = gameConfig.waves.types as UnitType[];
 
-export const HP_SCALE_PER_WAVE = 0.15;
+export const HP_SCALE_PER_WAVE = gameConfig.waves.hpScalePerWave;

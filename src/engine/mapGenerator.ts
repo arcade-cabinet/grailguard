@@ -8,12 +8,6 @@ export interface PathResult {
   spawnZ: number;
 }
 
-/**
- * Creates a deterministic pseudorandom number generator seeded with the given value.
- *
- * @param seed - Integer seed used to initialize the generator
- * @returns A function that, when called, returns a pseudorandom number in the range [0, 1)
- */
 function seededRng(seed: number) {
   let s = seed;
   return () => {
@@ -22,14 +16,6 @@ function seededRng(seed: number) {
   };
 }
 
-/**
- * Checks whether placing a PATH tile at the given coordinates would form a 2x2 block of PATH tiles.
- *
- * @param grid - The map grid to inspect
- * @param x - X coordinate of the candidate PATH tile
- * @param z - Z coordinate of the candidate PATH tile
- * @returns `true` if placing a PATH at (x, z) would create a 2x2 PATH block, `false` otherwise.
- */
 function wouldCreate2x2(grid: Grid, x: number, z: number): boolean {
   const checks = [
     [x - 1, z - 1],
@@ -53,24 +39,10 @@ function wouldCreate2x2(grid: Grid, x: number, z: number): boolean {
   return false;
 }
 
-/**
- * Generate a deterministic square game map with a spawn, a 3x3 sanctuary, a path to that sanctuary, and scattered scenery.
- *
- * The map is created using a seeded RNG so the same `seed` produces the same layout. A spawn is placed at x=0 and a
- * random z between 3 and 16; a path is grown from the spawn toward the sanctuary center while avoiding 2x2 path blocks.
- * Remaining grass tiles are converted to scenery with a 15% probability.
- *
- * @param seed - Seed for the deterministic random number generator (default: 42)
- * @returns An object containing:
- *   - `grid`: the final tile grid
- *   - `pathCoords`: ordered coordinates of tiles that form the generated path (starting with the spawn)
- *   - `spawnX`, `spawnZ`: coordinates of the spawn tile
- */
 export function generateMap(seed = 42): PathResult {
   const rng = seededRng(seed);
   const grid: Grid = Array.from({ length: GRID_SIZE }, () => new Array(GRID_SIZE).fill(TILE.GRASS));
 
-  // Sanctuary 3x3 around center (10,10) to (12,12)
   const cx = 10;
   const cz = 10;
   for (let dx = 0; dx < 3; dx++) {
@@ -79,98 +51,103 @@ export function generateMap(seed = 42): PathResult {
     }
   }
 
-  const sanctuaryCenter = { x: 11, z: 11 };
-
-  // Start at X=0, Z=random(3,16)
   const startZ = Math.floor(rng() * 14) + 3;
   grid[0][startZ] = TILE.SPAWN;
 
-  const pathCoords: { x: number; z: number }[] = [{ x: 0, z: startZ }];
-
-  let curX = 0;
-  let curZ = startZ;
-
-  const maxSteps = GRID_SIZE * GRID_SIZE;
-  let steps = 0;
-
-  while (!(curX >= cx && curX <= cx + 2 && curZ >= cz && curZ <= cz + 2) && steps < maxSteps) {
-    steps++;
-    const dx = sanctuaryCenter.x - curX;
-    const dz = sanctuaryCenter.z - curZ;
-
-    // Build candidate moves weighted toward center
-    const candidates: [number, number][] = [];
-    const roll = rng();
-
-    if (Math.abs(dx) > Math.abs(dz)) {
-      // Prefer moving in X
-      if (roll < 0.6 && dx !== 0) {
-        candidates.push([curX + Math.sign(dx), curZ]);
-      } else if (dz !== 0) {
-        candidates.push([curX, curZ + Math.sign(dz)]);
-      } else {
-        candidates.push([curX + Math.sign(dx), curZ]);
-      }
-    } else {
-      // Prefer moving in Z
-      if (roll < 0.3 && dx !== 0) {
-        candidates.push([curX + Math.sign(dx), curZ]);
-      } else if (dz !== 0) {
-        candidates.push([curX, curZ + Math.sign(dz)]);
-      } else if (dx !== 0) {
-        candidates.push([curX + Math.sign(dx), curZ]);
-      }
-    }
-
-    // Also try perpendicular if blocked
-    const fallbacks: [number, number][] = [
-      [curX + 1, curZ],
-      [curX, curZ + 1],
-      [curX, curZ - 1],
-    ];
-
-    let moved = false;
-    for (const [nx, nz] of [...candidates, ...fallbacks]) {
-      if (
-        nx >= 0 &&
-        nx < GRID_SIZE &&
-        nz >= 0 &&
-        nz < GRID_SIZE &&
-        grid[nx][nz] !== TILE.PATH &&
-        grid[nx][nz] !== TILE.SPAWN
-      ) {
-        // Check if this tile is sanctuary territory - stop here
-        if (grid[nx][nz] === TILE.SANCTUARY) {
-          pathCoords.push({ x: nx, z: nz });
-          curX = nx;
-          curZ = nz;
-          moved = true;
-          break;
-        }
-        // Check 2x2 constraint
-        grid[nx][nz] = TILE.PATH;
-        if (!wouldCreate2x2(grid, nx, nz)) {
-          pathCoords.push({ x: nx, z: nz });
-          curX = nx;
-          curZ = nz;
-          moved = true;
-          break;
-        }
-        grid[nx][nz] = TILE.GRASS;
-      }
-    }
-
-    if (!moved) break;
-  }
-
-  // Scatter scenery on remaining grass tiles (15% chance)
-  for (let x = 0; x < GRID_SIZE; x++) {
-    for (let z = 0; z < GRID_SIZE; z++) {
+  // Scatter scenery FIRST before pathfinding, so pathfinding can route around it
+  for (let x = 2; x < GRID_SIZE - 2; x++) {
+    for (let z = 2; z < GRID_SIZE - 2; z++) {
       if (grid[x][z] === TILE.GRASS && rng() < 0.15) {
         grid[x][z] = TILE.SCENERY;
       }
     }
   }
 
+  // Clear path area for A*
+  const pathCoords = findPathAStar(grid, { x: 0, z: startZ }, { x: 10, z: 11 }) || [];
+
+  // Mark path tiles in grid for visual
+  for (const pt of pathCoords) {
+    if (grid[pt.x][pt.z] === TILE.GRASS) {
+      grid[pt.x][pt.z] = TILE.PATH;
+    }
+  }
+
   return { grid, pathCoords, spawnX: 0, spawnZ: startZ };
+}
+
+interface Node {
+  x: number;
+  z: number;
+  g: number;
+  h: number;
+  f: number;
+  parent: Node | null;
+}
+
+export function findPathAStar(
+  grid: Grid,
+  start: { x: number; z: number },
+  goal: { x: number; z: number },
+): { x: number; z: number }[] | null {
+  const openList: Node[] = [];
+  const closedSet: Set<string> = new Set();
+
+  const startNode: Node = { ...start, g: 0, h: 0, f: 0, parent: null };
+  openList.push(startNode);
+
+  while (openList.length > 0) {
+    // Sort by f value (lowest first)
+    openList.sort((a, b) => a.f - b.f);
+    const current = openList.shift()!;
+    const key = `${current.x},${current.z}`;
+
+    if (closedSet.has(key)) continue;
+    closedSet.add(key);
+
+    // Goal check (adjacent to sanctuary or on it)
+    if (
+      grid[current.x]?.[current.z] === TILE.SANCTUARY ||
+      (current.x === goal.x && current.z === goal.z)
+    ) {
+      const path: { x: number; z: number }[] = [];
+      let curr: Node | null = current;
+      while (curr) {
+        path.unshift({ x: curr.x, z: curr.z });
+        curr = curr.parent;
+      }
+      return path;
+    }
+
+    const neighbors = [
+      { x: current.x + 1, z: current.z },
+      { x: current.x - 1, z: current.z },
+      { x: current.x, z: current.z + 1 },
+      { x: current.x, z: current.z - 1 },
+    ];
+
+    for (const neighbor of neighbors) {
+      const { x, z } = neighbor;
+
+      if (x < 0 || x >= GRID_SIZE || z < 0 || z >= GRID_SIZE) continue;
+
+      const tile = grid[x][z];
+      // Blocking tiles: Building, Scenery, Barricade
+      // Trolls might ignore Barricades, but general A* won't
+      if (tile === TILE.BUILDING || tile === TILE.SCENERY || tile === TILE.BARRICADE) {
+        continue;
+      }
+
+      const nKey = `${x},${z}`;
+      if (closedSet.has(nKey)) continue;
+
+      const g = current.g + 1;
+      const h = Math.abs(x - goal.x) + Math.abs(z - goal.z);
+      const f = g + h;
+
+      openList.push({ x, z, g, h, f, parent: current });
+    }
+  }
+
+  return null; // No path found
 }

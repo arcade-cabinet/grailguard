@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { type Building, type Entity, TILE } from '../engine/constants';
-import { generateMap } from '../engine/mapGenerator';
+import { findPathAStar, generateMap } from '../engine/mapGenerator';
 
 const MAX_SEED = 99999;
 
@@ -33,6 +33,8 @@ export interface GameState {
   divineSmiteCooldown: number;
   /** Short overlay text ("Wave 3 Complete! +20g") – clears itself after 3 s */
   announcement: string;
+  autoGovernor: boolean;
+  triggerWave: boolean;
 
   // ── Actions ──────────────────────────────────────────────────────────────
   addGold: (amount: number) => void;
@@ -54,10 +56,15 @@ export interface GameState {
   addBuilding: (building: Building) => void;
   removeBuilding: (id: string) => void;
   updateBuildingTimer: (id: string, timer: number) => void;
+  upgradeBuilding: (id: string, cost: number) => boolean;
   setPhase: (phase: 'build' | 'defend') => void;
   triggerCameraShake: (intensity: number) => void;
   setDivineSmiteCooldown: (cd: number) => void;
+  castHealSpell: () => boolean;
+  castFreezeSpell: () => boolean;
   setAnnouncement: (msg: string) => void;
+  setAutoGovernor: (active: boolean) => void;
+  setTriggerWave: (val: boolean) => void;
   nextWave: () => void;
   resetGame: () => void;
 }
@@ -77,6 +84,8 @@ const makeInitial = (map: ReturnType<typeof freshMap>) => ({
   cameraShake: 0,
   divineSmiteCooldown: 0,
   announcement: '',
+  autoGovernor: false,
+  triggerWave: false,
 });
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -109,12 +118,14 @@ export const useGameStore = create<GameState>((set, get) => ({
   damageUnit: (id, amount) =>
     set((s) => {
       const unit = s.units[id];
-      if (!unit) return {};
+      if (!unit) return s;
       return {
-        units: { ...s.units, [id]: { ...unit, hp: Math.max(0, unit.hp - amount) } },
+        units: {
+          ...s.units,
+          [id]: { ...unit, hp: Math.min(unit.maxHp, Math.max(0, unit.hp - amount)) },
+        },
       };
     }),
-
   batchSetUnits: (units, unitIds, goldDelta, healthDelta) =>
     set((s) => ({
       units,
@@ -128,9 +139,14 @@ export const useGameStore = create<GameState>((set, get) => ({
       const newGrid = s.grid.map((row) => [...row]);
       newGrid[building.gridX][building.gridZ] =
         building.type === 'wall' ? TILE.BARRICADE : TILE.BUILDING;
+
+      const spawnPt = s.pathCoords[0] || { x: 0, z: s.spawnZ };
+      const newPath = findPathAStar(newGrid, spawnPt, { x: 10, z: 11 }) || s.pathCoords;
+
       return {
         buildings: { ...s.buildings, [building.id]: building },
         grid: newGrid,
+        pathCoords: newPath,
       };
     }),
 
@@ -142,7 +158,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       newGrid[building.gridX][building.gridZ] = TILE.GRASS;
       const next = { ...s.buildings };
       delete next[id];
-      return { buildings: next, grid: newGrid };
+
+      const spawnPt = s.pathCoords[0] || { x: 0, z: s.spawnZ };
+      const newPath = findPathAStar(newGrid, spawnPt, { x: 10, z: 11 }) || s.pathCoords;
+
+      return { buildings: next, grid: newGrid, pathCoords: newPath };
     }),
 
   updateBuildingTimer: (id, timer) =>
@@ -152,10 +172,74 @@ export const useGameStore = create<GameState>((set, get) => ({
       return { buildings: { ...s.buildings, [id]: { ...b, timer } } };
     }),
 
+  upgradeBuilding: (id, cost) => {
+    const s = get();
+    if (s.gold < cost) return false;
+    const b = s.buildings[id];
+    if (!b) return false;
+
+    set((state) => {
+      const newLevel = b.levelStats + 1;
+
+      // Update building
+      const nextBuildings = {
+        ...state.buildings,
+        [id]: { ...b, levelStats: newLevel },
+      };
+
+      // If it's a tower, it has an associated unit with the same ID. Upgrade it instantly.
+      const nextUnits = { ...state.units };
+      const towerUnit = nextUnits[id];
+      if (towerUnit) {
+        nextUnits[id] = {
+          ...towerUnit,
+          damage: towerUnit.damage * 1.2,
+          maxHp: towerUnit.maxHp * 1.2,
+          hp: towerUnit.hp + (towerUnit.maxHp * 1.2 - towerUnit.maxHp), // Heal the new HP amount
+        };
+      }
+
+      return {
+        gold: state.gold - cost,
+        buildings: nextBuildings,
+        units: nextUnits,
+      };
+    });
+    return true;
+  },
+
   setPhase: (phase) => set({ phase }),
   triggerCameraShake: (intensity) => set({ cameraShake: intensity }),
   setDivineSmiteCooldown: (cd) => set({ divineSmiteCooldown: cd }),
+
+  castHealSpell: () => {
+    const s = get();
+    if (s.gold < 150) return false;
+    set((state) => ({ gold: state.gold - 150, health: Math.min(20, state.health + 10) }));
+    return true;
+  },
+
+  castFreezeSpell: () => {
+    const s = get();
+    if (s.gold < 100) return false;
+    set((state) => {
+      // Freeze all enemies for 5 seconds by setting speed to 0.
+      // A proper freeze would need a status effect system. For now, just stall their cooldowns or speed.
+      // The easiest way is to modify the active enemies.
+      const nextUnits = { ...state.units };
+      for (const id in nextUnits) {
+        if (nextUnits[id].team === 'enemy') {
+          nextUnits[id].cooldown += 5.0; // Stun them for 5 seconds
+        }
+      }
+      return { gold: state.gold - 100, units: nextUnits };
+    });
+    return true;
+  },
+
   setAnnouncement: (msg) => set({ announcement: msg }),
+  setAutoGovernor: (active) => set({ autoGovernor: active }),
+  setTriggerWave: (val) => set({ triggerWave: val }),
 
   nextWave: () =>
     set((s) => ({

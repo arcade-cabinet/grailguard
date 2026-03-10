@@ -1,33 +1,24 @@
 import { Modal, Text, TouchableOpacity, View } from 'react-native';
+import gameConfig from '../../data/gameConfig.json';
+import type { BuildingType } from '../../engine/constants';
 import { useMetaStore } from '../../store/useMetaStore';
 
 interface MarketItem {
-  type: 'range' | 'temple' | 'keep';
+  type: BuildingType;
   label: string;
   cost: number;
   description: string;
 }
 
-const MARKET_ITEMS: MarketItem[] = [
-  {
-    type: 'range',
-    label: 'Archery Range',
-    cost: 50,
-    description: 'Unlocks the Archery Range building. Trains Archers.',
-  },
-  {
-    type: 'temple',
-    label: 'Cleric Temple',
-    cost: 150,
-    description: 'Unlocks the Cleric Temple. Trains healing Clerics.',
-  },
-  {
-    type: 'keep',
-    label: 'Knight Keep',
-    cost: 300,
-    description: 'Unlocks the Knight Keep. Trains powerful Knights.',
-  },
-];
+// Generate market items dynamically from config for items that have a marketCost
+const MARKET_ITEMS: MarketItem[] = Object.entries(gameConfig.buildings)
+  .filter(([_, data]) => 'marketCost' in data)
+  .map(([type, data]) => ({
+    type: type as BuildingType,
+    label: type.charAt(0).toUpperCase() + type.slice(1),
+    cost: (data as any).marketCost as number,
+    description: data.description,
+  }));
 
 interface MarketModalProps {
   visible: boolean;

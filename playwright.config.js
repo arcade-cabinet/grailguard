@@ -11,9 +11,13 @@ module.exports = defineConfig({
   reporter: process.env.CI ? [['html'], ['github']] : 'html',
   timeout: 60_000,
   use: {
-    baseURL: 'http://localhost:8081',
+    baseURL: 'http://localhost:8085',
     trace: 'on-first-retry',
     screenshot: 'on',
+    headless: !!process.env.CI,
+    launchOptions: {
+      args: ['--enable-webgl', '--use-gl=angle', '--ignore-gpu-blocklist'],
+    },
   },
   projects: [
     {
@@ -23,8 +27,8 @@ module.exports = defineConfig({
   ],
   outputDir: 'e2e-results/',
   webServer: {
-    command: 'pnpm exec expo start --web --port 8081',
-    url: 'http://localhost:8081',
+    command: 'pnpm exec expo start --web --port 8085 -c',
+    url: 'http://localhost:8085',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },

@@ -1,49 +1,65 @@
+import { useTexture } from '@react-three/drei';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { CELL_SIZE, GRID_SIZE, TILE } from '../../engine/constants';
-import { generateNoiseTexture } from '../../engine/textureUtils';
 import { useGameStore } from '../../store/useGameStore';
 
 const HALF = (GRID_SIZE * CELL_SIZE) / 2;
 
 /**
- * Map a tile type identifier to its display color.
- *
- * @param tileId - Numeric tile type identifier (one of the TILE constants)
- * @returns A THREE.Color corresponding to the tile type for use when rendering the grid
+ * Map a tile type identifier to its display color tint.
+ * With PBR textures, colors are used as subtle tints over the texture.
  */
 function tileColor(tileId: number): THREE.Color {
   switch (tileId) {
     case TILE.PATH:
-      return new THREE.Color(0.55, 0.42, 0.25);
+      return new THREE.Color(0.85, 0.75, 0.65); // warm tint over gravel
     case TILE.SANCTUARY:
-      return new THREE.Color(0.8, 0.7, 0.3);
+      return new THREE.Color(1.0, 0.95, 0.7); // golden sanctuary glow
     case TILE.SPAWN:
-      return new THREE.Color(0.7, 0.2, 0.2);
+      return new THREE.Color(0.9, 0.5, 0.4); // reddish warning tint
     case TILE.SCENERY:
-      return new THREE.Color(0.15, 0.45, 0.1);
+      return new THREE.Color(0.4, 0.8, 0.3); // lush green for scenery
     case TILE.BARRICADE:
-      return new THREE.Color(0.4, 0.3, 0.2);
+      return new THREE.Color(0.7, 0.6, 0.5); // stone/brick tint
     default:
-      return new THREE.Color(0.25, 0.6, 0.15);
+      return new THREE.Color(0.7, 0.9, 0.6); // grass tiles — let texture show through
   }
 }
 
 /**
- * Renders the scene's tile grid as a single instanced mesh centered at the origin.
- *
- * Reads the current grid from the game store and updates per-instance transforms and colors
- * whenever the grid changes. Each instance represents a ground tile and uses a generated
- * grass noise texture for its material.
- *
- * @returns The React element containing the instanced mesh of tiles
+ * Configure a texture for seamless tiling across the grid.
+ */
+function setupTiling(tex: THREE.Texture, repeat = 2): THREE.Texture {
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(repeat, repeat);
+  return tex;
+}
+
+/**
+ * Renders the scene's tile grid as a single instanced mesh with real PBR textures.
+ * Uses AmbientCG CC0 Grass001 for the base material (Color, NormalGL, Roughness).
  */
 export function MapGrid() {
   const grid = useGameStore((s) => s.grid);
   const meshRef = useRef<THREE.InstancedMesh>(null);
 
   const count = GRID_SIZE * GRID_SIZE;
-  const grassTex = useMemo(() => generateNoiseTexture('grass_col'), []);
+
+  // Load real PBR grass texture set
+  const [grassColor, grassNormal, grassRoughness] = useTexture([
+    '/assets/materials/Grass001/Color.jpg',
+    '/assets/materials/Grass001/NormalGL.jpg',
+    '/assets/materials/Grass001/Roughness.jpg',
+  ]);
+
+  // Configure tiling on all grass maps
+  useEffect(() => {
+    setupTiling(grassColor);
+    setupTiling(grassNormal);
+    setupTiling(grassRoughness);
+  }, [grassColor, grassNormal, grassRoughness]);
 
   useEffect(() => {
     if (!meshRef.current) return;
@@ -71,21 +87,29 @@ export function MapGrid() {
   return (
     <instancedMesh ref={meshRef} args={[undefined, undefined, count]} receiveShadow>
       <boxGeometry args={[CELL_SIZE - 0.05, 0.2, CELL_SIZE - 0.05]} />
-      <meshStandardMaterial map={grassTex} roughnessMap={grassTex} />
+      <meshStandardMaterial
+        map={grassColor}
+        normalMap={grassNormal}
+        roughnessMap={grassRoughness}
+        roughness={0.9}
+        metalness={0.0}
+      />
     </instancedMesh>
   );
 }
 
 /**
  * Renders instanced scenery objects (cones) at grid cells marked as SCENERY.
- *
- * Each instance is positioned at the center of its grid cell, given a deterministic scale variation, and textured with a stone noise map.
- *
- * @returns A React element containing an instanced mesh of scenery cones, or `null` if there are no scenery positions.
+ * Uses a PBR gravel texture for a natural rock/environment look.
  */
 export function SceneryInstances() {
   const grid = useGameStore((s) => s.grid);
-  const stoneTex = useMemo(() => generateNoiseTexture('stone_col'), []);
+  const stoneTex = useTexture('/assets/materials/Gravel017/Color.jpg');
+
+  // Configure tiling
+  useEffect(() => {
+    setupTiling(stoneTex, 1);
+  }, [stoneTex]);
 
   const positions = useMemo(() => {
     const pts: [number, number, number][] = [];
@@ -124,7 +148,7 @@ export function SceneryInstances() {
   return (
     <instancedMesh ref={treeRef} args={[undefined, undefined, positions.length]} castShadow>
       <coneGeometry args={[0.5, 1.5, 6]} />
-      <meshStandardMaterial map={stoneTex} color="#2d5a27" />
+      <meshStandardMaterial map={stoneTex} color="#2d5a27" roughness={0.8} />
     </instancedMesh>
   );
 }

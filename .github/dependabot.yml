@@ -1,0 +1,59 @@
+version: 2
+
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "ci"
+    labels:
+      - "dependencies"
+      - "github-actions"
+
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "deps"
+    labels:
+      - "dependencies"
+      - "pnpm"
+    open-pull-requests-limit: 10
+    groups:
+      expo:
+        patterns:
+          - "expo*"
+          - "@expo/*"
+        update-types:
+          - "minor"
+          - "patch"
+      testing:
+        patterns:
+          - "jest"
+          - "ts-jest"
+          - "@types/jest"
+          - "@playwright/test"
+          - "@testing-library/*"
+        update-types:
+          - "minor"
+          - "patch"
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "react-native*"
+          - "@types/react*"
+        update-types:
+          - "patch"
+      three:
+        patterns:
+          - "three"
+          - "@react-three/*"
+          - "@types/three"
+        update-types:
+          - "minor"
+          - "patch"

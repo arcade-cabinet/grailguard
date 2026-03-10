@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "Grailguard",
+    "slug": "grailguard",
+    "version": "1.0.0",
+    "orientation": "landscape",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#2b1d14"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.arcadecabinet.grailguard"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#2b1d14"
+      },
+      "package": "com.arcadecabinet.grailguard"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": ["expo-router", "expo-font"],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "scheme": "grailguard"
+  }
+}

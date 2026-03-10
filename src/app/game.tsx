@@ -22,6 +22,7 @@ import { BuildingMesh } from '../components/3d/Entities/BuildingMesh';
 import {
   BUILDING_COST,
   BuildingType,
+  UnitType,
   TILE,
   CELL_SIZE,
   HALF_GRID,
@@ -315,24 +316,25 @@ export default function GameScreen() {
 
     const isBoss = currentWave % 5 === 0 && currentWave > 0;
 
-    type EnemyType = 'goblin' | 'orc' | 'troll' | 'boss';
-    let toSpawn: EnemyType[];
+    // Use UnitType from constants to avoid duplicating the union
+    type EnemyUnitType = Extract<UnitType, 'goblin' | 'orc' | 'troll' | 'boss'>;
+    let toSpawn: EnemyUnitType[];
 
     if (isBoss) {
       toSpawn = ['boss', 'orc', 'orc', 'goblin', 'goblin'];
     } else if (currentWave < 3) {
-      toSpawn = Array<EnemyType>(3 + currentWave).fill('goblin');
+      toSpawn = Array<EnemyUnitType>(3 + currentWave).fill('goblin');
     } else if (currentWave < 6) {
       toSpawn = [
-        ...Array<EnemyType>(2).fill('orc'),
-        ...Array<EnemyType>(currentWave).fill('goblin'),
+        ...Array<EnemyUnitType>(2).fill('orc'),
+        ...Array<EnemyUnitType>(currentWave).fill('goblin'),
       ];
     } else {
       toSpawn = [
         'troll',
         'orc',
         'orc',
-        ...Array<EnemyType>(currentWave).fill('goblin'),
+        ...Array<EnemyUnitType>(currentWave).fill('goblin'),
       ];
     }
 

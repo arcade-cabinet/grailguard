@@ -1,4 +1,4 @@
-import { Entity, Vector3Data, UNIT_STATS } from './constants';
+import { Entity, Vector3Data, UNIT_STATS, HP_SCALE_PER_WAVE } from './constants';
 
 export function distance2D(a: Vector3Data, b: Vector3Data): number {
   const dx = a.x - b.x;
@@ -75,7 +75,7 @@ export function applySeparation(
 }
 
 export function scaleEnemyHp(baseHp: number, wave: number): number {
-  return Math.round(baseHp * (1.0 + wave * 0.15));
+  return Math.round(baseHp * (1.0 + wave * HP_SCALE_PER_WAVE));
 }
 
 export function getWaveEnemyTypes(wave: number): Array<keyof typeof UNIT_STATS> {

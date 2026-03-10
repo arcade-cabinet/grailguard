@@ -4,6 +4,11 @@ import { generateMap } from '../engine/mapGenerator';
 
 const MAX_SEED = 99999;
 
+/**
+ * Creates a new procedurally generated map using the current time as a seed.
+ *
+ * @returns A map object generated with a seed derived from the current timestamp modulo MAX_SEED.
+ */
 function freshMap() {
   return generateMap(Date.now() % MAX_SEED);
 }

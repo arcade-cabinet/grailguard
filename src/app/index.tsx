@@ -4,6 +4,14 @@ import { Text, TouchableOpacity, View } from 'react-native';
 import { MarketModal } from '../components/ui/MarketModal';
 import { useMetaStore } from '../store/useMetaStore';
 
+/**
+ * Render the main menu screen for the game, displaying the title, coin balance, and primary actions.
+ *
+ * The screen shows the player's coin total from the meta store, a prominent "EMBARK" button that navigates to the game,
+ * and a "Market" button that opens the MarketModal. Decorative UI elements and a short lore blurb are included.
+ *
+ * @returns The rendered JSX element for the main menu screen.
+ */
 export default function MainMenuScreen() {
   const router = useRouter();
   const coins = useMetaStore((s) => s.coins);

@@ -20,6 +20,14 @@ const SUN_COLORS: [number, number, number][] = [
 
 const SUN_INTENSITIES = [2.0, 1.0, 0.2, 0.8];
 
+/**
+ * Linearly interpolate between two RGB color triplets and return the result as a THREE.Color.
+ *
+ * @param a - Source color as an [r, g, b] tuple with components in the 0 to 1 range
+ * @param b - Destination color as an [r, g, b] tuple with components in the 0 to 1 range
+ * @param t - Interpolation factor where 0 returns `a` and 1 returns `b` (typically in 0..1)
+ * @returns The interpolated color as a `THREE.Color`
+ */
 function lerp3(a: [number, number, number], b: [number, number, number], t: number): THREE.Color {
   return new THREE.Color(
     a[0] + (b[0] - a[0]) * t,
@@ -28,6 +36,15 @@ function lerp3(a: [number, number, number], b: [number, number, number], t: numb
   );
 }
 
+/**
+ * Provides scene fog and lighting and drives a 4-stage animated day–night cycle.
+ *
+ * Advances the global `timeOfDay` each frame, interpolates sky color, sun color, and sun intensity
+ * between four stages (day, dusk, night, dawn), applies the interpolated sky color to the scene
+ * background and fog, and updates the directional and ambient lights accordingly.
+ *
+ * @returns A JSX element that mounts fog, ambient, directional, and hemisphere lights for the scene
+ */
 export function Environment() {
   const dirLight = useRef<THREE.DirectionalLight>(null);
   const ambLight = useRef<THREE.AmbientLight>(null);

@@ -10,10 +10,24 @@ import { useGameStore } from '../../store/useGameStore';
 import { gridToWorld } from '../../utils/math';
 
 let _spawnId = 0;
+/**
+ * Create a unique unit identifier string.
+ *
+ * @returns A string in the form `unit_<timestamp>_<counter>`, where `<timestamp>` is milliseconds since epoch and `<counter>` is a monotonically increasing number to ensure uniqueness across calls.
+ */
 function genId() {
   return `unit_${Date.now()}_${_spawnId++}`;
 }
 
+/**
+ * Controls per-frame spawning of ally units from buildings during the defend phase.
+ *
+ * Each frame, decrements building spawn timers scaled by game speed; when a timer elapses,
+ * creates and spawns a new ally unit with stats derived from the building's configured spawn type,
+ * places it with a small random offset near the building, and resets the building's timer.
+ *
+ * @returns Null (component renders nothing)
+ */
 export function BuildingController() {
   useFrame((_, rawDelta) => {
     const store = useGameStore.getState();

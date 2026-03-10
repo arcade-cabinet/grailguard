@@ -40,7 +40,13 @@ import { useGameStore } from '../store/useGameStore';
 import { useMetaStore } from '../store/useMetaStore';
 import { gridToWorld, worldToGrid } from '../utils/math';
 
-// ─── Ghost mesh shown during building drag ────────────────────────────────
+/**
+ * Renders a translucent placement preview box at a world position during building drag.
+ *
+ * @param position - The world-space center [x, y, z] of the preview box; pass `null` to hide it
+ * @param valid - `true` when the current placement position is valid (uses green tint), `false` when invalid (uses red tint)
+ * @returns The mesh used as the placement preview, or `null` when `position` is `null`
+ */
 function GhostMesh({
   position,
   valid,
@@ -62,7 +68,13 @@ function GhostMesh({
   );
 }
 
-// ─── Camera rig (shake only) ──────────────────────────────────────────────
+/**
+ * Applies a per-frame positional jitter to the active scene camera based on the global cameraShake value.
+ *
+ * This component does not render any visible output; it mutates the camera each frame while the shake amount is greater than zero.
+ *
+ * @returns `null` — no visual elements are rendered
+ */
 function CameraRig() {
   useFrame((state) => {
     const shake = useGameStore.getState().cameraShake;
@@ -79,6 +91,15 @@ const _groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const _ndcVec = new THREE.Vector2();
 const _hitVec = new THREE.Vector3();
 
+/**
+ * Per-frame raycaster that projects NDC screen coordinates onto the world ground plane and reports hit positions.
+ *
+ * Calls `onHit` with the world-space intersection point on the ground plane (Y = 0) whenever `ndcRef.current`
+ * contains valid normalized device coordinates and the ray intersects the plane during a frame.
+ *
+ * @param ndcRef - Mutable ref containing a `{ x, y }` pair of normalized device coordinates in clip space (range typically -1..1), or `null` when inactive.
+ * @param onHit - Callback invoked with the intersection position (a `THREE.Vector3`) when a ray from the camera through `ndcRef` hits the ground plane.
+ */
 function SceneRaycaster({
   ndcRef,
   onHit,
@@ -96,7 +117,15 @@ function SceneRaycaster({
   return null;
 }
 
-// ─── Entire 3-D scene ────────────────────────────────────────────────────
+/**
+ * Compose and render the complete 3D game scene: world, controllers, effects, buildings, and unit meshes.
+ *
+ * @param ghostPos - World-space position of the placement preview (or `null` to hide the preview)
+ * @param ghostValid - Whether the current ghost position is a valid placement
+ * @param ndcRef - Mutable ref containing normalized device coordinates `{ x, y }` used for raycasting from touch input
+ * @param onRayHit - Callback invoked with the world-space intersection point when the scene raycaster hits the ground plane
+ * @returns A React element containing the assembled 3D scene and its runtime systems
+ */
 function GameScene({
   ghostPos,
   ghostValid,
@@ -139,12 +168,27 @@ function GameScene({
 
 // ─── Enemy wave composition ───────────────────────────────────────────────
 let _eid = 0;
+/**
+ * Generates a unique enemy identifier.
+ *
+ * @returns A string identifier starting with `e_` followed by the current timestamp and a monotonically increasing counter (e.g. `e_1610000000000_1`).
+ */
 function genEnemyId() {
   return `e_${Date.now()}_${_eid++}`;
 }
 
 type EnemyType = Extract<UnitType, 'goblin' | 'orc' | 'troll' | 'boss'>;
 
+/**
+ * Build the list of enemy types that will spawn for a given wave.
+ *
+ * @param wave - The current wave number (1 = first wave; 0 is treated as no wave)
+ * @returns An array of EnemyType describing the wave composition:
+ * - Every 5th wave (wave % 5 === 0 and wave > 0): one `boss`, three `orc`, and three `goblin`.
+ * - Waves 1–2: only `goblin`, with count = 3 + wave.
+ * - Waves 3–5: two `orc` and `wave` `goblin`.
+ * - Waves > 5: one `troll`, two `orc`, and up to `min(wave, 8)` `goblin`.
+ */
 function buildWaveList(wave: number): EnemyType[] {
   if (wave % 5 === 0 && wave > 0) {
     return ['boss', 'orc', 'orc', 'orc', 'goblin', 'goblin', 'goblin'];
@@ -171,6 +215,21 @@ const BUILDING_NAME: Record<BuildingType, string> = {
   keep: 'Keep',
 };
 
+/**
+ * Render the bottom heads-up display containing building selection, Divine Smite, game speed toggle, and Send Wave controls.
+ *
+ * @param selectedBuilding - Currently selected building type, or `null` when none is selected.
+ * @param onSelectBuilding - Callback invoked with a building type when the player selects it.
+ * @param phase - Current game phase, either `"build"` (shows Send Wave) or `"defend"`.
+ * @param onStartWave - Callback invoked to start the next wave.
+ * @param smiteCd - Remaining Divine Smite cooldown in seconds; buttons are disabled while greater than zero.
+ * @param onDivineSmite - Callback invoked to trigger Divine Smite.
+ * @param gold - Current player gold used to determine affordability of buildings.
+ * @param unlocks - Record mapping each BuildingType to a boolean indicating whether it is unlocked.
+ * @param gameSpeed - Current game speed multiplier displayed on the speed button.
+ * @param onSpeedToggle - Callback invoked to cycle the game speed.
+ * @returns The bottom HUD React element with building pickers, smite button, speed control, and optional Send Wave button.
+ */
 function BottomHUD({
   selectedBuilding,
   onSelectBuilding,
@@ -296,7 +355,16 @@ function BottomHUD({
   );
 }
 
-// ─── Game Over modal ──────────────────────────────────────────────────────
+/**
+ * Modal displayed when the player is defeated, presenting final stats and actions.
+ *
+ * Shows the number of waves survived and coins earned, and exposes buttons to restart the game or return to the main menu.
+ *
+ * @param wave - The number of waves the player survived.
+ * @param coins - The amount of coins awarded at game over.
+ * @param onRestart - Callback invoked when the "Play Again" button is pressed.
+ * @param onMenu - Callback invoked when the "Main Menu" button is pressed.
+ */
 function GameOverModal({
   visible,
   wave,
@@ -386,7 +454,13 @@ function GameOverModal({
   );
 }
 
-// ─── Main game screen ─────────────────────────────────────────────────────
+/**
+ * Render the main game screen including the 3D scene, HUD, bottom controls, building placement, wave/spawn logic, and game lifecycle (smite, speed, game over).
+ *
+ * This component wires game state (units, buildings, gold, health, wave, phase, unlocks) to the UI and 3D Canvas, manages touch-driven placement with a ghost preview, launches waves, performs the Divine Smite AoE, handles camera shake and particle effects, and presents the Game Over modal with restart/menu actions.
+ *
+ * @returns The main game screen React element used as the game's primary UI and scene container.
+ */
 export default function GameScreen() {
   const router = useRouter();
   const gold = useGameStore((s) => s.gold);

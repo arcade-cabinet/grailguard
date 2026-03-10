@@ -10,21 +10,16 @@ import { emitParticles } from './ParticleSystem';
 const _eid = 0;
 
 /**
- * Runs the entire combat simulation each frame.
+ * Per-frame controller that advances the combat simulation while the game is in the 'defend' phase.
  *
- * PERFORMANCE DESIGN:
- *   – Reads all state once at frame start (getState(), never a React subscription).
- *   – Mutates a local copy of all unit objects.
- *   – Calls batchSetUnits() ONCE at the end → exactly 1 Zustand notification/frame
- *     regardless of unit count. Replaces the previous N×5 set() calls/frame.
+ * Runs inside the render loop and performs a full, deterministic simulation step: it reads a snapshot
+ * of game state, mutates a local copy of all units, resolves targeting, attacks (including healer
+ * heals and boss AoE), movement (with separation steering), kill/reward effects, sanctuary breaches,
+ * and wave-end detection, then applies a single atomic state update.
  *
- * GAMEPLAY FIXES vs. scaffold:
- *   – Ally movement: allies advance toward nearest enemy at ANY distance
- *     (not just when an enemy is already within attackRange).
- *   – Healer healing: clerics move toward injured allies then heal.
- *   – Boss AoE: damages all allies within 2.5 u on each attack.
- *   – Divine Smite cooldown decays in both phases.
- *   – Camera shake decays continuously.
+ * @remarks
+ * - Always decays global timers (divine smite cooldown and camera shake) each frame.
+ * - Uses one call to batchSetUnits per frame to minimize state notifications.
  */
 export function CombatController() {
   const waveEndTimer = useRef(0);

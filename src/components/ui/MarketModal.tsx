@@ -34,6 +34,13 @@ interface MarketModalProps {
   onClose: () => void;
 }
 
+/**
+ * Render a market modal that displays available building unlocks and lets the player purchase them.
+ *
+ * @param visible - Whether the modal is shown
+ * @param onClose - Callback invoked when the modal should be closed
+ * @returns A React element that displays the market UI with item cards, purchase buttons, current coins, and a close action
+ */
 export function MarketModal({ visible, onClose }: MarketModalProps) {
   const { coins, unlocks, unlockBuilding } = useMetaStore();
 

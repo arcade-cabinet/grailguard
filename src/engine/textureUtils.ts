@@ -1,11 +1,25 @@
 import * as THREE from 'three';
 
-// Simple pseudo-random value noise (seeded)
+/**
+ * Produces a deterministic pseudo-random value based on 2D coordinates.
+ *
+ * @param x - X coordinate in continuous 2D space
+ * @param y - Y coordinate in continuous 2D space
+ * @returns A pseudo-random number in the range [0, 1) derived from `x` and `y`
+ */
 function valueNoise(x: number, y: number): number {
   const n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453123;
   return n - Math.floor(n);
 }
 
+/**
+ * Generates fractal Brownian motion (fBm) noise value for 2D coordinates.
+ *
+ * @param x - X coordinate in noise space
+ * @param y - Y coordinate in noise space
+ * @param octaves - Number of noise octaves to combine; higher values increase detail (default: 4)
+ * @returns A noise value in the range [0, 1) representing the combined fBm at the given coordinates
+ */
 function fbm(x: number, y: number, octaves = 4): number {
   let value = 0;
   let amplitude = 0.5;
@@ -29,6 +43,16 @@ export type TextureType =
   | 'wood_col'
   | 'wood_rgh';
 
+/**
+ * Create a procedural RGBA DataTexture for the specified texture category.
+ *
+ * Generates per-pixel color (and normal/roughness variants) from fractal Brownian motion noise and packs it into a THREE.DataTexture.
+ *
+ * @param type - Texture category to generate (one of the TextureType union)
+ * @param width - Texture width in pixels (default: 128)
+ * @param height - Texture height in pixels (default: 128)
+ * @returns A THREE.DataTexture containing RGBA pixel data driven by FBM noise; the texture uses RepeatWrapping for both axes and is marked as needing an update.
+ */
 export function generateNoiseTexture(
   type: TextureType,
   width = 128,

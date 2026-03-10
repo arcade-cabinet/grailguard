@@ -12,7 +12,13 @@ interface EmitEvent {
 }
 const _queue: EmitEvent[] = [];
 
-/** Call from CombatController or anywhere – triggers on next render frame. */
+/**
+ * Enqueue a burst of particles to be spawned on the next render frame.
+ *
+ * @param position - The spawn position as [x, y, z] in world coordinates
+ * @param color - Any CSS/THREE-compatible color string (parsed with THREE.Color) used for particle color
+ * @param count - Number of particles to enqueue
+ */
 export function emitParticles(position: [number, number, number], color: string, count: number) {
   const c = new THREE.Color(color);
   _queue.push({ position, r: c.r, g: c.g, b: c.b, count });
@@ -35,6 +41,15 @@ interface Particle {
 
 const POOL_SIZE = 350;
 
+/**
+ * Render an instanced, pooled particle system that consumes queued emission events and updates particle state each frame.
+ *
+ * The component maintains a fixed-size particle pool and reuses instances to spawn bursts enqueued in the global emit queue.
+ * On each frame it spawns new particles from the queue, integrates physics (velocity, gravity, lifetime), updates per-instance
+ * transforms and colors, and hides unused instances by scaling them to zero.
+ *
+ * @returns A React element containing an InstancedMesh configured to display the pooled particles.
+ */
 export function ParticleSystem() {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const pool = useRef<Particle[]>([]);

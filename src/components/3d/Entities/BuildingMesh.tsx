@@ -14,6 +14,12 @@ const BUILDING_COLORS: Record<string, string> = {
   keep: '#778866',
 };
 
+/**
+ * Render a 3D building mesh at the building's world position using the building's type to choose shape, color, and textures.
+ *
+ * @param building - Building data (gridX, gridZ, type, etc.) used to compute world coordinates and select the building variant to render
+ * @returns A JSX element containing the composed three.js meshes/groups that visualize the specified building
+ */
 export function BuildingMesh({ building }: BuildingMeshProps) {
   const wx = building.gridX * CELL_SIZE - HALF_GRID + CELL_SIZE / 2;
   const wz = building.gridZ * CELL_SIZE - HALF_GRID + CELL_SIZE / 2;

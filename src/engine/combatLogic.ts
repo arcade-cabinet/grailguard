@@ -1,11 +1,26 @@
 import { type Entity, HP_SCALE_PER_WAVE, type UNIT_STATS, type Vector3Data } from './constants';
 
+/**
+ * Compute the Euclidean distance between two points using their X and Z coordinates.
+ *
+ * @returns The distance between `a` and `b` calculated from their `x` and `z` components
+ */
 export function distance2D(a: Vector3Data, b: Vector3Data): number {
   const dx = a.x - b.x;
   const dz = a.z - b.z;
   return Math.sqrt(dx * dx + dz * dz);
 }
 
+/**
+ * Selects the most appropriate target Entity for the given unit based on role, team, and proximity.
+ *
+ * Healers target an allied unit within their attackRange that has the lowest HP-to-maxHP ratio below 1.0.
+ * Enemy units will prioritize an allied wall within 1.5 units if present; otherwise units target the closest alive enemy within their attackRange.
+ *
+ * @param unit - The unit seeking a target
+ * @param all - Array of all entities to consider
+ * @returns The chosen `Entity` target, or `null` if no valid target is found
+ */
 export function findTarget(unit: Entity, all: Entity[]): Entity | null {
   const alive = all.filter((e) => e.hp > 0 && e.id !== unit.id);
 
@@ -49,6 +64,19 @@ export function findTarget(unit: Entity, all: Entity[]): Entity | null {
   return best;
 }
 
+/**
+ * Computes a separation force vector that pushes `unit` away from nearby entities.
+ *
+ * The returned vector is the sum of repulsive contributions from each other entity
+ * whose XZ-plane distance to `unit` is less than `separationRadius`. Each contribution
+ * scales with proximity (stronger when closer) and the `strength` multiplier.
+ *
+ * @param unit - The entity to compute the separation force for
+ * @param all - All entities to consider when calculating repulsion
+ * @param separationRadius - Distance within which other entities contribute to the force
+ * @param strength - Multiplier applied to each repulsive contribution
+ * @returns A Vector3Data `{ x, y: 0, z }` representing the separation force on the XZ plane
+ */
 export function applySeparation(
   unit: Entity,
   all: Entity[],
@@ -71,10 +99,29 @@ export function applySeparation(
   return { x: fx, y: 0, z: fz };
 }
 
+/**
+ * Scale an enemy's base hit points based on the current wave number.
+ *
+ * @param baseHp - The unit's base hit points
+ * @param wave - The current wave number (0-based)
+ * @returns The scaled hit points rounded to the nearest integer
+ */
 export function scaleEnemyHp(baseHp: number, wave: number): number {
   return Math.round(baseHp * (1.0 + wave * HP_SCALE_PER_WAVE));
 }
 
+/**
+ * Builds a pool of enemy unit type keys appropriate for the specified wave.
+ *
+ * The returned array represents the spawn pool for that wave:
+ * - Every 5th wave greater than 0 is a boss wave and includes ['boss', 'orc', 'orc', 'goblin', 'goblin'].
+ * - Waves 0–2 fill the pool with 3 + wave 'goblin' entries.
+ * - Waves 3–5 include two 'orc' and 2 + wave 'goblin' entries.
+ * - Waves 6 and above include one 'troll', two 'orc', and `wave` many 'goblin' entries.
+ *
+ * @param wave - The current wave number (integer, typically >= 0).
+ * @returns An array of keys from UNIT_STATS representing enemy types for the wave.
+ */
 export function getWaveEnemyTypes(wave: number): Array<keyof typeof UNIT_STATS> {
   const pool: Array<keyof typeof UNIT_STATS> = [];
   const isBossWave = wave % 5 === 0 && wave > 0;

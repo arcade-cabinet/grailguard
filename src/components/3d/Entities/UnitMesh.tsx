@@ -22,6 +22,12 @@ interface UnitMeshProps {
   entityId: string;
 }
 
+/**
+ * Renders a 3D unit mesh and its HP bar, updating transforms and HP visuals each frame without causing React re-renders for position or HP changes.
+ *
+ * @param entityId - The game entity identifier of the unit to render
+ * @returns The React Three Fiber group for the unit, or `null` if the unit no longer exists
+ */
 export function UnitMesh({ entityId }: UnitMeshProps) {
   // ── All hooks MUST come before any conditional returns ────────────────
   const meshRef = useRef<THREE.Mesh>(null);

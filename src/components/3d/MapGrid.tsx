@@ -6,6 +6,12 @@ import { useGameStore } from '../../store/useGameStore';
 
 const HALF = (GRID_SIZE * CELL_SIZE) / 2;
 
+/**
+ * Map a tile type identifier to its display color.
+ *
+ * @param tileId - Numeric tile type identifier (one of the TILE constants)
+ * @returns A THREE.Color corresponding to the tile type for use when rendering the grid
+ */
 function tileColor(tileId: number): THREE.Color {
   switch (tileId) {
     case TILE.PATH:
@@ -23,6 +29,15 @@ function tileColor(tileId: number): THREE.Color {
   }
 }
 
+/**
+ * Renders the scene's tile grid as a single instanced mesh centered at the origin.
+ *
+ * Reads the current grid from the game store and updates per-instance transforms and colors
+ * whenever the grid changes. Each instance represents a ground tile and uses a generated
+ * grass noise texture for its material.
+ *
+ * @returns The React element containing the instanced mesh of tiles
+ */
 export function MapGrid() {
   const grid = useGameStore((s) => s.grid);
   const meshRef = useRef<THREE.InstancedMesh>(null);
@@ -61,6 +76,13 @@ export function MapGrid() {
   );
 }
 
+/**
+ * Renders instanced scenery objects (cones) at grid cells marked as SCENERY.
+ *
+ * Each instance is positioned at the center of its grid cell, given a deterministic scale variation, and textured with a stone noise map.
+ *
+ * @returns A React element containing an instanced mesh of scenery cones, or `null` if there are no scenery positions.
+ */
 export function SceneryInstances() {
   const grid = useGameStore((s) => s.grid);
   const stoneTex = useMemo(() => generateNoiseTexture('stone_col'), []);

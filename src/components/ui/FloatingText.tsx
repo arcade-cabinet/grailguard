@@ -9,6 +9,16 @@ interface FloatingTextProps {
   onDone: () => void;
 }
 
+/**
+ * Renders an animated 3D floating text at a given world position to show a numeric change.
+ *
+ * Displays a green "+N" for healing (value < 0), gold "0" for zero, or red "-N" for damage; the text rises, continuously faces the camera, and invokes onDone after 1.5 seconds.
+ *
+ * @param value - Numeric change to display; negative values are treated as healing.
+ * @param position - World-space [x, y, z] position for the text.
+ * @param onDone - Callback invoked once the floating text finishes its animation.
+ * @returns The React element rendering the floating 3D text.
+ */
 export function FloatingText({ value, position, onDone }: FloatingTextProps) {
   const ref = useRef<THREE.Mesh>(null);
   const elapsed = useRef(0);

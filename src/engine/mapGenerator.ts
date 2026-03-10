@@ -8,6 +8,12 @@ export interface PathResult {
   spawnZ: number;
 }
 
+/**
+ * Creates a deterministic pseudorandom number generator seeded with the given value.
+ *
+ * @param seed - Integer seed used to initialize the generator
+ * @returns A function that, when called, returns a pseudorandom number in the range [0, 1)
+ */
 function seededRng(seed: number) {
   let s = seed;
   return () => {
@@ -16,6 +22,14 @@ function seededRng(seed: number) {
   };
 }
 
+/**
+ * Checks whether placing a PATH tile at the given coordinates would form a 2x2 block of PATH tiles.
+ *
+ * @param grid - The map grid to inspect
+ * @param x - X coordinate of the candidate PATH tile
+ * @param z - Z coordinate of the candidate PATH tile
+ * @returns `true` if placing a PATH at (x, z) would create a 2x2 PATH block, `false` otherwise.
+ */
 function wouldCreate2x2(grid: Grid, x: number, z: number): boolean {
   const checks = [
     [x - 1, z - 1],
@@ -39,6 +53,19 @@ function wouldCreate2x2(grid: Grid, x: number, z: number): boolean {
   return false;
 }
 
+/**
+ * Generate a deterministic square game map with a spawn, a 3x3 sanctuary, a path to that sanctuary, and scattered scenery.
+ *
+ * The map is created using a seeded RNG so the same `seed` produces the same layout. A spawn is placed at x=0 and a
+ * random z between 3 and 16; a path is grown from the spawn toward the sanctuary center while avoiding 2x2 path blocks.
+ * Remaining grass tiles are converted to scenery with a 15% probability.
+ *
+ * @param seed - Seed for the deterministic random number generator (default: 42)
+ * @returns An object containing:
+ *   - `grid`: the final tile grid
+ *   - `pathCoords`: ordered coordinates of tiles that form the generated path (starting with the spawn)
+ *   - `spawnX`, `spawnZ`: coordinates of the spawn tile
+ */
 export function generateMap(seed = 42): PathResult {
   const rng = seededRng(seed);
   const grid: Grid = Array.from({ length: GRID_SIZE }, () => new Array(GRID_SIZE).fill(TILE.GRASS));

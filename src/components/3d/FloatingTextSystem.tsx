@@ -12,7 +12,15 @@ interface FTEvent {
 let _counter = 0;
 const _queue: FTEvent[] = [];
 
-/** Call from anywhere (CombatController, game.tsx etc.) – no React needed. */
+/**
+ * Enqueue a floating-text event to be displayed in the 3D scene.
+ *
+ * Adds a new event with a unique numeric id to the internal queue; the event will be consumed
+ * by FloatingTextSystem and rendered as a transient label at the given position.
+ *
+ * @param pos - World position [x, y, z] where the floating text will appear
+ * @param value - Numeric value to display; sign and magnitude determine the label content
+ */
 export function emitFloatingText(pos: [number, number, number], value: number) {
   _queue.push({ id: _counter++, pos, value });
 }
@@ -22,6 +30,12 @@ interface ActiveFT extends FTEvent {
   life: number;
 }
 
+/**
+ * Renders a single floating text label that rises, faces the camera, and signals when it expires.
+ *
+ * @param ft - Active floating-text entry containing `id`, `pos` (x,y,z), `value`, and `life`; used to determine position, color, size, and displayed text
+ * @param onDone - Callback invoked once the label's lifetime ends (approximately 1.5 seconds)
+ */
 function FTLabel({ ft, onDone }: { ft: ActiveFT; onDone: () => void }) {
   const ref = useRef<THREE.Mesh>(null);
   const done = useRef(false);
@@ -60,7 +74,15 @@ function FTLabel({ ft, onDone }: { ft: ActiveFT; onDone: () => void }) {
   );
 }
 
-// ─── Container: drains queue inside useFrame, manages React state ──────────
+/**
+ * Renders and manages active floating text labels by consuming the module-level event queue each frame.
+ *
+ * Drains any queued FTEvent items once per frame, adds them to local state as ActiveFT entries with a 1.5s life,
+ * and caps the number of simultaneous labels at 24. Renders an FTLabel for each active entry and removes entries
+ * when their label signals completion.
+ *
+ * @returns The React fragment containing active floating text label components
+ */
 export function FloatingTextSystem() {
   const [texts, setTexts] = useState<ActiveFT[]>([]);
 

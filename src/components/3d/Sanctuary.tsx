@@ -8,6 +8,13 @@ import { useGameStore } from '../../store/useGameStore';
 const stoneTex = generateNoiseTexture('stone_col');
 const woodTex = generateNoiseTexture('wood_col');
 
+/**
+ * Renders a 3D sanctuary scene with a floating, rotating grail, an inner glowing ring, corner torches, and layered stone base.
+ *
+ * The component animates the grail's rotation and bobbing, slowly rotates the inner ring, pulses the gold point light, and flashes the glow red when the player's health decreases.
+ *
+ * @returns The React element containing the sanctuary group for use in a React Three Fiber scene.
+ */
 export function Sanctuary() {
   const grailRef = useRef<THREE.Mesh>(null);
   const glowRef = useRef<THREE.PointLight>(null);

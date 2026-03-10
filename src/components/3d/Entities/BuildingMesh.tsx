@@ -1,152 +1,182 @@
+import { useGLTF, useTexture } from '@react-three/drei';
 import { useMemo } from 'react';
+import * as THREE from 'three';
 import { type Building, CELL_SIZE, HALF_GRID } from '../../../engine/constants';
-import { generateNoiseTexture } from '../../../engine/textureUtils';
 
 interface BuildingMeshProps {
   building: Building;
 }
 
-const BUILDING_COLORS: Record<string, string> = {
-  wall: '#775533',
-  hut: '#aa7744',
-  range: '#446633',
-  temple: '#9988cc',
-  keep: '#778866',
+const MODEL_URLS: Record<string, string> = {
+  wall: '/assets/models/wall.glb',
+  hut: '/assets/models/hut.glb',
+  range: '/assets/models/range.glb',
+  sanctuary: '/assets/models/sanctuary.glb',
+  'tower-base': '/assets/models/tower-round-base.glb',
+  turret: '/assets/models/weapon-turret.glb',
+  ballista: '/assets/models/weapon-ballista.glb',
+  cannon: '/assets/models/weapon-cannon.glb',
+  catapult: '/assets/models/weapon-catapult.glb',
 };
 
+// Preload all building models
+for (const url of Object.values(MODEL_URLS)) {
+  useGLTF.preload(url);
+}
+
+// Preload textures
+useTexture.preload([
+  '/assets/materials/Bricks021/Color.jpg',
+  '/assets/materials/Bricks021/NormalGL.jpg',
+  '/assets/materials/Bricks021/Roughness.jpg',
+  '/assets/materials/Planks012/Color.jpg',
+  '/assets/materials/Planks012/NormalGL.jpg',
+  '/assets/materials/Planks012/Roughness.jpg',
+]);
+
 /**
- * Render a 3D building mesh at the building's world position using the building's type to choose shape, color, and textures.
- *
- * @param building - Building data (gridX, gridZ, type, etc.) used to compute world coordinates and select the building variant to render
- * @returns A JSX element containing the composed three.js meshes/groups that visualize the specified building
+ * Render a 3D building mesh at the building's world position using loaded CC0 GLB models.
+ * Applies a fallback material color to the loaded meshes.
  */
-export function BuildingMesh({ building }: BuildingMeshProps) {
+export function BuildingMesh({
+  building,
+  onClick,
+}: BuildingMeshProps & { onClick?: (id: string) => void }) {
   const wx = building.gridX * CELL_SIZE - HALF_GRID + CELL_SIZE / 2;
   const wz = building.gridZ * CELL_SIZE - HALF_GRID + CELL_SIZE / 2;
-  const color = BUILDING_COLORS[building.type] ?? '#888888';
-  const stoneTex = useMemo(() => generateNoiseTexture('stone_col'), []);
-  const woodTex = useMemo(() => generateNoiseTexture('wood_col'), []);
 
-  const mat = (
-    <meshStandardMaterial
-      map={building.type === 'hut' || building.type === 'wall' ? woodTex : stoneTex}
-      color={color}
-      roughness={0.78}
-    />
-  );
+  // Map the building type to the corresponding GLB filename
+  const modelName =
+    building.type === 'temple' || building.type === 'keep' ? 'sanctuary' : building.type;
 
-  if (building.type === 'wall') {
-    return (
-      <mesh position={[wx, 1.1, wz]} castShadow receiveShadow>
-        <boxGeometry args={[CELL_SIZE * 0.85, 2.2, CELL_SIZE * 0.32]} />
-        {mat}
-      </mesh>
-    );
-  }
+  const isTower = ['turret', 'ballista', 'cannon', 'catapult'].includes(building.type);
 
-  if (building.type === 'hut') {
-    return (
-      <group position={[wx, 0, wz]}>
-        <mesh position={[0, 0.55, 0]} castShadow receiveShadow>
-          <boxGeometry args={[1.4, 1.1, 1.4]} />
-          {mat}
-        </mesh>
-        {/* Roof */}
-        <mesh position={[0, 1.35, 0]} castShadow>
-          <coneGeometry args={[1.05, 0.85, 4]} />
-          <meshStandardMaterial color="#882222" roughness={0.9} />
-        </mesh>
-      </group>
-    );
-  }
+  // Unconditionally load the base scene (only used if isTower is true)
+  const { scene: baseRawScene } = useGLTF(MODEL_URLS['tower-base']);
+  // Load the main scene (weapon or standard building)
+  const { scene } = useGLTF(MODEL_URLS[modelName] ?? MODEL_URLS.wall);
 
-  if (building.type === 'range') {
-    return (
-      <group position={[wx, 0, wz]}>
-        <mesh position={[0, 0.75, 0]} castShadow receiveShadow>
-          <boxGeometry args={[1.5, 1.5, 1.2]} />
-          {mat}
-        </mesh>
-        {/* Parapet / battlement hint */}
-        {([-0.5, 0.5] as number[]).map((ox) => (
-          <mesh key={`parapet-${ox}`} position={[ox, 1.65, 0]} castShadow>
-            <boxGeometry args={[0.35, 0.4, 0.25]} />
-            {mat}
-          </mesh>
-        ))}
-        {/* Flag */}
-        <mesh position={[0, 2.1, 0]}>
-          <cylinderGeometry args={[0.04, 0.04, 0.9, 5]} />
-          <meshStandardMaterial color="#555" />
-        </mesh>
-        <mesh position={[0.2, 2.45, 0]}>
-          <planeGeometry args={[0.4, 0.25]} />
-          <meshBasicMaterial color="#cc2222" side={2} />
-        </mesh>
-      </group>
-    );
-  }
+  const [brickColor, brickNormal, brickRoughness] = useTexture([
+    '/assets/materials/Bricks021/Color.jpg',
+    '/assets/materials/Bricks021/NormalGL.jpg',
+    '/assets/materials/Bricks021/Roughness.jpg',
+  ]);
+  const [plankColor, plankNormal, plankRoughness] = useTexture([
+    '/assets/materials/Planks012/Color.jpg',
+    '/assets/materials/Planks012/NormalGL.jpg',
+    '/assets/materials/Planks012/Roughness.jpg',
+  ]);
 
-  if (building.type === 'temple') {
-    return (
-      <group position={[wx, 0, wz]}>
-        <mesh position={[0, 0.9, 0]} castShadow receiveShadow>
-          <cylinderGeometry args={[0.85, 1.0, 1.8, 8]} />
-          {mat}
-        </mesh>
-        {/* Dome */}
-        <mesh position={[0, 2.0, 0]} castShadow>
-          <sphereGeometry args={[0.75, 8, 8, 0, Math.PI * 2, 0, Math.PI / 2]} />
-          <meshStandardMaterial color="#bbaadd" roughness={0.4} metalness={0.3} />
-        </mesh>
-        {/* Cross/spire */}
-        <mesh position={[0, 2.8, 0]} castShadow>
-          <cylinderGeometry args={[0.04, 0.04, 0.7, 5]} />
-          <meshStandardMaterial color="#ddddff" metalness={0.7} roughness={0.2} />
-        </mesh>
-        <pointLight position={[0, 2.0, 0]} color="#aaaaff" intensity={0.8} distance={5} />
-      </group>
-    );
-  }
+  const brickMaterial = useMemo(() => {
+    brickColor.colorSpace = THREE.SRGBColorSpace;
+    brickColor.wrapS = THREE.RepeatWrapping;
+    brickColor.wrapT = THREE.RepeatWrapping;
+    brickNormal.wrapS = THREE.RepeatWrapping;
+    brickNormal.wrapT = THREE.RepeatWrapping;
+    brickRoughness.wrapS = THREE.RepeatWrapping;
+    brickRoughness.wrapT = THREE.RepeatWrapping;
+    return new THREE.MeshStandardMaterial({
+      map: brickColor,
+      normalMap: brickNormal,
+      roughnessMap: brickRoughness,
+    });
+  }, [brickColor, brickNormal, brickRoughness]);
 
-  // keep
+  const plankMaterial = useMemo(() => {
+    plankColor.colorSpace = THREE.SRGBColorSpace;
+    plankColor.wrapS = THREE.RepeatWrapping;
+    plankColor.wrapT = THREE.RepeatWrapping;
+    plankNormal.wrapS = THREE.RepeatWrapping;
+    plankNormal.wrapT = THREE.RepeatWrapping;
+    plankRoughness.wrapS = THREE.RepeatWrapping;
+    plankRoughness.wrapT = THREE.RepeatWrapping;
+    return new THREE.MeshStandardMaterial({
+      map: plankColor,
+      normalMap: plankNormal,
+      roughnessMap: plankRoughness,
+    });
+  }, [plankColor, plankNormal, plankRoughness]);
+
+  // Clone the scene so multiple buildings don't share identical mesh instances
+  const clonedScene = useMemo(() => {
+    const clone = scene.clone();
+
+    // Apply building color and enable shadows on all inner meshes
+    clone.traverse((child) => {
+      const mesh = child as THREE.Mesh;
+      if (mesh.isMesh) {
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        if (modelName === 'wall' || modelName === 'sanctuary') {
+          mesh.material = brickMaterial;
+        } else if (modelName === 'hut' || modelName === 'range') {
+          mesh.material = plankMaterial;
+        }
+      }
+    });
+
+    return clone;
+  }, [scene, modelName, brickMaterial, plankMaterial]);
+
+  const clonedBaseScene = useMemo(() => {
+    if (!isTower) return null;
+    const clone = baseRawScene.clone();
+    clone.traverse((child) => {
+      const mesh = child as THREE.Mesh;
+      if (mesh.isMesh) {
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        mesh.material = brickMaterial; // Towers get brick material for base
+      }
+    });
+    return clone;
+  }, [baseRawScene, isTower, brickMaterial]);
+
+  // Apply scale adjustments since these CC0 assets might not be exactly 1x1 grid size
+  const scaleRef = useMemo(() => {
+    // Increase size slightly based on levelStats (15% per level)
+    const levelScale = 1.0 + (building.levelStats - 1) * 0.15;
+    switch (modelName) {
+      case 'wall':
+        return 0.5 * levelScale;
+      case 'hut':
+        return 0.4 * levelScale;
+      case 'range':
+        return 0.4 * levelScale;
+      case 'sanctuary':
+        return 0.6 * levelScale;
+      case 'turret':
+      case 'ballista':
+      case 'cannon':
+      case 'catapult':
+        return 0.5 * levelScale; // Scale for weapon
+      default:
+        return 0.5 * levelScale;
+    }
+  }, [modelName, building.levelStats]);
+
   return (
-    <group position={[wx, 0, wz]}>
-      {/* Main tower */}
-      <mesh position={[0, 1.5, 0]} castShadow receiveShadow>
-        <boxGeometry args={[1.6, 3.0, 1.6]} />
-        {mat}
-      </mesh>
-      {/* Corner turrets */}
-      {(
-        [
-          [-0.72, -0.72],
-          [0.72, -0.72],
-          [-0.72, 0.72],
-          [0.72, 0.72],
-        ] as [number, number][]
-      ).map(([ox, oz]) => (
-        <mesh key={`turret-${ox}-${oz}`} position={[ox, 1.6, oz]} castShadow>
-          <cylinderGeometry args={[0.22, 0.26, 3.2, 6]} />
-          {mat}
-        </mesh>
-      ))}
-      {/* Battlements */}
-      {([-0.55, 0, 0.55] as number[]).map((ox) => (
-        <mesh key={`battlement-${ox}`} position={[ox, 3.25, 0]} castShadow>
-          <boxGeometry args={[0.28, 0.42, 1.65]} />
-          {mat}
-        </mesh>
-      ))}
-      {/* Banner */}
-      <mesh position={[0, 3.85, 0]}>
-        <cylinderGeometry args={[0.05, 0.05, 1.0, 5]} />
-        <meshStandardMaterial color="#444" />
-      </mesh>
-      <mesh position={[0.28, 4.2, 0]}>
-        <planeGeometry args={[0.55, 0.35]} />
-        <meshBasicMaterial color="#bb0000" side={2} />
-      </mesh>
+    <group
+      position={[wx, 0, wz]}
+      onClick={(e) => {
+        if (onClick) {
+          e.stopPropagation();
+          onClick(building.id);
+        }
+      }}
+    >
+      {isTower && clonedBaseScene && (
+        <primitive
+          object={clonedBaseScene}
+          scale={0.5 * (1.0 + (building.levelStats - 1) * 0.15)}
+          position={[0, 0, 0]}
+        />
+      )}
+      <primitive
+        object={clonedScene}
+        scale={scaleRef}
+        position={isTower ? [0, 0.4, 0] : [0, 0, 0]}
+      />
     </group>
   );
 }

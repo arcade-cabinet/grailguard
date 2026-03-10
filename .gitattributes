@@ -1,0 +1,14 @@
+# public/assets/ — Git LFS tracking
+# Binary 3D models
+public/assets/models/**/*.glb filter=lfs diff=lfs merge=lfs -text
+public/assets/models/**/*.png filter=lfs diff=lfs merge=lfs -text
+# PBR material textures
+public/assets/materials/**/*.jpg filter=lfs diff=lfs merge=lfs -text
+public/assets/materials/**/*.png filter=lfs diff=lfs merge=lfs -text
+# HDRI skybox textures
+public/assets/hdri/**/*.jpg filter=lfs diff=lfs merge=lfs -text
+public/assets/hdri/**/*.exr filter=lfs diff=lfs merge=lfs -text
+public/assets/**/*.glb filter=lfs diff=lfs merge=lfs -text
+public/assets/**/*.jpg filter=lfs diff=lfs merge=lfs -text
+public/assets/**/*.png filter=lfs diff=lfs merge=lfs -text
+public/assets/**/*.exr filter=lfs diff=lfs merge=lfs -text

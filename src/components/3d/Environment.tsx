@@ -1,15 +1,9 @@
-import { useFrame } from '@react-three/fiber';
-import { useRef } from 'react';
+import { useTexture } from '@react-three/drei';
+import { useFrame, useThree } from '@react-three/fiber';
+import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
-// Day/Night color stages
-const SKY_COLORS: [number, number, number][] = [
-  [0.53, 0.81, 0.98], // Day
-  [0.98, 0.55, 0.27], // Dusk
-  [0.05, 0.05, 0.15], // Night
-  [0.4, 0.3, 0.6], // Dawn
-];
-
+// Day/Night lighting stages (kept for directional light cycling)
 const SUN_COLORS: [number, number, number][] = [
   [1.0, 0.95, 0.8], // Day
   [1.0, 0.5, 0.2], // Dusk
@@ -18,22 +12,13 @@ const SUN_COLORS: [number, number, number][] = [
 ];
 
 const SUN_INTENSITIES = [2.0, 1.0, 0.2, 0.8];
+const AMBIENT_BASES = [0.5, 0.3, 0.08, 0.25];
 
 /**
- * Local time-of-day accumulator. Kept as a module-level ref so the day/night
- * cycle never causes a Zustand state update — purely visual, drives only
- * THREE.js material/light mutations via refs.
+ * Module-level time-of-day accumulator — purely visual, no Zustand updates.
  */
 let _timeOfDay = 0;
 
-/**
- * Linearly interpolate between two RGB color triplets and return the result as a THREE.Color.
- *
- * @param a - Source color as an [r, g, b] tuple with components in the 0 to 1 range
- * @param b - Destination color as an [r, g, b] tuple with components in the 0 to 1 range
- * @param t - Interpolation factor where 0 returns `a` and 1 returns `b` (typically in 0..1)
- * @returns The interpolated color as a `THREE.Color`
- */
 function lerp3(a: [number, number, number], b: [number, number, number], t: number): THREE.Color {
   return new THREE.Color(
     a[0] + (b[0] - a[0]) * t,
@@ -43,18 +28,36 @@ function lerp3(a: [number, number, number], b: [number, number, number], t: numb
 }
 
 /**
- * Provides scene fog and lighting and drives a 4-stage animated day–night cycle.
- *
- * The cycle time is stored in a module-level variable (not Zustand state) so the
- * animation runs at full 60 fps without triggering any React re-renders.
- *
- * @returns A JSX element that mounts fog, ambient, directional, and hemisphere lights for the scene
+ * Scene environment with real HDRI skybox and animated day/night lighting cycle.
+ * Uses AmbientCG CC0 HDRI tonemapped JPG as equirectangular background.
  */
 export function Environment() {
   const dirLight = useRef<THREE.DirectionalLight>(null);
   const ambLight = useRef<THREE.AmbientLight>(null);
+  const { scene } = useThree();
 
-  useFrame((state, delta) => {
+  // Load the HDRI skyboxes as equirectangular textures
+  const [dayHdri, eveningHdri, nightHdri] = useTexture([
+    '/assets/hdri/day.jpg',
+    '/assets/hdri/evening.jpg',
+    '/assets/hdri/night.jpg',
+  ]);
+
+  // Apply mapping and color space
+  useEffect(() => {
+    dayHdri.mapping = THREE.EquirectangularReflectionMapping;
+    dayHdri.colorSpace = THREE.SRGBColorSpace;
+    eveningHdri.mapping = THREE.EquirectangularReflectionMapping;
+    eveningHdri.colorSpace = THREE.SRGBColorSpace;
+    nightHdri.mapping = THREE.EquirectangularReflectionMapping;
+    nightHdri.colorSpace = THREE.SRGBColorSpace;
+    return () => {
+      scene.background = null;
+      scene.environment = null;
+    };
+  }, [dayHdri, eveningHdri, nightHdri, scene]);
+
+  useFrame((_state, delta) => {
     _timeOfDay = (_timeOfDay + delta * 0.01) % 1.0;
 
     const stage = _timeOfDay * 4;
@@ -62,38 +65,53 @@ export function Environment() {
     const nextIdx = (stageIdx + 1) % 4;
     const frac = stage - Math.floor(stage);
 
-    const skyColor = lerp3(SKY_COLORS[stageIdx], SKY_COLORS[nextIdx], frac);
     const sunColor = lerp3(SUN_COLORS[stageIdx], SUN_COLORS[nextIdx], frac);
     const intensity =
       SUN_INTENSITIES[stageIdx] + (SUN_INTENSITIES[nextIdx] - SUN_INTENSITIES[stageIdx]) * frac;
-
-    state.scene.background = skyColor;
-    if (state.scene.fog instanceof THREE.FogExp2 || state.scene.fog instanceof THREE.Fog) {
-      (state.scene.fog as THREE.Fog).color.copy(skyColor);
-    }
+    const ambBase =
+      AMBIENT_BASES[stageIdx] + (AMBIENT_BASES[nextIdx] - AMBIENT_BASES[stageIdx]) * frac;
 
     if (dirLight.current) {
       dirLight.current.color.copy(sunColor);
       dirLight.current.intensity = intensity;
     }
     if (ambLight.current) {
-      ambLight.current.intensity = 0.1 + intensity * 0.3;
+      ambLight.current.intensity = ambBase;
+    }
+
+    // HDRI swap
+    let currentHdri = dayHdri;
+    if (_timeOfDay > 0.25 && _timeOfDay <= 0.5) {
+      currentHdri = eveningHdri;
+    } else if (_timeOfDay > 0.5 && _timeOfDay <= 0.75) {
+      currentHdri = nightHdri;
+    } else if (_timeOfDay > 0.75) {
+      currentHdri = dayHdri; // dawn uses day
+    }
+
+    if (scene.background !== currentHdri) {
+      scene.background = currentHdri;
+      scene.environment = currentHdri;
     }
   });
 
   return (
     <>
-      <fog attach="fog" args={['#87ceeb', 30, 80]} />
-      <ambientLight ref={ambLight} intensity={0.4} />
+      <fog attach="fog" args={['#87ceeb', 40, 100]} />
+      <ambientLight ref={ambLight} intensity={0.5} />
       <directionalLight
         ref={dirLight}
-        position={[10, 20, 10]}
+        position={[15, 25, 10]}
         intensity={2.0}
         castShadow
-        shadow-mapSize={[1024, 1024]}
-        shadow-camera-far={60}
+        shadow-mapSize={[2048, 2048]}
+        shadow-camera-far={80}
+        shadow-camera-left={-35}
+        shadow-camera-right={35}
+        shadow-camera-top={35}
+        shadow-camera-bottom={-35}
       />
-      <hemisphereLight args={['#87ceeb', '#4a3728', 0.3]} />
+      <hemisphereLight args={['#87ceeb', '#4a3728', 0.4]} />
     </>
   );
 }

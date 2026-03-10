@@ -24,7 +24,10 @@ function wouldCreate2x2(grid: Grid, x: number, z: number): boolean {
   ];
   for (const [cx, cz] of checks) {
     if (
-      cx >= 0 && cz >= 0 && cx + 1 < GRID_SIZE && cz + 1 < GRID_SIZE &&
+      cx >= 0 &&
+      cz >= 0 &&
+      cx + 1 < GRID_SIZE &&
+      cz + 1 < GRID_SIZE &&
       grid[cx][cz] === TILE.PATH &&
       grid[cx + 1][cz] === TILE.PATH &&
       grid[cx][cz + 1] === TILE.PATH &&
@@ -38,9 +41,7 @@ function wouldCreate2x2(grid: Grid, x: number, z: number): boolean {
 
 export function generateMap(seed = 42): PathResult {
   const rng = seededRng(seed);
-  const grid: Grid = Array.from({ length: GRID_SIZE }, () =>
-    new Array(GRID_SIZE).fill(TILE.GRASS)
-  );
+  const grid: Grid = Array.from({ length: GRID_SIZE }, () => new Array(GRID_SIZE).fill(TILE.GRASS));
 
   // Sanctuary 3x3 around center (10,10) to (12,12)
   const cx = 10;
@@ -65,10 +66,7 @@ export function generateMap(seed = 42): PathResult {
   const maxSteps = GRID_SIZE * GRID_SIZE;
   let steps = 0;
 
-  while (
-    !(curX >= cx && curX <= cx + 2 && curZ >= cz && curZ <= cz + 2) &&
-    steps < maxSteps
-  ) {
+  while (!(curX >= cx && curX <= cx + 2 && curZ >= cz && curZ <= cz + 2) && steps < maxSteps) {
     steps++;
     const dx = sanctuaryCenter.x - curX;
     const dz = sanctuaryCenter.z - curZ;
@@ -107,8 +105,10 @@ export function generateMap(seed = 42): PathResult {
     let moved = false;
     for (const [nx, nz] of [...candidates, ...fallbacks]) {
       if (
-        nx >= 0 && nx < GRID_SIZE &&
-        nz >= 0 && nz < GRID_SIZE &&
+        nx >= 0 &&
+        nx < GRID_SIZE &&
+        nz >= 0 &&
+        nz < GRID_SIZE &&
         grid[nx][nz] !== TILE.PATH &&
         grid[nx][nz] !== TILE.SPAWN
       ) {

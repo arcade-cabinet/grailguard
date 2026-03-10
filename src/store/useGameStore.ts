@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Entity, Building, TILE } from '../engine/constants';
+import { type Building, type Entity, TILE } from '../engine/constants';
 import { generateMap } from '../engine/mapGenerator';
 
 const MAX_SEED = 99999;
@@ -89,8 +89,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     return true;
   },
 
-  takeDamage: (amount) =>
-    set((s) => ({ health: Math.max(0, s.health - amount) })),
+  takeDamage: (amount) => set((s) => ({ health: Math.max(0, s.health - amount) })),
 
   spawnUnit: (unit) =>
     set((s) => ({

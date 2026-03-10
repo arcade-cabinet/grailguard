@@ -1,20 +1,20 @@
-import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { useRef } from 'react';
 import * as THREE from 'three';
 import { CELL_SIZE } from '../../engine/constants';
 import { generateNoiseTexture } from '../../engine/textureUtils';
 import { useGameStore } from '../../store/useGameStore';
 
 const stoneTex = generateNoiseTexture('stone_col');
-const woodTex  = generateNoiseTexture('wood_col');
+const woodTex = generateNoiseTexture('wood_col');
 
 export function Sanctuary() {
-  const grailRef    = useRef<THREE.Mesh>(null);
-  const glowRef     = useRef<THREE.PointLight>(null);
-  const raysRef     = useRef<THREE.Mesh>(null);
+  const grailRef = useRef<THREE.Mesh>(null);
+  const glowRef = useRef<THREE.PointLight>(null);
+  const raysRef = useRef<THREE.Mesh>(null);
 
   // Flash red when player takes damage
-  const prevHealth  = useRef(20);
+  const prevHealth = useRef(20);
 
   useFrame((_, delta) => {
     const t = performance.now() / 1000;
@@ -83,11 +83,24 @@ export function Sanctuary() {
       </mesh>
 
       {/* Gold point light */}
-      <pointLight ref={glowRef} position={[0, 2.7, 0]} color="#ffcc44" intensity={2.2} distance={10} />
+      <pointLight
+        ref={glowRef}
+        position={[0, 2.7, 0]}
+        color="#ffcc44"
+        intensity={2.2}
+        distance={10}
+      />
 
       {/* Four corner torches */}
-      {([[-1.5, -1.5], [1.5, -1.5], [-1.5, 1.5], [1.5, 1.5]] as [number, number][]).map(([ox, oz], i) => (
-        <group key={i} position={[ox, 0, oz]}>
+      {(
+        [
+          [-1.5, -1.5],
+          [1.5, -1.5],
+          [-1.5, 1.5],
+          [1.5, 1.5],
+        ] as [number, number][]
+      ).map(([ox, oz]) => (
+        <group key={`torch-${ox}-${oz}`} position={[ox, 0, oz]}>
           <mesh position={[0, 0.6, 0]} castShadow>
             <cylinderGeometry args={[0.07, 0.1, 1.2, 5]} />
             <meshStandardMaterial map={woodTex} color="#6b3a1f" />

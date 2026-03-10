@@ -1,10 +1,14 @@
-import React, { useState, useRef } from 'react';
 import { Text } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import * as THREE from 'three';
+import { useRef, useState } from 'react';
+import type * as THREE from 'three';
 
 // ─── Imperative queue (no React state = zero re-renders on emit) ───────────
-interface FTEvent { id: number; pos: [number, number, number]; value: number }
+interface FTEvent {
+  id: number;
+  pos: [number, number, number];
+  value: number;
+}
 let _counter = 0;
 const _queue: FTEvent[] = [];
 
@@ -14,7 +18,9 @@ export function emitFloatingText(pos: [number, number, number], value: number) {
 }
 
 // ─── Individual floating label ─────────────────────────────────────────────
-interface ActiveFT extends FTEvent { life: number }
+interface ActiveFT extends FTEvent {
+  life: number;
+}
 
 function FTLabel({ ft, onDone }: { ft: ActiveFT; onDone: () => void }) {
   const ref = useRef<THREE.Mesh>(null);
@@ -62,14 +68,10 @@ export function FloatingTextSystem() {
   useFrame(() => {
     if (_queue.length === 0) return;
     const batch = _queue.splice(0, _queue.length);
-    setTexts((prev) => [
-      ...prev,
-      ...batch.map((e) => ({ ...e, life: 1.5 })),
-    ].slice(-24)); // cap at 24 simultaneous labels
+    setTexts((prev) => [...prev, ...batch.map((e) => ({ ...e, life: 1.5 }))].slice(-24)); // cap at 24 simultaneous labels
   });
 
-  const handleDone = (id: number) =>
-    setTexts((prev) => prev.filter((t) => t.id !== id));
+  const handleDone = (id: number) => setTexts((prev) => prev.filter((t) => t.id !== id));
 
   return (
     <>

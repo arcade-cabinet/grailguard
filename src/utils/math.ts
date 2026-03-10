@@ -1,4 +1,4 @@
-import { Vector3Data, GRID_SIZE } from '../engine/constants';
+import { GRID_SIZE, type Vector3Data } from '../engine/constants';
 
 export function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
@@ -24,7 +24,7 @@ export function normalize2D(x: number, z: number): { x: number; z: number } {
 export function gridToWorld(
   gridX: number,
   gridZ: number,
-  cellSize: number
+  cellSize: number,
 ): { x: number; z: number } {
   return {
     x: gridX * cellSize - (GRID_SIZE * cellSize) / 2 + cellSize / 2,
@@ -35,7 +35,7 @@ export function gridToWorld(
 export function worldToGrid(
   worldX: number,
   worldZ: number,
-  cellSize: number
+  cellSize: number,
 ): { x: number; z: number } {
   const halfGrid = (GRID_SIZE * cellSize) / 2;
   return {
@@ -47,7 +47,7 @@ export function worldToGrid(
 export function lerpColor(
   a: [number, number, number],
   b: [number, number, number],
-  t: number
+  t: number,
 ): [number, number, number] {
   return [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
 }

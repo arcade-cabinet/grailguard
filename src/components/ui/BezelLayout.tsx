@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text } from 'react-native';
+import type React from 'react';
+import { Text, View } from 'react-native';
 
 interface BezelLayoutProps {
   children: React.ReactNode;
@@ -13,23 +13,17 @@ export function BezelLayout({ children, topContent, bottomContent }: BezelLayout
       {/* Top Bezel */}
       {topContent && (
         <View className="border-b-2 border-[#5c4033] bg-[#2b1d14] px-4 py-2">
-          <View className="bg-[#eaddcf] rounded px-3 py-1">
-            {topContent}
-          </View>
+          <View className="bg-[#eaddcf] rounded px-3 py-1">{topContent}</View>
         </View>
       )}
 
       {/* Main Content */}
-      <View className="flex-1 relative">
-        {children}
-      </View>
+      <View className="flex-1 relative">{children}</View>
 
       {/* Bottom Bezel */}
       {bottomContent && (
         <View className="border-t-2 border-[#5c4033] bg-[#2b1d14] px-4 py-2">
-          <View className="bg-[#eaddcf] rounded px-3 py-1">
-            {bottomContent}
-          </View>
+          <View className="bg-[#eaddcf] rounded px-3 py-1">{bottomContent}</View>
         </View>
       )}
     </View>

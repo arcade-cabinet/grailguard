@@ -1,19 +1,19 @@
-import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import * as THREE from 'three';
+import { useRef } from 'react';
+import type * as THREE from 'three';
 import { useGameStore } from '../../../store/useGameStore';
 
 // Pre-baked integer colours – no allocations inside useFrame
 const TYPE_COLOR: Record<string, number> = {
-  wall:    0x887766,
+  wall: 0x887766,
   militia: 0x44aa44,
-  archer:  0x22cc88,
-  cleric:  0xeeeeff,
-  knight:  0x8899cc,
-  goblin:  0xaa6600,
-  orc:     0x775522,
-  troll:   0x554433,
-  boss:    0xff1111,
+  archer: 0x22cc88,
+  cleric: 0xeeeeff,
+  knight: 0x8899cc,
+  goblin: 0xaa6600,
+  orc: 0x775522,
+  troll: 0x554433,
+  boss: 0xff1111,
 };
 
 interface UnitMeshProps {
@@ -24,8 +24,8 @@ interface UnitMeshProps {
 
 export function UnitMesh({ entityId }: UnitMeshProps) {
   // ── All hooks MUST come before any conditional returns ────────────────
-  const meshRef  = useRef<THREE.Mesh>(null);
-  const hpBgRef  = useRef<THREE.Mesh>(null);
+  const meshRef = useRef<THREE.Mesh>(null);
+  const hpBgRef = useRef<THREE.Mesh>(null);
   const hpBarRef = useRef<THREE.Mesh>(null);
   const hpMatRef = useRef<THREE.MeshBasicMaterial>(null);
 
@@ -59,9 +59,7 @@ export function UnitMesh({ entityId }: UnitMeshProps) {
       hpBarRef.current.scale.x = Math.max(0.01, ratio);
     }
     if (hpMatRef.current) {
-      hpMatRef.current.color.setHex(
-        ratio > 0.6 ? 0x22dd22 : ratio > 0.3 ? 0xffaa00 : 0xff2222,
-      );
+      hpMatRef.current.color.setHex(ratio > 0.6 ? 0x22dd22 : ratio > 0.3 ? 0xffaa00 : 0xff2222);
     }
   });
 
@@ -69,20 +67,16 @@ export function UnitMesh({ entityId }: UnitMeshProps) {
   const snap = useGameStore.getState().units[entityId];
   if (!snap) return null; // unit may have been removed between render cycle and mount
 
-  const isWall  = snap.type === 'wall';
-  const isBoss  = snap.type === 'boss';
+  const isWall = snap.type === 'wall';
+  const isBoss = snap.type === 'boss';
   const isTroll = snap.type === 'troll';
-  const baseY   = isWall ? 0.5 : 0.35;
-  const color   = TYPE_COLOR[snap.type] ?? 0x4488ff;
+  const baseY = isWall ? 0.5 : 0.35;
+  const color = TYPE_COLOR[snap.type] ?? 0x4488ff;
 
   return (
     <group>
       {/* Unit body */}
-      <mesh
-        ref={meshRef}
-        castShadow
-        position={[snap.position.x, baseY, snap.position.z]}
-      >
+      <mesh ref={meshRef} castShadow position={[snap.position.x, baseY, snap.position.z]}>
         {isWall ? (
           <boxGeometry args={[1.9, 2.1, 0.55]} />
         ) : isBoss ? (

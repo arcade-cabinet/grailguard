@@ -1,30 +1,34 @@
-import React, { useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
 // ─── Imperative queue (no props, no React state, zero re-renders on emit) ──
 interface EmitEvent {
   position: [number, number, number];
-  r: number; g: number; b: number;
+  r: number;
+  g: number;
+  b: number;
   count: number;
 }
 const _queue: EmitEvent[] = [];
 
 /** Call from CombatController or anywhere – triggers on next render frame. */
-export function emitParticles(
-  position: [number, number, number],
-  color: string,
-  count: number,
-) {
+export function emitParticles(position: [number, number, number], color: string, count: number) {
   const c = new THREE.Color(color);
   _queue.push({ position, r: c.r, g: c.g, b: c.b, count });
 }
 
 // ─── Pool ──────────────────────────────────────────────────────────────────
 interface Particle {
-  x: number; y: number; z: number;
-  vx: number; vy: number; vz: number;
-  r: number; g: number; b: number;
+  x: number;
+  y: number;
+  z: number;
+  vx: number;
+  vy: number;
+  vz: number;
+  r: number;
+  g: number;
+  b: number;
   life: number;
   maxLife: number;
 }
@@ -39,10 +43,17 @@ export function ParticleSystem() {
 
   useEffect(() => {
     pool.current = Array.from({ length: POOL_SIZE }, () => ({
-      x: 0, y: 0, z: 0,
-      vx: 0, vy: 0, vz: 0,
-      r: 1, g: 0.5, b: 0,
-      life: 0, maxLife: 1,
+      x: 0,
+      y: 0,
+      z: 0,
+      vx: 0,
+      vy: 0,
+      vz: 0,
+      r: 1,
+      g: 0.5,
+      b: 0,
+      life: 0,
+      maxLife: 1,
     }));
   }, []);
 
@@ -51,15 +62,20 @@ export function ParticleSystem() {
 
     // Drain emit queue
     while (_queue.length > 0) {
-      const evt = _queue.shift()!;
+      const evt = _queue.shift();
+      if (!evt) break;
       let spawned = 0;
       for (const p of pool.current) {
         if (p.life > 0 || spawned >= evt.count) continue;
-        p.x = evt.position[0]; p.y = evt.position[1]; p.z = evt.position[2];
+        p.x = evt.position[0];
+        p.y = evt.position[1];
+        p.z = evt.position[2];
         p.vx = (Math.random() - 0.5) * 4.5;
         p.vy = Math.random() * 5.5 + 1.5;
         p.vz = (Math.random() - 0.5) * 4.5;
-        p.r = evt.r; p.g = evt.g; p.b = evt.b;
+        p.r = evt.r;
+        p.g = evt.g;
+        p.b = evt.b;
         p.maxLife = 0.55 + Math.random() * 0.5;
         p.life = p.maxLife;
         spawned++;

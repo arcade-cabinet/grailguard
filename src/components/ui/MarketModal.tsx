@@ -1,5 +1,4 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, Modal } from 'react-native';
+import { Modal, Text, TouchableOpacity, View } from 'react-native';
 import { useMetaStore } from '../../store/useMetaStore';
 
 interface MarketItem {
@@ -10,9 +9,24 @@ interface MarketItem {
 }
 
 const MARKET_ITEMS: MarketItem[] = [
-  { type: 'range', label: 'Archery Range', cost: 50, description: 'Unlocks the Archery Range building. Trains Archers.' },
-  { type: 'temple', label: 'Cleric Temple', cost: 150, description: 'Unlocks the Cleric Temple. Trains healing Clerics.' },
-  { type: 'keep', label: 'Knight Keep', cost: 300, description: 'Unlocks the Knight Keep. Trains powerful Knights.' },
+  {
+    type: 'range',
+    label: 'Archery Range',
+    cost: 50,
+    description: 'Unlocks the Archery Range building. Trains Archers.',
+  },
+  {
+    type: 'temple',
+    label: 'Cleric Temple',
+    cost: 150,
+    description: 'Unlocks the Cleric Temple. Trains healing Clerics.',
+  },
+  {
+    type: 'keep',
+    label: 'Knight Keep',
+    cost: 300,
+    description: 'Unlocks the Knight Keep. Trains powerful Knights.',
+  },
 ];
 
 interface MarketModalProps {
@@ -27,12 +41,8 @@ export function MarketModal({ visible, onClose }: MarketModalProps) {
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View className="flex-1 justify-center items-center bg-black/60">
         <View className="bg-[#eaddcf] border-2 border-[#5c4033] rounded-lg p-6 w-80">
-          <Text className="text-[#3e2723] text-xl font-bold text-center mb-2">
-            ⚜ Market ⚜
-          </Text>
-          <Text className="text-[#5c4033] text-sm text-center mb-4">
-            Coins: {coins}
-          </Text>
+          <Text className="text-[#3e2723] text-xl font-bold text-center mb-2">⚜ Market ⚜</Text>
+          <Text className="text-[#5c4033] text-sm text-center mb-4">Coins: {coins}</Text>
 
           {MARKET_ITEMS.map((item) => {
             const owned = unlocks[item.type];
@@ -53,9 +63,7 @@ export function MarketModal({ visible, onClose }: MarketModalProps) {
                       coins >= item.cost ? 'bg-[#5c4033]' : 'bg-gray-400'
                     }`}
                   >
-                    <Text className="text-[#eaddcf] font-bold">
-                      {item.cost} Coins
-                    </Text>
+                    <Text className="text-[#eaddcf] font-bold">{item.cost} Coins</Text>
                   </TouchableOpacity>
                 )}
               </View>

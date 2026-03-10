@@ -32,7 +32,7 @@ export type TextureType =
 export function generateNoiseTexture(
   type: TextureType,
   width = 128,
-  height = 128
+  height = 128,
 ): THREE.DataTexture {
   const data = new Uint8Array(width * height * 4);
 
@@ -43,7 +43,10 @@ export function generateNoiseTexture(
       const ny = y / height;
       const n = fbm(nx * 4, ny * 4);
 
-      let r = 0, g = 0, b = 0, a = 255;
+      let r = 0,
+        g = 0,
+        b = 0,
+        a = 255;
 
       switch (type) {
         case 'grass_col': {

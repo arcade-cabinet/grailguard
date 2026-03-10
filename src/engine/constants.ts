@@ -81,17 +81,85 @@ export const BUILDING_SPAWN_INTERVAL: Record<BuildingType, number> = {
 // Unit stats: [maxHp, speed, damage, attackRange, attackSpeed]
 export const UNIT_STATS: Record<
   UnitType,
-  { maxHp: number; speed: number; damage: number; attackRange: number; attackSpeed: number; isHealer: boolean; reward?: number }
+  {
+    maxHp: number;
+    speed: number;
+    damage: number;
+    attackRange: number;
+    attackSpeed: number;
+    isHealer: boolean;
+    reward?: number;
+  }
 > = {
-  wall:    { maxHp: 600,  speed: 0.0, damage: 0,   attackRange: 0.0, attackSpeed: 99.0, isHealer: false },
-  militia: { maxHp: 40,   speed: 2.5, damage: 10,  attackRange: 0.8, attackSpeed: 1.0,  isHealer: false },
-  archer:  { maxHp: 20,   speed: 2.0, damage: 15,  attackRange: 5.5, attackSpeed: 1.5,  isHealer: false },
-  cleric:  { maxHp: 30,   speed: 1.8, damage: -15, attackRange: 4.0, attackSpeed: 2.0,  isHealer: true  },
-  knight:  { maxHp: 150,  speed: 1.5, damage: 25,  attackRange: 1.0, attackSpeed: 1.5,  isHealer: false },
-  goblin:  { maxHp: 30,   speed: 3.0, damage: 5,   attackRange: 0.8, attackSpeed: 0.8,  isHealer: false, reward: 5  },
-  orc:     { maxHp: 80,   speed: 1.8, damage: 15,  attackRange: 1.0, attackSpeed: 1.5,  isHealer: false, reward: 12 },
-  troll:   { maxHp: 250,  speed: 1.2, damage: 30,  attackRange: 1.5, attackSpeed: 2.0,  isHealer: false, reward: 25 },
-  boss:    { maxHp: 1200, speed: 0.8, damage: 50,  attackRange: 2.0, attackSpeed: 3.0,  isHealer: false, reward: 150 },
+  wall: { maxHp: 600, speed: 0.0, damage: 0, attackRange: 0.0, attackSpeed: 99.0, isHealer: false },
+  militia: {
+    maxHp: 40,
+    speed: 2.5,
+    damage: 10,
+    attackRange: 0.8,
+    attackSpeed: 1.0,
+    isHealer: false,
+  },
+  archer: {
+    maxHp: 20,
+    speed: 2.0,
+    damage: 15,
+    attackRange: 5.5,
+    attackSpeed: 1.5,
+    isHealer: false,
+  },
+  cleric: {
+    maxHp: 30,
+    speed: 1.8,
+    damage: -15,
+    attackRange: 4.0,
+    attackSpeed: 2.0,
+    isHealer: true,
+  },
+  knight: {
+    maxHp: 150,
+    speed: 1.5,
+    damage: 25,
+    attackRange: 1.0,
+    attackSpeed: 1.5,
+    isHealer: false,
+  },
+  goblin: {
+    maxHp: 30,
+    speed: 3.0,
+    damage: 5,
+    attackRange: 0.8,
+    attackSpeed: 0.8,
+    isHealer: false,
+    reward: 5,
+  },
+  orc: {
+    maxHp: 80,
+    speed: 1.8,
+    damage: 15,
+    attackRange: 1.0,
+    attackSpeed: 1.5,
+    isHealer: false,
+    reward: 12,
+  },
+  troll: {
+    maxHp: 250,
+    speed: 1.2,
+    damage: 30,
+    attackRange: 1.5,
+    attackSpeed: 2.0,
+    isHealer: false,
+    reward: 25,
+  },
+  boss: {
+    maxHp: 1200,
+    speed: 0.8,
+    damage: 50,
+    attackRange: 2.0,
+    attackSpeed: 3.0,
+    isHealer: false,
+    reward: 150,
+  },
 };
 
 // Building -> unit type it spawns

@@ -1,6 +1,6 @@
-import React, { useRef, useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { GRID_SIZE, CELL_SIZE, TILE } from '../../engine/constants';
+import { CELL_SIZE, GRID_SIZE, TILE } from '../../engine/constants';
 import { generateNoiseTexture } from '../../engine/textureUtils';
 import { useGameStore } from '../../store/useGameStore';
 
@@ -8,12 +8,18 @@ const HALF = (GRID_SIZE * CELL_SIZE) / 2;
 
 function tileColor(tileId: number): THREE.Color {
   switch (tileId) {
-    case TILE.PATH:      return new THREE.Color(0.55, 0.42, 0.25);
-    case TILE.SANCTUARY: return new THREE.Color(0.8, 0.7, 0.3);
-    case TILE.SPAWN:     return new THREE.Color(0.7, 0.2, 0.2);
-    case TILE.SCENERY:   return new THREE.Color(0.15, 0.45, 0.1);
-    case TILE.BARRICADE: return new THREE.Color(0.4, 0.3, 0.2);
-    default:             return new THREE.Color(0.25, 0.6, 0.15);
+    case TILE.PATH:
+      return new THREE.Color(0.55, 0.42, 0.25);
+    case TILE.SANCTUARY:
+      return new THREE.Color(0.8, 0.7, 0.3);
+    case TILE.SPAWN:
+      return new THREE.Color(0.7, 0.2, 0.2);
+    case TILE.SCENERY:
+      return new THREE.Color(0.15, 0.45, 0.1);
+    case TILE.BARRICADE:
+      return new THREE.Color(0.4, 0.3, 0.2);
+    default:
+      return new THREE.Color(0.25, 0.6, 0.15);
   }
 }
 
@@ -83,10 +89,10 @@ export function SceneryInstances() {
       dummy.scale.set(
         0.8 + Math.sin(i * 13.7) * 0.3,
         1.0 + Math.sin(i * 7.3) * 0.5,
-        0.8 + Math.sin(i * 11.1) * 0.3
+        0.8 + Math.sin(i * 11.1) * 0.3,
       );
       dummy.updateMatrix();
-      treeRef.current!.setMatrixAt(i, dummy.matrix);
+      treeRef.current?.setMatrixAt(i, dummy.matrix);
     });
     treeRef.current.instanceMatrix.needsUpdate = true;
   }, [positions]);

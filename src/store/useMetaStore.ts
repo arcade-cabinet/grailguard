@@ -1,7 +1,7 @@
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { BuildingType } from '../engine/constants';
+import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
+import type { BuildingType } from '../engine/constants';
 
 export interface MetaState {
   coins: number;
@@ -25,8 +25,7 @@ export const useMetaStore = create<MetaState>()(
       coins: 0,
       unlocks: { ...defaultUnlocks },
 
-      awardCoins: (amount) =>
-        set((s) => ({ coins: s.coins + amount })),
+      awardCoins: (amount) => set((s) => ({ coins: s.coins + amount })),
 
       unlockBuilding: (type, cost) => {
         const { coins, unlocks } = get();
@@ -39,12 +38,11 @@ export const useMetaStore = create<MetaState>()(
         return true;
       },
 
-      resetMeta: () =>
-        set({ coins: 0, unlocks: { ...defaultUnlocks } }),
+      resetMeta: () => set({ coins: 0, unlocks: { ...defaultUnlocks } }),
     }),
     {
       name: 'grailguard-meta',
       storage: createJSONStorage(() => AsyncStorage),
-    }
-  )
+    },
+  ),
 );

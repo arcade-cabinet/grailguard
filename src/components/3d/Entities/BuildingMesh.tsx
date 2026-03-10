@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { Building, CELL_SIZE, HALF_GRID } from '../../../engine/constants';
+import { useMemo } from 'react';
+import { type Building, CELL_SIZE, HALF_GRID } from '../../../engine/constants';
 import { generateNoiseTexture } from '../../../engine/textureUtils';
 
 interface BuildingMeshProps {
@@ -7,19 +7,19 @@ interface BuildingMeshProps {
 }
 
 const BUILDING_COLORS: Record<string, string> = {
-  wall:   '#775533',
-  hut:    '#aa7744',
-  range:  '#446633',
+  wall: '#775533',
+  hut: '#aa7744',
+  range: '#446633',
   temple: '#9988cc',
-  keep:   '#778866',
+  keep: '#778866',
 };
 
 export function BuildingMesh({ building }: BuildingMeshProps) {
   const wx = building.gridX * CELL_SIZE - HALF_GRID + CELL_SIZE / 2;
   const wz = building.gridZ * CELL_SIZE - HALF_GRID + CELL_SIZE / 2;
-  const color  = BUILDING_COLORS[building.type] ?? '#888888';
+  const color = BUILDING_COLORS[building.type] ?? '#888888';
   const stoneTex = useMemo(() => generateNoiseTexture('stone_col'), []);
-  const woodTex  = useMemo(() => generateNoiseTexture('wood_col'),  []);
+  const woodTex = useMemo(() => generateNoiseTexture('wood_col'), []);
 
   const mat = (
     <meshStandardMaterial
@@ -62,8 +62,8 @@ export function BuildingMesh({ building }: BuildingMeshProps) {
           {mat}
         </mesh>
         {/* Parapet / battlement hint */}
-        {([-0.5, 0.5] as number[]).map((ox, i) => (
-          <mesh key={i} position={[ox, 1.65, 0]} castShadow>
+        {([-0.5, 0.5] as number[]).map((ox) => (
+          <mesh key={`parapet-${ox}`} position={[ox, 1.65, 0]} castShadow>
             <boxGeometry args={[0.35, 0.4, 0.25]} />
             {mat}
           </mesh>
@@ -112,15 +112,22 @@ export function BuildingMesh({ building }: BuildingMeshProps) {
         {mat}
       </mesh>
       {/* Corner turrets */}
-      {([[-0.72, -0.72], [0.72, -0.72], [-0.72, 0.72], [0.72, 0.72]] as [number, number][]).map(([ox, oz], i) => (
-        <mesh key={i} position={[ox, 1.6, oz]} castShadow>
+      {(
+        [
+          [-0.72, -0.72],
+          [0.72, -0.72],
+          [-0.72, 0.72],
+          [0.72, 0.72],
+        ] as [number, number][]
+      ).map(([ox, oz]) => (
+        <mesh key={`turret-${ox}-${oz}`} position={[ox, 1.6, oz]} castShadow>
           <cylinderGeometry args={[0.22, 0.26, 3.2, 6]} />
           {mat}
         </mesh>
       ))}
       {/* Battlements */}
-      {([-0.55, 0, 0.55] as number[]).map((ox, i) => (
-        <mesh key={i} position={[ox, 3.25, 0]} castShadow>
+      {([-0.55, 0, 0.55] as number[]).map((ox) => (
+        <mesh key={`battlement-${ox}`} position={[ox, 3.25, 0]} castShadow>
           <boxGeometry args={[0.28, 0.42, 1.65]} />
           {mat}
         </mesh>

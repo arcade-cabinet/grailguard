@@ -1,46 +1,53 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
+import { Canvas } from '@react-three/fiber/native';
+import { useRouter } from 'expo-router';
+import type React from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  PanResponder,
   Dimensions,
   Modal,
+  PanResponder,
   ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { Canvas } from '@react-three/fiber/native';
-import { useFrame, useThree } from '@react-three/fiber';
-import { useGameStore } from '../store/useGameStore';
-import { useMetaStore } from '../store/useMetaStore';
-import { BezelLayout, HUDStat } from '../components/ui/BezelLayout';
-import { Environment } from '../components/3d/Environment';
-import { MapGrid, SceneryInstances } from '../components/3d/MapGrid';
-import { Sanctuary } from '../components/3d/Sanctuary';
-import { ParticleSystem, emitParticles } from '../components/3d/ParticleSystem';
-import { FloatingTextSystem } from '../components/3d/FloatingTextSystem';
-import { CombatController } from '../components/3d/CombatController';
+import * as THREE from 'three';
 import { BuildingController } from '../components/3d/BuildingController';
-import { UnitMesh } from '../components/3d/Entities/UnitMesh';
+import { CombatController } from '../components/3d/CombatController';
 import { BuildingMesh } from '../components/3d/Entities/BuildingMesh';
+import { UnitMesh } from '../components/3d/Entities/UnitMesh';
+import { Environment } from '../components/3d/Environment';
+import { FloatingTextSystem } from '../components/3d/FloatingTextSystem';
+import { MapGrid, SceneryInstances } from '../components/3d/MapGrid';
+import { emitParticles, ParticleSystem } from '../components/3d/ParticleSystem';
+import { Sanctuary } from '../components/3d/Sanctuary';
+import { BezelLayout, HUDStat } from '../components/ui/BezelLayout';
 import {
   BUILDING_COST,
   BUILDING_SPAWN_INTERVAL,
-  BuildingType,
-  UnitType,
-  TILE,
+  type Building,
+  type BuildingType,
   CELL_SIZE,
+  type Entity,
   GRID_SIZE,
-  Building,
-  Entity,
-  UNIT_STATS,
   HP_SCALE_PER_WAVE,
+  TILE,
+  UNIT_STATS,
+  type UnitType,
 } from '../engine/constants';
-import { worldToGrid, gridToWorld } from '../utils/math';
-import * as THREE from 'three';
-import { useRouter } from 'expo-router';
+import { useGameStore } from '../store/useGameStore';
+import { useMetaStore } from '../store/useMetaStore';
+import { gridToWorld, worldToGrid } from '../utils/math';
 
 // ─── Ghost mesh shown during building drag ────────────────────────────────
-function GhostMesh({ position, valid }: { position: [number, number, number] | null; valid: boolean }) {
+function GhostMesh({
+  position,
+  valid,
+}: {
+  position: [number, number, number] | null;
+  valid: boolean;
+}) {
   if (!position) return null;
   return (
     <mesh position={position} renderOrder={10}>
@@ -103,7 +110,7 @@ function GameScene({
 }) {
   // Subscribe to low-frequency unitIds (NOT to units directly).
   // React only re-renders when units are added/removed, not on position updates.
-  const unitIds   = useGameStore((s) => s.unitIds);
+  const unitIds = useGameStore((s) => s.unitIds);
   const buildings = useGameStore((s) => s.buildings);
 
   return (
@@ -132,7 +139,9 @@ function GameScene({
 
 // ─── Enemy wave composition ───────────────────────────────────────────────
 let _eid = 0;
-function genEnemyId() { return `e_${Date.now()}_${_eid++}`; }
+function genEnemyId() {
+  return `e_${Date.now()}_${_eid++}`;
+}
 
 type EnemyType = Extract<UnitType, 'goblin' | 'orc' | 'troll' | 'boss'>;
 
@@ -141,21 +150,38 @@ function buildWaveList(wave: number): EnemyType[] {
     return ['boss', 'orc', 'orc', 'orc', 'goblin', 'goblin', 'goblin'];
   }
   if (wave <= 2) return Array<EnemyType>(3 + wave).fill('goblin');
-  if (wave <= 5) return [...Array<EnemyType>(2).fill('orc'), ...Array<EnemyType>(wave).fill('goblin')];
+  if (wave <= 5)
+    return [...Array<EnemyType>(2).fill('orc'), ...Array<EnemyType>(wave).fill('goblin')];
   return ['troll', 'orc', 'orc', ...Array<EnemyType>(Math.min(wave, 8)).fill('goblin')];
 }
 
 // ─── Bottom HUD ───────────────────────────────────────────────────────────
 const BUILDING_EMOJI: Record<BuildingType, string> = {
-  wall: '🧱', hut: '🏠', range: '🏹', temple: '⛪', keep: '🏰',
+  wall: '🧱',
+  hut: '🏠',
+  range: '🏹',
+  temple: '⛪',
+  keep: '🏰',
 };
 const BUILDING_NAME: Record<BuildingType, string> = {
-  wall: 'Wall', hut: 'Hut', range: 'Range', temple: 'Temple', keep: 'Keep',
+  wall: 'Wall',
+  hut: 'Hut',
+  range: 'Range',
+  temple: 'Temple',
+  keep: 'Keep',
 };
 
 function BottomHUD({
-  selectedBuilding, onSelectBuilding, phase, onStartWave,
-  smiteCd, onDivineSmite, gold, unlocks, gameSpeed, onSpeedToggle,
+  selectedBuilding,
+  onSelectBuilding,
+  phase,
+  onStartWave,
+  smiteCd,
+  onDivineSmite,
+  gold,
+  unlocks,
+  gameSpeed,
+  onSpeedToggle,
 }: {
   selectedBuilding: BuildingType | null;
   onSelectBuilding: (t: BuildingType) => void;
@@ -173,33 +199,40 @@ function BottomHUD({
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 2 }}
+      contentContainerStyle={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingVertical: 2,
+      }}
     >
-      {types.filter((t) => unlocks[t]).map((t) => {
-        const cost = BUILDING_COST[t];
-        const canAfford = gold >= cost;
-        const isSelected = selectedBuilding === t;
-        return (
-          <TouchableOpacity
-            key={t}
-            onPress={() => onSelectBuilding(t)}
-            style={{
-              backgroundColor: isSelected ? '#7a5540' : '#3e2723',
-              borderWidth: isSelected ? 2 : 1,
-              borderColor: isSelected ? '#ffd700' : '#5c4033',
-              borderRadius: 8,
-              padding: 6,
-              minWidth: 58,
-              alignItems: 'center',
-              opacity: canAfford ? 1 : 0.45,
-            }}
-          >
-            <Text style={{ fontSize: 18 }}>{BUILDING_EMOJI[t]}</Text>
-            <Text style={{ color: '#eaddcf', fontSize: 9 }}>{BUILDING_NAME[t]}</Text>
-            <Text style={{ color: canAfford ? '#ffd700' : '#888', fontSize: 9 }}>{cost}g</Text>
-          </TouchableOpacity>
-        );
-      })}
+      {types
+        .filter((t) => unlocks[t])
+        .map((t) => {
+          const cost = BUILDING_COST[t];
+          const canAfford = gold >= cost;
+          const isSelected = selectedBuilding === t;
+          return (
+            <TouchableOpacity
+              key={t}
+              onPress={() => onSelectBuilding(t)}
+              style={{
+                backgroundColor: isSelected ? '#7a5540' : '#3e2723',
+                borderWidth: isSelected ? 2 : 1,
+                borderColor: isSelected ? '#ffd700' : '#5c4033',
+                borderRadius: 8,
+                padding: 6,
+                minWidth: 58,
+                alignItems: 'center',
+                opacity: canAfford ? 1 : 0.45,
+              }}
+            >
+              <Text style={{ fontSize: 18 }}>{BUILDING_EMOJI[t]}</Text>
+              <Text style={{ color: '#eaddcf', fontSize: 9 }}>{BUILDING_NAME[t]}</Text>
+              <Text style={{ color: canAfford ? '#ffd700' : '#888', fontSize: 9 }}>{cost}g</Text>
+            </TouchableOpacity>
+          );
+        })}
 
       <View style={{ width: 8 }} />
 
@@ -265,40 +298,71 @@ function BottomHUD({
 
 // ─── Game Over modal ──────────────────────────────────────────────────────
 function GameOverModal({
-  visible, wave, coins, onRestart, onMenu,
+  visible,
+  wave,
+  coins,
+  onRestart,
+  onMenu,
 }: {
-  visible: boolean; wave: number; coins: number;
-  onRestart: () => void; onMenu: () => void;
+  visible: boolean;
+  wave: number;
+  coins: number;
+  onRestart: () => void;
+  onMenu: () => void;
 }) {
   return (
     <Modal visible={visible} transparent animationType="fade">
-      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.78)', justifyContent: 'center', alignItems: 'center' }}>
-        <View style={{
-          backgroundColor: '#eaddcf', borderWidth: 3, borderColor: '#5c4033',
-          borderRadius: 16, padding: 32, width: 300, alignItems: 'center',
-        }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.78)',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
+        <View
+          style={{
+            backgroundColor: '#eaddcf',
+            borderWidth: 3,
+            borderColor: '#5c4033',
+            borderRadius: 16,
+            padding: 32,
+            width: 300,
+            alignItems: 'center',
+          }}
+        >
           <Text style={{ color: '#3e2723', fontSize: 28, fontWeight: 'bold', marginBottom: 4 }}>
             ☠ FALLEN
           </Text>
           <Text style={{ color: '#5c4033', fontSize: 13, marginBottom: 18, textAlign: 'center' }}>
             The Sacred Grail has been taken…
           </Text>
-          <View style={{ backgroundColor: '#d4c5b0', borderRadius: 8, padding: 12, width: '100%', marginBottom: 20 }}>
+          <View
+            style={{
+              backgroundColor: '#d4c5b0',
+              borderRadius: 8,
+              padding: 12,
+              width: '100%',
+              marginBottom: 20,
+            }}
+          >
             <Text style={{ color: '#3e2723', fontSize: 16, textAlign: 'center', marginBottom: 4 }}>
-              Waves Survived:{' '}
-              <Text style={{ fontWeight: 'bold' }}>{wave}</Text>
+              Waves Survived: <Text style={{ fontWeight: 'bold' }}>{wave}</Text>
             </Text>
             <Text style={{ color: '#8B6914', fontSize: 16, textAlign: 'center' }}>
-              Coins Earned:{' '}
-              <Text style={{ fontWeight: 'bold' }}>⚜ {coins}</Text>
+              Coins Earned: <Text style={{ fontWeight: 'bold' }}>⚜ {coins}</Text>
             </Text>
           </View>
           <TouchableOpacity
             onPress={onRestart}
             style={{
-              backgroundColor: '#5c4033', borderRadius: 8,
-              paddingHorizontal: 24, paddingVertical: 10,
-              marginBottom: 8, width: '100%', alignItems: 'center',
+              backgroundColor: '#5c4033',
+              borderRadius: 8,
+              paddingHorizontal: 24,
+              paddingVertical: 10,
+              marginBottom: 8,
+              width: '100%',
+              alignItems: 'center',
             }}
           >
             <Text style={{ color: '#eaddcf', fontWeight: 'bold', fontSize: 15 }}>⚔ Play Again</Text>
@@ -306,9 +370,12 @@ function GameOverModal({
           <TouchableOpacity
             onPress={onMenu}
             style={{
-              backgroundColor: '#3e2723', borderRadius: 8,
-              paddingHorizontal: 24, paddingVertical: 10,
-              width: '100%', alignItems: 'center',
+              backgroundColor: '#3e2723',
+              borderRadius: 8,
+              paddingHorizontal: 24,
+              paddingVertical: 10,
+              width: '100%',
+              alignItems: 'center',
             }}
           >
             <Text style={{ color: '#eaddcf', fontSize: 13 }}>Main Menu</Text>
@@ -321,23 +388,23 @@ function GameOverModal({
 
 // ─── Main game screen ─────────────────────────────────────────────────────
 export default function GameScreen() {
-  const router       = useRouter();
-  const gold         = useGameStore((s) => s.gold);
-  const health       = useGameStore((s) => s.health);
-  const wave         = useGameStore((s) => s.wave);
-  const phase        = useGameStore((s) => s.phase);
-  const smiteCd      = useGameStore((s) => s.divineSmiteCooldown);
-  const grid         = useGameStore((s) => s.grid);
-  const pathCoords   = useGameStore((s) => s.pathCoords);
-  const gameSpeed    = useGameStore((s) => s.gameSpeed);
+  const router = useRouter();
+  const gold = useGameStore((s) => s.gold);
+  const health = useGameStore((s) => s.health);
+  const wave = useGameStore((s) => s.wave);
+  const phase = useGameStore((s) => s.phase);
+  const smiteCd = useGameStore((s) => s.divineSmiteCooldown);
+  const grid = useGameStore((s) => s.grid);
+  const pathCoords = useGameStore((s) => s.pathCoords);
+  const gameSpeed = useGameStore((s) => s.gameSpeed);
   const announcement = useGameStore((s) => s.announcement);
-  const unlocks      = useMetaStore((s) => s.unlocks);
-  const awardCoins   = useMetaStore((s) => s.awardCoins);
+  const unlocks = useMetaStore((s) => s.unlocks);
+  const awardCoins = useMetaStore((s) => s.awardCoins);
 
   const [selectedBuilding, setSelectedBuilding] = useState<BuildingType | null>(null);
-  const [ghostPos,   setGhostPos]   = useState<[number, number, number] | null>(null);
+  const [ghostPos, setGhostPos] = useState<[number, number, number] | null>(null);
   const [ghostValid, setGhostValid] = useState(false);
-  const [gameOver,   setGameOver]   = useState(false);
+  const [gameOver, setGameOver] = useState(false);
   const [earnedCoins, setEarnedCoins] = useState(0);
 
   const ndcRef = useRef<{ x: number; y: number } | null>(null);
@@ -346,15 +413,21 @@ export default function GameScreen() {
   // Stable ray-hit handler (runs from useFrame – must not re-create)
   const handleRayHit = useCallback(
     (pos: THREE.Vector3) => {
-      if (!selectedBuilding) { setGhostPos(null); return; }
+      if (!selectedBuilding) {
+        setGhostPos(null);
+        return;
+      }
       const { x: gx, z: gz } = worldToGrid(pos.x, pos.z, CELL_SIZE);
       const { x: wx, z: wz } = gridToWorld(gx, gz, CELL_SIZE);
       setGhostPos([wx, 0.75, wz]);
       const tile = grid[gx]?.[gz];
       setGhostValid(
-        gx >= 0 && gx < GRID_SIZE && gz >= 0 && gz < GRID_SIZE &&
-        gold >= BUILDING_COST[selectedBuilding] &&
-        (selectedBuilding === 'wall' ? tile === TILE.PATH : tile === TILE.GRASS),
+        gx >= 0 &&
+          gx < GRID_SIZE &&
+          gz >= 0 &&
+          gz < GRID_SIZE &&
+          gold >= BUILDING_COST[selectedBuilding] &&
+          (selectedBuilding === 'wall' ? tile === TILE.PATH : tile === TILE.GRASS),
       );
     },
     [selectedBuilding, grid, gold],
@@ -363,11 +436,11 @@ export default function GameScreen() {
   // Touch drag for building placement
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => !!selectedBuilding,
-    onMoveShouldSetPanResponder:  () => !!selectedBuilding,
+    onMoveShouldSetPanResponder: () => !!selectedBuilding,
     onPanResponderMove: (evt) => {
       const { locationX, locationY } = evt.nativeEvent;
       ndcRef.current = {
-        x:  (locationX / screenW) * 2 - 1,
+        x: (locationX / screenW) * 2 - 1,
         y: -(locationY / screenH) * 2 + 1,
       };
     },
@@ -413,12 +486,12 @@ export default function GameScreen() {
           id: genEnemyId(),
           type,
           team: 'enemy',
-          maxHp:  Math.round(stats.maxHp  * hpScale),
-          hp:     Math.round(stats.maxHp  * hpScale),
+          maxHp: Math.round(stats.maxHp * hpScale),
+          hp: Math.round(stats.maxHp * hpScale),
           damage: stats.damage,
-          speed:  stats.speed,
-          attackRange:  stats.attackRange,
-          attackSpeed:  stats.attackSpeed,
+          speed: stats.speed,
+          attackRange: stats.attackRange,
+          attackSpeed: stats.attackSpeed,
           cooldown: 0,
           position: {
             x: swx + (Math.random() - 0.5) * 0.6,
@@ -488,10 +561,13 @@ export default function GameScreen() {
           <HUDStat label="❤" value={health} color={health <= 5 ? '#ff4444' : '#3e2723'} />
           <HUDStat label="💰" value={gold} />
           <View style={{ flex: 1 }} />
-          <Text style={{
-            color: phase === 'build' ? '#44aa44' : '#cc3300',
-            fontSize: 10, fontWeight: 'bold',
-          }}>
+          <Text
+            style={{
+              color: phase === 'build' ? '#44aa44' : '#cc3300',
+              fontSize: 10,
+              fontWeight: 'bold',
+            }}
+          >
             {phase === 'build' ? '[ BUILD ]' : '[ DEFEND! ]'}
           </Text>
         </View>
@@ -499,7 +575,7 @@ export default function GameScreen() {
       bottomContent={
         <BottomHUD
           selectedBuilding={selectedBuilding}
-          onSelectBuilding={(t) => setSelectedBuilding((p) => p === t ? null : t)}
+          onSelectBuilding={(t) => setSelectedBuilding((p) => (p === t ? null : t))}
           phase={phase}
           onStartWave={handleStartWave}
           smiteCd={smiteCd}
@@ -531,16 +607,26 @@ export default function GameScreen() {
         <View
           pointerEvents="none"
           style={{
-            position: 'absolute', top: '35%', left: 0, right: 0,
+            position: 'absolute',
+            top: '35%',
+            left: 0,
+            right: 0,
             alignItems: 'center',
           }}
         >
-          <View style={{
-            backgroundColor: 'rgba(28,10,4,0.85)',
-            borderWidth: 2, borderColor: '#ffd700',
-            borderRadius: 12, paddingHorizontal: 28, paddingVertical: 10,
-          }}>
-            <Text style={{ color: '#ffd700', fontSize: 22, fontWeight: 'bold', textAlign: 'center' }}>
+          <View
+            style={{
+              backgroundColor: 'rgba(28,10,4,0.85)',
+              borderWidth: 2,
+              borderColor: '#ffd700',
+              borderRadius: 12,
+              paddingHorizontal: 28,
+              paddingVertical: 10,
+            }}
+          >
+            <Text
+              style={{ color: '#ffd700', fontSize: 22, fontWeight: 'bold', textAlign: 'center' }}
+            >
               {announcement}
             </Text>
           </View>
@@ -553,11 +639,17 @@ export default function GameScreen() {
           pointerEvents="none"
           style={{ position: 'absolute', top: 8, left: 0, right: 0, alignItems: 'center' }}
         >
-          <Text style={{
-            color: '#ffd700', backgroundColor: 'rgba(0,0,0,0.55)',
-            paddingHorizontal: 12, paddingVertical: 4, borderRadius: 6, fontSize: 11,
-          }}>
-            Drag to place  •  tap again to cancel
+          <Text
+            style={{
+              color: '#ffd700',
+              backgroundColor: 'rgba(0,0,0,0.55)',
+              paddingHorizontal: 12,
+              paddingVertical: 4,
+              borderRadius: 6,
+              fontSize: 11,
+            }}
+          >
+            Drag to place • tap again to cancel
           </Text>
         </View>
       )}

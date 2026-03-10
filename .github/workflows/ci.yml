@@ -18,6 +18,9 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-      - run: npm install
-      - run: npx eslint . --ext .ts,.tsx
-      - run: npx tsc --noEmit
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+      - name: Biome lint + format check
+        run: npx @biomejs/biome ci .
+      - name: TypeScript type check
+        run: npx tsc --noEmit

@@ -1,17 +1,18 @@
-import React from 'react';
 import { useFrame } from '@react-three/fiber';
-import { useGameStore } from '../../store/useGameStore';
 import {
-  BUILDING_SPAWNS,
   BUILDING_SPAWN_INTERVAL,
-  UNIT_STATS,
+  BUILDING_SPAWNS,
   CELL_SIZE,
-  Entity,
+  type Entity,
+  UNIT_STATS,
 } from '../../engine/constants';
+import { useGameStore } from '../../store/useGameStore';
 import { gridToWorld } from '../../utils/math';
 
 let _spawnId = 0;
-function genId() { return `unit_${Date.now()}_${_spawnId++}`; }
+function genId() {
+  return `unit_${Date.now()}_${_spawnId++}`;
+}
 
 export function BuildingController() {
   useFrame((_, rawDelta) => {

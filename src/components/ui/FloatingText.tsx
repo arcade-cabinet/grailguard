@@ -1,7 +1,7 @@
-import React, { useRef } from 'react';
 import { Text } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import * as THREE from 'three';
+import { useRef } from 'react';
+import type * as THREE from 'three';
 
 interface FloatingTextProps {
   value: number;

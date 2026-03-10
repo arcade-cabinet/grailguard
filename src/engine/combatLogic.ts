@@ -1,4 +1,4 @@
-import { Entity, Vector3Data, UNIT_STATS, HP_SCALE_PER_WAVE } from './constants';
+import { type Entity, HP_SCALE_PER_WAVE, type UNIT_STATS, type Vector3Data } from './constants';
 
 export function distance2D(a: Vector3Data, b: Vector3Data): number {
   const dx = a.x - b.x;
@@ -6,10 +6,7 @@ export function distance2D(a: Vector3Data, b: Vector3Data): number {
   return Math.sqrt(dx * dx + dz * dz);
 }
 
-export function findTarget(
-  unit: Entity,
-  all: Entity[]
-): Entity | null {
+export function findTarget(unit: Entity, all: Entity[]): Entity | null {
   const alive = all.filter((e) => e.hp > 0 && e.id !== unit.id);
 
   if (unit.isHealer) {
@@ -33,7 +30,7 @@ export function findTarget(
   if (unit.team === 'enemy') {
     // Check for ally walls within 1.5 units first
     const walls = alive.filter(
-      (e) => e.team === 'ally' && e.type === 'wall' && distance2D(unit.position, e.position) <= 1.5
+      (e) => e.team === 'ally' && e.type === 'wall' && distance2D(unit.position, e.position) <= 1.5,
     );
     if (walls.length > 0) return walls[0];
   }
@@ -56,7 +53,7 @@ export function applySeparation(
   unit: Entity,
   all: Entity[],
   separationRadius = 1.2,
-  strength = 0.5
+  strength = 0.5,
 ): Vector3Data {
   let fx = 0;
   let fz = 0;

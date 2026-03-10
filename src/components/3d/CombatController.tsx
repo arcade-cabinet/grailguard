@@ -1,13 +1,13 @@
-import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { useRef } from 'react';
+import { applySeparation, distance2D } from '../../engine/combatLogic';
+import { CELL_SIZE, type Entity, GRID_SIZE, TILE } from '../../engine/constants';
 import { useGameStore } from '../../store/useGameStore';
-import { distance2D, applySeparation } from '../../engine/combatLogic';
-import { CELL_SIZE, TILE, GRID_SIZE, Entity } from '../../engine/constants';
 import { gridToWorld, worldToGrid } from '../../utils/math';
-import { emitParticles } from './ParticleSystem';
 import { emitFloatingText } from './FloatingTextSystem';
+import { emitParticles } from './ParticleSystem';
 
-let _eid = 0;
+const _eid = 0;
 
 /**
  * Runs the entire combat simulation each frame.
@@ -87,12 +87,19 @@ export function CombatController() {
           if (p.team !== mu.team) continue;
           if (distance2D(mu.position, p.position) > mu.attackRange) continue;
           const ratio = p.hp / p.maxHp;
-          if (ratio < worstRatio) { worstRatio = ratio; attackTarget = p; }
+          if (ratio < worstRatio) {
+            worstRatio = ratio;
+            attackTarget = p;
+          }
         }
       } else if (mu.team === 'enemy') {
         // Enemies: wall-breaking priority, then normal
         for (const p of peers) {
-          if (p.team === 'ally' && p.type === 'wall' && distance2D(mu.position, p.position) <= 1.5) {
+          if (
+            p.team === 'ally' &&
+            p.type === 'wall' &&
+            distance2D(mu.position, p.position) <= 1.5
+          ) {
             attackTarget = p;
             break;
           }
@@ -102,7 +109,10 @@ export function CombatController() {
           for (const p of peers) {
             if (p.team === mu.team) continue;
             const d = distance2D(mu.position, p.position);
-            if (d <= mu.attackRange && d < bestDist) { bestDist = d; attackTarget = p; }
+            if (d <= mu.attackRange && d < bestDist) {
+              bestDist = d;
+              attackTarget = p;
+            }
           }
         }
       } else {
@@ -111,7 +121,10 @@ export function CombatController() {
         for (const p of peers) {
           if (p.team === mu.team) continue;
           const d = distance2D(mu.position, p.position);
-          if (d <= mu.attackRange && d < bestDist) { bestDist = d; attackTarget = p; }
+          if (d <= mu.attackRange && d < bestDist) {
+            bestDist = d;
+            attackTarget = p;
+          }
         }
       }
 
@@ -147,7 +160,6 @@ export function CombatController() {
             }
           }
         }
-
       } else if (mu.type !== 'wall') {
         // ── Movement ───────────────────────────────────────────────────────
         let moveX = 0;
@@ -177,13 +189,19 @@ export function CombatController() {
           for (const p of peers) {
             if (p.team === mu.team) continue;
             const d = distance2D(mu.position, p.position);
-            if (d < nearestDist) { nearestDist = d; nearestEnemy = p; }
+            if (d < nearestDist) {
+              nearestDist = d;
+              nearestEnemy = p;
+            }
           }
           if (nearestEnemy && nearestDist > mu.attackRange) {
             const dx = nearestEnemy.position.x - mu.position.x;
             const dz = nearestEnemy.position.z - mu.position.z;
             const d = Math.sqrt(dx * dx + dz * dz);
-            if (d > 0) { moveX = (dx / d) * mu.speed; moveZ = (dz / d) * mu.speed; }
+            if (d > 0) {
+              moveX = (dx / d) * mu.speed;
+              moveZ = (dz / d) * mu.speed;
+            }
           }
         }
 
@@ -198,7 +216,13 @@ export function CombatController() {
         // ── Sanctuary breach (enemies reaching the grail) ─────────────────
         if (mu.team === 'enemy') {
           const { x: gx, z: gz } = worldToGrid(mu.position.x, mu.position.z, CELL_SIZE);
-          if (gx >= 0 && gx < GRID_SIZE && gz >= 0 && gz < GRID_SIZE && grid[gx]?.[gz] === TILE.SANCTUARY) {
+          if (
+            gx >= 0 &&
+            gx < GRID_SIZE &&
+            gz >= 0 &&
+            gz < GRID_SIZE &&
+            grid[gx]?.[gz] === TILE.SANCTUARY
+          ) {
             healthDelta -= 1;
             emitParticles([mu.position.x, 0.5, mu.position.z], '#ff0000', 12);
             store.triggerCameraShake(0.5);

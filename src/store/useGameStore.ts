@@ -1,18 +1,14 @@
 import { create } from 'zustand';
-import { Entity, Building, BuildingType, TILE } from '../engine/constants';
+import { Entity, Building, TILE } from '../engine/constants';
 import { generateMap } from '../engine/mapGenerator';
 
 const MAX_SEED = 99999;
-const { grid, pathCoords, spawnZ } = generateMap(Date.now() % MAX_SEED);
 
-export interface Projectile {
-  id: string;
-  from: { x: number; y: number; z: number };
-  to: { x: number; y: number; z: number };
-  targetId: string;
-  damage: number;
-  progress: number;
+function freshMap() {
+  return generateMap(Date.now() % MAX_SEED);
 }
+
+const initial = freshMap();
 
 export interface GameState {
   gold: number;
@@ -26,59 +22,65 @@ export interface GameState {
   spawnZ: number;
   buildings: Record<string, Building>;
   units: Record<string, Entity>;
-  projectiles: Projectile[];
+  /** Low-frequency list – drives which UnitMesh components are mounted.
+   *  Only changes on spawn / death, never on position updates. */
+  unitIds: string[];
   cameraShake: number;
-  targetingMode: boolean;
   divineSmiteCooldown: number;
+  /** Short overlay text ("Wave 3 Complete! +20g") – clears itself after 3 s */
+  announcement: string;
 
+  // ── Actions ──────────────────────────────────────────────────────────────
   addGold: (amount: number) => void;
   spendGold: (amount: number) => boolean;
   takeDamage: (amount: number) => void;
   spawnUnit: (unit: Entity) => void;
   removeUnit: (id: string) => void;
   damageUnit: (id: string, amount: number) => void;
-  healUnit: (id: string, amount: number) => void;
-  updateUnitPosition: (id: string, pos: Partial<Entity['position']>) => void;
-  updateUnitCooldown: (id: string, cooldown: number) => void;
-  updateUnitTarget: (id: string, targetId: string | null) => void;
+  /**
+   * THE KEY PERFORMANCE FIX: replaces N individual set() calls per frame
+   * with exactly ONE atomic setState for the entire combat simulation tick.
+   */
+  batchSetUnits: (
+    units: Record<string, Entity>,
+    unitIds: string[],
+    goldDelta: number,
+    healthDelta: number,
+  ) => void;
   addBuilding: (building: Building) => void;
   removeBuilding: (id: string) => void;
   updateBuildingTimer: (id: string, timer: number) => void;
-  addProjectile: (p: Projectile) => void;
-  removeProjectile: (id: string) => void;
   setPhase: (phase: 'build' | 'defend') => void;
   setTimeOfDay: (t: number) => void;
   triggerCameraShake: (intensity: number) => void;
-  decrementCameraShake: () => void;
-  setTargetingMode: (v: boolean) => void;
   setDivineSmiteCooldown: (cd: number) => void;
+  setAnnouncement: (msg: string) => void;
   nextWave: () => void;
   resetGame: () => void;
 }
 
-const initialState = {
+const makeInitial = (map: ReturnType<typeof freshMap>) => ({
   gold: 150,
   health: 20,
   wave: 0,
   phase: 'build' as const,
   gameSpeed: 1,
   timeOfDay: 0.0,
-  grid,
-  pathCoords,
-  spawnZ,
+  grid: map.grid,
+  pathCoords: map.pathCoords,
+  spawnZ: map.spawnZ,
   buildings: {} as Record<string, Building>,
   units: {} as Record<string, Entity>,
-  projectiles: [] as Projectile[],
+  unitIds: [] as string[],
   cameraShake: 0,
-  targetingMode: false,
   divineSmiteCooldown: 0,
-};
+  announcement: '',
+});
 
 export const useGameStore = create<GameState>((set, get) => ({
-  ...initialState,
+  ...makeInitial(initial),
 
-  addGold: (amount) =>
-    set((s) => ({ gold: s.gold + amount })),
+  addGold: (amount) => set((s) => ({ gold: s.gold + amount })),
 
   spendGold: (amount) => {
     const { gold } = get();
@@ -91,13 +93,16 @@ export const useGameStore = create<GameState>((set, get) => ({
     set((s) => ({ health: Math.max(0, s.health - amount) })),
 
   spawnUnit: (unit) =>
-    set((s) => ({ units: { ...s.units, [unit.id]: unit } })),
+    set((s) => ({
+      units: { ...s.units, [unit.id]: unit },
+      unitIds: [...s.unitIds, unit.id],
+    })),
 
   removeUnit: (id) =>
     set((s) => {
       const next = { ...s.units };
       delete next[id];
-      return { units: next };
+      return { units: next, unitIds: s.unitIds.filter((i) => i !== id) };
     }),
 
   damageUnit: (id, amount) =>
@@ -105,57 +110,23 @@ export const useGameStore = create<GameState>((set, get) => ({
       const unit = s.units[id];
       if (!unit) return {};
       return {
-        units: {
-          ...s.units,
-          [id]: { ...unit, hp: Math.max(0, unit.hp - amount) },
-        },
+        units: { ...s.units, [id]: { ...unit, hp: Math.max(0, unit.hp - amount) } },
       };
     }),
 
-  healUnit: (id, amount) =>
-    set((s) => {
-      const unit = s.units[id];
-      if (!unit) return {};
-      return {
-        units: {
-          ...s.units,
-          [id]: { ...unit, hp: Math.min(unit.maxHp, unit.hp + amount) },
-        },
-      };
-    }),
-
-  updateUnitPosition: (id, pos) =>
-    set((s) => {
-      const unit = s.units[id];
-      if (!unit) return {};
-      return {
-        units: {
-          ...s.units,
-          [id]: { ...unit, position: { ...unit.position, ...pos } },
-        },
-      };
-    }),
-
-  updateUnitCooldown: (id, cooldown) =>
-    set((s) => {
-      const unit = s.units[id];
-      if (!unit) return {};
-      return { units: { ...s.units, [id]: { ...unit, cooldown } } };
-    }),
-
-  updateUnitTarget: (id, targetId) =>
-    set((s) => {
-      const unit = s.units[id];
-      if (!unit) return {};
-      return { units: { ...s.units, [id]: { ...unit, targetId } } };
-    }),
+  batchSetUnits: (units, unitIds, goldDelta, healthDelta) =>
+    set((s) => ({
+      units,
+      unitIds,
+      gold: s.gold + goldDelta,
+      health: healthDelta !== 0 ? Math.max(0, s.health + healthDelta) : s.health,
+    })),
 
   addBuilding: (building) =>
     set((s) => {
       const newGrid = s.grid.map((row) => [...row]);
-      const tileType =
+      newGrid[building.gridX][building.gridZ] =
         building.type === 'wall' ? TILE.BARRICADE : TILE.BUILDING;
-      newGrid[building.gridX][building.gridZ] = tileType;
       return {
         buildings: { ...s.buildings, [building.id]: building },
         grid: newGrid,
@@ -180,24 +151,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       return { buildings: { ...s.buildings, [id]: { ...b, timer } } };
     }),
 
-  addProjectile: (p) =>
-    set((s) => ({ projectiles: [...s.projectiles, p] })),
-
-  removeProjectile: (id) =>
-    set((s) => ({ projectiles: s.projectiles.filter((p) => p.id !== id) })),
-
   setPhase: (phase) => set({ phase }),
-
   setTimeOfDay: (t) => set({ timeOfDay: t % 1.0 }),
-
   triggerCameraShake: (intensity) => set({ cameraShake: intensity }),
-
-  decrementCameraShake: () =>
-    set((s) => ({ cameraShake: Math.max(0, s.cameraShake - 0.02) })),
-
-  setTargetingMode: (v) => set({ targetingMode: v }),
-
   setDivineSmiteCooldown: (cd) => set({ divineSmiteCooldown: cd }),
+  setAnnouncement: (msg) => set({ announcement: msg }),
 
   nextWave: () =>
     set((s) => ({
@@ -207,14 +165,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     })),
 
   resetGame: () => {
-    const { grid: newGrid, pathCoords: newPath, spawnZ: newSpawnZ } = generateMap(
-      Date.now() % MAX_SEED
-    );
-    set({
-      ...initialState,
-      grid: newGrid,
-      pathCoords: newPath,
-      spawnZ: newSpawnZ,
-    });
+    const map = freshMap();
+    set(makeInitial(map));
   },
 }));

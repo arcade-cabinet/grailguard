@@ -16,6 +16,9 @@ function genId() { return `unit_${Date.now()}_${_spawnId++}`; }
 export function BuildingController() {
   useFrame((_, rawDelta) => {
     const store = useGameStore.getState();
+    // Buildings only spawn ally units during the defend phase
+    if (store.phase !== 'defend') return;
+
     const delta = rawDelta * store.gameSpeed;
 
     for (const [id, building] of Object.entries(store.buildings)) {
@@ -25,7 +28,6 @@ export function BuildingController() {
 
       const newTimer = building.timer - delta;
       if (newTimer <= 0) {
-        // Spawn unit
         const stats = UNIT_STATS[unitType];
         const { x: wx, z: wz } = gridToWorld(building.gridX, building.gridZ, CELL_SIZE);
 
@@ -40,7 +42,12 @@ export function BuildingController() {
           attackRange: stats.attackRange,
           attackSpeed: stats.attackSpeed,
           cooldown: 0,
-          position: { x: wx + (Math.random() - 0.5), y: 0, z: wz + (Math.random() - 0.5) },
+          // Spawn slightly randomised offset so units don't stack
+          position: {
+            x: wx + (Math.random() - 0.5) * 0.8,
+            y: 0,
+            z: wz + (Math.random() - 0.5) * 0.8,
+          },
           targetId: null,
           pathIndex: -1,
           isHealer: stats.isHealer,

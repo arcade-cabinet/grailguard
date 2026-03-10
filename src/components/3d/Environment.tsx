@@ -1,7 +1,6 @@
 import { useFrame } from '@react-three/fiber';
 import { useRef } from 'react';
 import * as THREE from 'three';
-import { useGameStore } from '../../store/useGameStore';
 
 // Day/Night color stages
 const SKY_COLORS: [number, number, number][] = [
@@ -19,6 +18,13 @@ const SUN_COLORS: [number, number, number][] = [
 ];
 
 const SUN_INTENSITIES = [2.0, 1.0, 0.2, 0.8];
+
+/**
+ * Local time-of-day accumulator. Kept as a module-level ref so the day/night
+ * cycle never causes a Zustand state update — purely visual, drives only
+ * THREE.js material/light mutations via refs.
+ */
+let _timeOfDay = 0;
 
 /**
  * Linearly interpolate between two RGB color triplets and return the result as a THREE.Color.
@@ -39,24 +45,19 @@ function lerp3(a: [number, number, number], b: [number, number, number], t: numb
 /**
  * Provides scene fog and lighting and drives a 4-stage animated day–night cycle.
  *
- * Advances the global `timeOfDay` each frame, interpolates sky color, sun color, and sun intensity
- * between four stages (day, dusk, night, dawn), applies the interpolated sky color to the scene
- * background and fog, and updates the directional and ambient lights accordingly.
+ * The cycle time is stored in a module-level variable (not Zustand state) so the
+ * animation runs at full 60 fps without triggering any React re-renders.
  *
  * @returns A JSX element that mounts fog, ambient, directional, and hemisphere lights for the scene
  */
 export function Environment() {
   const dirLight = useRef<THREE.DirectionalLight>(null);
   const ambLight = useRef<THREE.AmbientLight>(null);
-  const setTimeOfDay = useGameStore((s) => s.setTimeOfDay);
 
   useFrame((state, delta) => {
-    const t = useGameStore.getState().timeOfDay;
-    const newT = (t + delta * 0.01) % 1.0;
-    setTimeOfDay(newT);
+    _timeOfDay = (_timeOfDay + delta * 0.01) % 1.0;
 
-    // 4-stage cycle
-    const stage = newT * 4;
+    const stage = _timeOfDay * 4;
     const stageIdx = Math.floor(stage) % 4;
     const nextIdx = (stageIdx + 1) % 4;
     const frac = stage - Math.floor(stage);

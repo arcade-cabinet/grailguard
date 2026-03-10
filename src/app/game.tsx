@@ -76,11 +76,21 @@ function GhostMesh({
  * @returns `null` — no visual elements are rendered
  */
 function CameraRig() {
+  // Store the camera's initial position so shake is applied as a temporary
+  // offset rather than an additive accumulation that drifts the camera permanently.
+  const basePosRef = useRef<THREE.Vector3 | null>(null);
+
   useFrame((state) => {
+    if (!basePosRef.current) {
+      basePosRef.current = state.camera.position.clone();
+    }
     const shake = useGameStore.getState().cameraShake;
     if (shake > 0) {
-      state.camera.position.x += (Math.random() - 0.5) * shake * 0.12;
-      state.camera.position.y += (Math.random() - 0.5) * shake * 0.06;
+      state.camera.position.x = basePosRef.current.x + (Math.random() - 0.5) * shake * 0.12;
+      state.camera.position.y = basePosRef.current.y + (Math.random() - 0.5) * shake * 0.06;
+    } else {
+      // Restore exact base position when shake expires to avoid any residual drift
+      state.camera.position.copy(basePosRef.current);
     }
   });
   return null;
@@ -482,7 +492,16 @@ export default function GameScreen() {
   const [earnedCoins, setEarnedCoins] = useState(0);
 
   const ndcRef = useRef<{ x: number; y: number } | null>(null);
+  // Track wave-spawn timeout IDs so they can be cancelled on unmount / game reset
+  const spawnTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const { width: screenW, height: screenH } = Dimensions.get('window');
+
+  // Cancel any pending spawn timers when the component unmounts
+  useEffect(() => {
+    return () => {
+      for (const id of spawnTimersRef.current) clearTimeout(id);
+    };
+  }, []);
 
   // Stable ray-hit handler (runs from useFrame – must not re-create)
   const handleRayHit = useCallback(
@@ -547,14 +566,20 @@ export default function GameScreen() {
   const handleStartWave = useCallback(() => {
     const store = useGameStore.getState();
     store.nextWave();
-    const currentWave = store.wave;
+    // Re-read after nextWave() so we get the incremented wave number, not the
+    // stale snapshot captured in `store` before the call.
+    const currentWave = useGameStore.getState().wave;
     const toSpawn = buildWaveList(currentWave);
     const spawnPt = pathCoords[0];
     const { x: swx, z: swz } = gridToWorld(spawnPt.x, spawnPt.z, CELL_SIZE);
     const hpScale = 1.0 + currentWave * HP_SCALE_PER_WAVE;
 
+    // Cancel any leftover timers from a previous wave that may not have finished
+    for (const id of spawnTimersRef.current) clearTimeout(id);
+    spawnTimersRef.current = [];
+
     toSpawn.forEach((type, i) => {
-      setTimeout(() => {
+      const id = setTimeout(() => {
         const stats = UNIT_STATS[type];
         const entity: Entity = {
           id: genEnemyId(),
@@ -579,11 +604,13 @@ export default function GameScreen() {
         };
         useGameStore.getState().spawnUnit(entity);
       }, i * 900);
+      spawnTimersRef.current.push(id);
     });
 
     const isBoss = currentWave % 5 === 0 && currentWave > 0;
     store.setAnnouncement(isBoss ? `⚠ BOSS WAVE ${currentWave} ⚠` : `⚔ Wave ${currentWave}`);
-    setTimeout(() => useGameStore.getState().setAnnouncement(''), 2500);
+    const annoId = setTimeout(() => useGameStore.getState().setAnnouncement(''), 2500);
+    spawnTimersRef.current.push(annoId);
   }, [pathCoords]);
 
   // Divine Smite (AoE all enemies)
@@ -616,6 +643,9 @@ export default function GameScreen() {
   }, [health, wave, gameOver, awardCoins]);
 
   const handleRestart = useCallback(() => {
+    // Cancel any pending wave-spawn timers before resetting
+    for (const id of spawnTimersRef.current) clearTimeout(id);
+    spawnTimersRef.current = [];
     setGameOver(false);
     setSelectedBuilding(null);
     setGhostPos(null);
@@ -623,6 +653,9 @@ export default function GameScreen() {
   }, []);
 
   const handleMenu = useCallback(() => {
+    // Cancel any pending wave-spawn timers before navigating away
+    for (const id of spawnTimersRef.current) clearTimeout(id);
+    spawnTimersRef.current = [];
     useGameStore.getState().resetGame();
     router.replace('/');
   }, [router]);

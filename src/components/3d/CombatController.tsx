@@ -7,8 +7,6 @@ import { gridToWorld, worldToGrid } from '../../utils/math';
 import { emitFloatingText } from './FloatingTextSystem';
 import { emitParticles } from './ParticleSystem';
 
-const _eid = 0;
-
 /**
  * Per-frame controller that advances the combat simulation while the game is in the 'defend' phase.
  *

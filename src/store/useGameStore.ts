@@ -21,7 +21,6 @@ export interface GameState {
   wave: number;
   phase: 'build' | 'defend';
   gameSpeed: number;
-  timeOfDay: number;
   grid: number[][];
   pathCoords: { x: number; z: number }[];
   spawnZ: number;
@@ -56,7 +55,6 @@ export interface GameState {
   removeBuilding: (id: string) => void;
   updateBuildingTimer: (id: string, timer: number) => void;
   setPhase: (phase: 'build' | 'defend') => void;
-  setTimeOfDay: (t: number) => void;
   triggerCameraShake: (intensity: number) => void;
   setDivineSmiteCooldown: (cd: number) => void;
   setAnnouncement: (msg: string) => void;
@@ -70,7 +68,6 @@ const makeInitial = (map: ReturnType<typeof freshMap>) => ({
   wave: 0,
   phase: 'build' as const,
   gameSpeed: 1,
-  timeOfDay: 0.0,
   grid: map.grid,
   pathCoords: map.pathCoords,
   spawnZ: map.spawnZ,
@@ -156,7 +153,6 @@ export const useGameStore = create<GameState>((set, get) => ({
     }),
 
   setPhase: (phase) => set({ phase }),
-  setTimeOfDay: (t) => set({ timeOfDay: t % 1.0 }),
   triggerCameraShake: (intensity) => set({ cameraShake: intensity }),
   setDivineSmiteCooldown: (cd) => set({ divineSmiteCooldown: cd }),
   setAnnouncement: (msg) => set({ announcement: msg }),

@@ -16,5 +16,14 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "app/**/*.ts", "app/**/*.tsx", "expo-env.d.ts"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "e2e/**/*.ts",
+    "expo-env.d.ts",
+    "jest.config.ts",
+    "playwright.config.ts"
+  ]
 }

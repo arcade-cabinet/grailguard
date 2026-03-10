@@ -150,3 +150,9 @@ web-build/
 *.orig.*
 android/
 ios/
+
+# Testing
+e2e-results/
+playwright-report/
+test-results/
+blob-report/

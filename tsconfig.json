@@ -22,8 +22,6 @@
     "app/**/*.ts",
     "app/**/*.tsx",
     "e2e/**/*.ts",
-    "expo-env.d.ts",
-    "jest.config.ts",
-    "playwright.config.ts"
+    "expo-env.d.ts"
   ]
 }

@@ -1,12 +1,14 @@
-import { defineConfig, devices } from '@playwright/test';
+// @ts-check
+const { defineConfig, devices } = require('@playwright/test');
 
-export default defineConfig({
+/** @type {import('@playwright/test').PlaywrightTestConfig} */
+module.exports = defineConfig({
   testDir: './e2e',
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   workers: 1,
-  reporter: 'html',
+  reporter: process.env.CI ? [['html'], ['github']] : 'html',
   timeout: 60_000,
   use: {
     baseURL: 'http://localhost:8081',

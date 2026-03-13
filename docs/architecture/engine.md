@@ -52,6 +52,27 @@ Called each frame by `updateGameWorld(dt)` in this order:
 - All non-wall units have `SeparationBehavior` (weight 2.0) for collision avoidance
 - Units follow continuous coordinate movement, NOT grid-snapping
 
+#### Enemy Flocking Behaviors (from initial-release)
+
+Initial-release `EnemyBrain.ts` implemented richer enemy movement via Yuka steering behaviors:
+
+| Behavior | Weight | Purpose |
+|----------|-------:|---------|
+| AlignmentBehavior | 0.5 | Enemies move in the same direction as nearby allies |
+| CohesionBehavior | 0.5 | Enemies cluster together into groups |
+| SeparationBehavior | 1.0 | Prevents overlap (highest priority) |
+| EvadeBehavior | 0.4 | Dodge allied ranged attacks |
+
+Enemies also used per-lane path offsets for multi-lane roads, creating wider attack fronts.
+
+#### GOAP Player Governor (from initial-release)
+
+Initial-release implemented an autonomous player AI (`PlayerGovernorBrain.ts`) using Yuka's GOAP (Goal-Oriented Action Planning). This AI could play the game without human input:
+
+- **Goals:** AttackGoal, MoveToSanctuaryGoal, BuildStructureGoal, RepairGoal, SmiteGoal, StartWaveGoal
+- **Think evaluators** scored each goal's desirability based on game state (e.g., BuildStructureGoal scores higher when gold is abundant and wave pressure is low)
+- **Use case:** Testing, demo mode, balance validation, and eventual "auto-play" feature
+
 ## Command Queue
 
 UI dispatches commands via `queueWorldCommand()`. Processed once per frame by `processCommands()`:
@@ -93,6 +114,26 @@ disposeRunWorld()          -- Reset ECS world on unmount
 | AI framework | Yuka | Provides `FollowPathBehavior` and `SeparationBehavior` out of the box; GOAP (Goal-Oriented Action Planning) considered for future complex unit AI |
 | State bridge | Command queue | UI cannot mutate ECS directly; `queueWorldCommand()` prevents React-bridge congestion (60 FPS * N entities would overwhelm the RN bridge) |
 | Save format | JSON snapshot | Full ECS state serialized as single JSON blob rather than decomposed SQL rows -- simpler, versioned, and avoids schema coupling |
+| Engine structure | Monolithic | All simulation code in single `GameEngine.ts` (~2200 LOC). initial-release used modular files (~15 engine modules). Monolith is simpler to reason about but harder to test in isolation. Decomposition is planned. |
+| Game config | Hardcoded constants | feat/poc-reset uses `constants.ts` dictionaries. initial-release used external `gameConfig.json` for data-driven balancing. JSON config enables balance iteration without code changes — planned for future. |
+
+### Audio Bridge Pattern (from initial-release)
+
+Initial-release separated audio into three decoupled layers:
+1. **SoundManager** — Low-level Tone.js synthesis (oscillators, envelopes, effects)
+2. **AudioBridge** — Event bus translating game events to audio commands
+3. **AmbienceManager** — Environmental audio (wind, forest, biome-specific loops)
+
+This decoupling means the simulation layer never imports audio directly — it emits events that the bridge translates. feat/poc-reset has a simpler `SoundManager.ts` that could benefit from this separation as audio complexity grows.
+
+### Road Template System (from initial-release)
+
+Initial-release implemented pre-designed road templates (`src/engine/roads/templates.ts`) with 3 layouts:
+- **Template 1:** Simple S-curve with 2 lanes
+- **Template 2:** U-turn with 3 lanes, creating natural kill zones
+- **Template 3:** Complex winding path with 4 lanes
+
+Each template defined tile-level placement with lane offsets, enabling wider enemy fronts and more strategic placement decisions. feat/poc-reset uses procedural CatmullRom spline generation instead, which is more varied but less strategically designed.
 
 ## Planned Work
 
@@ -101,6 +142,12 @@ disposeRunWorld()          -- Reset ECS world on unmount
 - [ ] Add reduced-FX path (skip particles/floating text when setting enabled)
 - [ ] GOAP (Goal-Oriented Action Planning) for advanced unit AI -- clerics dynamically plan heal routes, knights prioritize boss targets
 - [ ] Seeded PRNG for deterministic replay (enables competitive replays, debugging, bug reproduction)
+- [ ] GOAP PlayerGovernorBrain for autonomous play / demo mode / balance testing
+- [ ] Data-driven `gameConfig.json` for balance tuning without code changes
+- [ ] Audio bridge pattern: decouple SoundManager from simulation via event bus
+- [ ] Road template system: curated multi-lane layouts alongside procedural generation
+- [ ] Enemy flocking behaviors: alignment, cohesion, evasion steering
+- [ ] GrailGuardTelemetry interface for runtime performance metrics (FPS, entity count, memory)
 
 ## Testing Expectations
 

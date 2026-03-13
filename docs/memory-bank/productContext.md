@@ -69,3 +69,13 @@ Game Over -> Bank rewards -> Return to Main Menu
 | Codex (`codex.tsx`) | Discovered unit/building encyclopedia |
 | Doctrine (`doctrine.tsx`) | Skill tree for permanent passive bonuses |
 | Settings (`settings.tsx`) | Audio, FX, speed, haptics, camera preferences |
+
+### UI Layout Approach (initial-release vs feat/poc-reset)
+
+Initial-release used a **bezel-based UI layout** (`BezelLayout.tsx`) with dedicated HUD zones:
+- **Top bezel:** Wave info, resources, game speed
+- **Bottom bezel:** Toychest building selector (horizontally scrollable)
+- **Side bezels:** Spell bar, selected building info
+- **Modals:** `GameOverModal.tsx`, `MarketModal.tsx`, `UpgradeModal.tsx`
+
+feat/poc-reset uses a React Native **overlay approach** with absolute-positioned View components layered over the 3D canvas. Both approaches work; the bezel pattern provides more structured layout management and may be worth revisiting for complex HUD states.

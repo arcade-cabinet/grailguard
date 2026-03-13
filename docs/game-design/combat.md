@@ -70,6 +70,16 @@ Enemy stats scale per wave: `multiplier = 1 + wave * 0.15`.
 
 **Victory:** Surviving wave 20 awards `wave * 25` coins.
 
+### Wave Director Design (from initial-release)
+
+The `initial-release` branch implemented a more complex parametric wave director (`src/engine/pacing/waveDirector.ts`) with features worth preserving in future work:
+
+- **Seeded RNG:** All randomness deterministic via seed, enabling replay/debugging
+- **Enemy unlock progression:** Not all enemy types available from wave 1. Orcs unlock at wave 3, trolls at wave 6, bosses at wave 5. This prevents overwhelming early-game variety.
+- **Wave labels:** Human-readable labels like "Scout Party", "Raiding Force", "War Host" based on budget thresholds — useful for UI announcements
+- **Parametric budget formula from config:** `base * multiplier^wave + quadratic * wave²` with all coefficients driven from `gameConfig.json` rather than hardcoded, enabling balance iteration without code changes
+- **Victory at wave 15 vs 20:** initial-release used wave 15 as victory threshold; feat/poc-reset uses wave 20. The higher value was a deliberate design choice for longer sessions.
+
 ### Wave Mechanics Detail
 
 - **Spawn interval:** 1.0 second between each enemy spawn
@@ -89,8 +99,33 @@ Enemy stats scale per wave: `multiplier = 1 + wave * 0.15`.
 - Slow: Applied by Sorcerer Tower projectiles, lasts 3 seconds
 - Boss AoE: Damages all allies within 8 units on attack
 
+### Enemy Siege Targeting (from initial-release)
+
+The initial-release `CombatSystem.ts` implemented per-type siege targeting priorities — enemies prefer different building types:
+
+| Enemy Type | Priority 1 | Priority 2 | Priority 3 | Fallback |
+|------------|------------|------------|------------|----------|
+| Orc | Hut (spawner) | Archery Range | — | Nearest building |
+| Troll | Archery Range | Temple | Knight Keep | Nearest building |
+| Boss | Knight Keep | — | — | Nearest building |
+| Goblin | — | — | — | Nearest building |
+
+This creates more strategic depth — players must protect high-value buildings specific to the current wave composition rather than just placing everything behind walls.
+
+### Rare Item Drops (from initial-release)
+
+Initial-release implemented rare drops on enemy death:
+- **Potion** (5% chance): Heals nearest allied unit
+- **Star** (3% chance): Grants bonus gold/resources
+
+These are not yet implemented in feat/poc-reset but add satisfying micro-rewards.
+
 ## Planned Work
 
 - [ ] Additional enemy types (flying, shield-bearer, summoner)
 - [ ] Difficulty tiers affecting stat multipliers
 - [ ] Boss ability variants per boss wave number
+- [ ] Enemy siege targeting per unit type (from initial-release CombatSystem)
+- [ ] Rare item drops on enemy death (potion 5%, star 3%)
+- [ ] Wave labels for UI announcements ("Scout Party", "War Host", etc.)
+- [ ] Enemy unlock progression per wave (orcs at 3, trolls at 6)

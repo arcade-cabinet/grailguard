@@ -88,6 +88,15 @@ Logarithmic difficulty curves flatten out, making late-game trivially easy. The 
 ### Why JSON Snapshot Over SQL Decomposition
 Active run persistence uses a single JSON blob (`ActiveRunSnapshotV1`) rather than decomposing ECS entities into SQL rows. This avoids tight coupling between the ECS trait schema and the database schema, simplifies versioning, and makes save/load a single atomic operation.
 
+### Why Monolithic Engine (and Why It Should Change)
+feat/poc-reset consolidates all simulation logic into a single `GameEngine.ts` (~2200 LOC). Initial-release used ~15 modular engine files (`BuildingSystem.ts`, `CombatSystem.ts`, `waveDirector.ts`, `EnemyBrain.ts`, etc.) as pure-function subsystems. The monolith is simpler to reason about during rapid prototyping, but sacrifices testability — initial-release could unit-test individual systems in isolation, while feat/poc-reset can only integration-test the entire engine. Decomposition is planned.
+
+### Data-Driven Configuration Pattern
+Initial-release used an external `gameConfig.json` with all balance parameters (wave budget coefficients, unit stats, building costs, spawn timers). feat/poc-reset uses `constants.ts` TypeScript dictionaries. The JSON approach enables balance iteration without code changes — game designers can tune values, QA can swap configs for testing, and A/B testing becomes trivial. This pattern should be adopted as the game matures past prototyping.
+
+### Audio Event Bus Pattern
+Initial-release decoupled audio from simulation via a 3-layer architecture: SoundManager (synthesis) → AudioBridge (event translator) → AmbienceManager (environmental). The simulation emits typed events; the bridge maps them to audio commands. This prevents import coupling between engine and audio, makes audio testable in isolation, and allows swapping audio backends (e.g., Tone.js → native audio on mobile). feat/poc-reset's direct `SoundManager` imports work but will need this decoupling as audio complexity grows.
+
 ## Data Flow
 
 ```

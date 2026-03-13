@@ -1,0 +1,971 @@
+{
+  "project": "Grailguard",
+  "branchName": "ralph/grailguard-production",
+  "description": "Grailguard Production Release — engine decomposition, data-driven JSON configs, TDD test coverage, rendering optimizations, new content, CI/CD, and GitHub Pages deployment",
+  "userStories": [
+    {
+      "id": "US-002",
+      "title": "CI Pipeline Hardening",
+      "description": "As a developer, I want the CI pipeline to run lint, typecheck, and unit tests with coverage gates so that regressions are caught before merge.",
+      "acceptanceCriteria": [
+        "`.github/workflows/ci.yml` runs `biome ci .`, `tsc --noEmit`, `jest --ci --coverage`",
+        "CI fails if coverage drops below 80% on engine/ and db/ directories",
+        "Coverage report uploaded as artifact",
+        "E2E job runs Playwright against web export (continue-on-error until stable)",
+        "All steps use pinned action versions with SHA hashes",
+        "Typecheck passes"
+      ],
+      "dependsOn": [],
+      "blocks": ["US-003", "US-032"],
+      "priority": 1,
+      "passes": false,
+      "notes": "Touches .github/workflows/ci.yml only"
+    },
+    {
+      "id": "US-010",
+      "title": "Game Config — Wave & Pacing Parameters",
+      "description": "As a game designer, I want all wave pacing parameters in a JSON file so that I can tune difficulty without touching code.",
+      "acceptanceCriteria": [
+        "Create `src/data/waveConfig.json` with: waveBudgetBase (50), waveBudgetMultiplier (1.15), waveBudgetQuadratic (2), buildTimerBase (30), buildTimerLogCoeff (10), bossWaveInterval (5), victoryWave (20), spawnInterval (1.0), affixStartWave (6), affixChance (0.2), earlyStartBonusRate (2), waveCompletionBonusBase (50), waveCompletionBonusPerWave (10), interestRate (0.05), grailDamageNormal (1), grailDamageBoss (5)",
+        "Values match current hardcoded values exactly (regression-safe)",
+        "Tests written FIRST asserting config values produce identical behavior to hardcoded formulas",
+        "Typecheck passes"
+      ],
+      "dependsOn": [],
+      "blocks": ["US-020", "US-043", "US-064", "US-083"],
+      "priority": 1,
+      "passes": false,
+      "notes": "Touches src/data/waveConfig.json (new), test file. Does NOT yet modify GameEngine.ts — that happens in US-020."
+    },
+    {
+      "id": "US-011",
+      "title": "Game Config — Unit Stats",
+      "description": "As a game designer, I want all unit stat blocks in a JSON file so that balance changes don't require TypeScript changes.",
+      "acceptanceCriteria": [
+        "Create `src/data/unitConfig.json` with all fields from current UNITS record in constants.ts",
+        "Include per-wave scaling multiplier coefficient (0.15)",
+        "`constants.ts` imports and re-exports typed UNITS from JSON",
+        "Existing UnitConfig interface preserved as TypeScript overlay",
+        "Tests written FIRST verifying JSON-loaded stats match current hardcoded values",
+        "Typecheck passes"
+      ],
+      "dependsOn": [],
+      "blocks": ["US-021", "US-080", "US-081"],
+      "priority": 1,
+      "passes": false,
+      "notes": "Touches src/data/unitConfig.json (new), src/engine/constants.ts, test file"
+    },
+    {
+      "id": "US-012",
+      "title": "Game Config — Building Stats",
+      "description": "As a game designer, I want all building configs in a JSON file so that costs, spawn times, and turret stats are data-driven.",
+      "acceptanceCriteria": [
+        "Create `src/data/buildingConfig.json` with all fields from current BUILDINGS record in constants.ts",
+        "Include upgradeCostMultiplier (1.5) for exponential upgrade cost formula",
+        "`constants.ts` imports and re-exports typed BUILDINGS from JSON",
+        "Existing BuildingConfig interface preserved as TypeScript overlay",
+        "Tests written FIRST verifying JSON-loaded configs match current hardcoded values",
+        "Typecheck passes"
+      ],
+      "dependsOn": [],
+      "blocks": ["US-022", "US-086"],
+      "priority": 1,
+      "passes": false,
+      "notes": "Touches src/data/buildingConfig.json (new), src/engine/constants.ts, test file"
+    },
+    {
+      "id": "US-013",
+      "title": "Game Config — Spell Stats",
+      "description": "As a game designer, I want spell costs, cooldowns, and effect values in a JSON file.",
+      "acceptanceCriteria": [
+        "Create `src/data/spellConfig.json` with: spell IDs, faith costs, cooldowns, damage/heal values, AoE radii, durations, unlock costs for all 7 spells",
+        "All spell-related magic numbers removed from GameEngine.ts",
+        "Engine reads spell configs via static import",
+        "Tests written FIRST",
+        "Typecheck passes"
+      ],
+      "dependsOn": [],
+      "blocks": ["US-026"],
+      "priority": 1,
+      "passes": false,
+      "notes": "Touches src/data/spellConfig.json (new), test file"
+    },
+    {
+      "id": "US-014",
+      "title": "Game Config — Relic & Doctrine Data",
+      "description": "As a game designer, I want relic effects and doctrine node data in JSON files.",
+      "acceptanceCriteria": [
+        "Create `src/data/relicConfig.json` with relic IDs, names, descriptions, effect types, effect values",
+        "Create `src/data/doctrineConfig.json` with node IDs, names, max levels, effects per level, costs",
+        "All relic/doctrine magic numbers removed from engine code",
+        "Tests written FIRST",
+        "Typecheck passes"
+      ],
+      "dependsOn": [],
+      "blocks": [],
+      "priority": 1,
+      "passes": false,
+      "notes": "Touches src/data/relicConfig.json (new), src/data/doctrineConfig.json (new), test file"
+    },
+    {
+      "id": "US-015",
+      "title": "Game Config — Combat Mechanics",
+      "description": "As a game designer, I want combat formula coefficients in a JSON config.",
+      "acceptanceCriteria": [
+        "Create `src/data/combatConfig.json` with: meleeSearchRange (8), rangedSearchRange (25), wallPriorityRange (5), poisonDamageRate (0.2), poisonDecayRate (2), freezeDecayRate (1), slowDuration (3), bossAoeRadius (8), vampiricHealPercent (0.5), armoredDamageReduction (0.5), swiftSpeedMultiplier (2), explosiveAoeDamage (50), explosiveAoeRadius (6), sellValuePercent (0.5)",
+        "Tests written FIRST",
+        "Typecheck passes"
+      ],
+      "dependsOn": [],
+      "blocks": ["US-021", "US-024", "US-041"],
+      "priority": 1,
+      "passes": false,
+      "notes": "Touches src/data/combatConfig.json (new), test file"
+    },
+    {
+      "id": "US-016",
+      "title": "Game Config — Rendering & VFX Parameters",
+      "description": "As a developer, I want rendering tunables in a JSON config so particle counts, camera settings, and VFX values are adjustable.",
+      "acceptanceCriteria": [
+        "Create `src/data/renderConfig.json` with: camera position (0,100,70), zoom range (22-80), shake max offset (5), shake damping (0.9), shake lerp (0.1), particle size (0.3), particle gravity (30), particle drag (0.96), floating text rise speed (5), floating text lifetime (1), scenery density parameters",
+        "Tests written FIRST (config structure validation via JSON schema or runtime check)",
+        "Typecheck passes"
+      ],
+      "dependsOn": [],
+      "blocks": ["US-025", "US-050", "US-055", "US-060"],
+      "priority": 1,
+      "passes": false,
+      "notes": "Touches src/data/renderConfig.json (new), test file"
+    },
+    {
+      "id": "US-017",
+      "title": "Game Config — Economy & Logistics",
+      "description": "As a game designer, I want economy tunables (starting resources, cart speed, resource amounts) in JSON.",
+      "acceptanceCriteria": [
+        "Create `src/data/economyConfig.json` with: startingGold (300), startingWood (50), startingOre (0), startingGem (0), startingFaith (100), startingHealth (20), faithRegenRate (health/10 per sec), cartSpeed (5), cartSpeedWithRelic (10), woodDeliveryAmount (10), oreDeliveryAmount (1), gemDeliveryAmount (1), victoryCoinsMultiplier (25), defeatCoinsMultiplier (10)",
+        "Tests written FIRST",
+        "Typecheck passes"
+      ],
+      "dependsOn": [],
+      "blocks": ["US-023"],
+      "priority": 1,
+      "passes": false,
+      "notes": "Touches src/data/economyConfig.json (new), test file"
+    },
+    {
+      "id": "US-018",
+      "title": "Game Config — Map Generation",
+      "description": "As a developer, I want map generation parameters in a JSON config.",
+      "acceptanceCriteria": [
+        "Create `src/data/mapConfig.json` with: mapSize (100), roadSampleCount (120), placementGridSize (5), wallMaxRoadDistance (4), spawnerMinRoadDistance (7), roadSplinePointCount (50), yukaPathPointCount (50), sceneryTreeCount, sceneryRockCount, scatterRadius",
+        "All map generation magic numbers removed from mapGenerator.ts and GameEngine.ts",
+        "Tests written FIRST",
+        "Typecheck passes"
+      ],
+      "dependsOn": [],
+      "blocks": ["US-051", "US-052", "US-085"],
+      "priority": 1,
+      "passes": false,
+      "notes": "Touches src/data/mapConfig.json (new), src/engine/mapGenerator.ts, test file"
+    },
+    {
+      "id": "US-028",
+      "title": "Seeded PRNG Module",
+      "description": "As a developer, I want a seeded pseudorandom number generator so that all randomness is deterministic and replayable.",
+      "acceptanceCriteria": [
+        "Create `src/engine/systems/rng.ts` with: createRng(seed) returning { next(), nextInt(min,max), nextFloat(min,max), fork(label) }",
+        "Uses mulberry32 or xoshiro128 algorithm",
+        "Tests written FIRST in `src/__tests__/engine/systems/rng.test.ts`",
+        "Tests cover: deterministic sequences for same seed, different sequences for different seeds, fork independence",
+        "Typecheck passes"
+      ],
+      "dependsOn": [],
+      "blocks": ["US-020", "US-021", "US-025", "US-084"],
+      "priority": 1,
+      "passes": false,
+      "notes": "Touches src/engine/systems/rng.ts (new), test file. Does NOT yet replace Math.random calls — that happens in subsystem modules."
+    },
+    {
+      "id": "US-030",
+      "title": "DB Repository Test Suite",
+      "description": "As a developer, I want comprehensive tests for all database repository modules.",
+      "acceptanceCriteria": [
+        "Create test files: profileRepo.test.ts, unlockRepo.test.ts, runRepo.test.ts, settingsRepo.test.ts, doctrineRepo.test.ts, codexRepo.test.ts, bootstrapRepo.test.ts",
+        "Tests use in-memory SQLite (:memory:) with schema migrations applied",
+        "Tests cover: CRUD operations, edge cases (duplicate inserts, missing records), transaction atomicity",
+        "profileRepo tests: coin balance updates, highest wave tracking, lifetime stats",
+        "runRepo tests: snapshot save/load, run history recording, active run lifecycle",
+        "unlockRepo tests: purchase transactions, unlock cost validation, spell vs building unlocks",
+        ">90% coverage on src/db/repos/",
+        "Typecheck passes"
+      ],
+      "dependsOn": [],
+      "blocks": ["US-031", "US-095"],
+      "priority": 1,
+      "passes": false,
+      "notes": "Touches src/__tests__/db/repos/*.test.ts (new). Independent of engine work."
+    },
+    {
+      "id": "US-097",
+      "title": "Localization Support",
+      "description": "As a non-English speaker, I want UI text to be translatable.",
+      "acceptanceCriteria": [
+        "Create `src/i18n/en.json` containing all UI strings (main menu, HUD, settings, codex, doctrine labels)",
+        "Create `src/i18n/index.ts` with t(key) translation function",
+        "All hardcoded UI strings in screens and HUD replaced with t() calls",
+        "Settings screen includes language selector (initially English only, structure ready for more)",
+        "Typecheck passes"
+      ],
+      "dependsOn": [],
+      "blocks": [],
+      "priority": 1,
+      "passes": false,
+      "notes": "Touches src/i18n/ (new), src/app/*.tsx, src/components/ui/HUD.tsx. Independent of engine work."
+    },
+    {
+      "id": "US-063",
+      "title": "Haptic Feedback Integration",
+      "description": "As a mobile player, I want haptic feedback on key actions for satisfying tactile response.",
+      "acceptanceCriteria": [
+        "Create `src/engine/haptics.ts` with: impactLight(), impactMedium(), impactHeavy(), notificationSuccess(), notificationWarning()",
+        "Add expo-haptics as dependency in package.json",
+        "Haptics respect settings toggle (hapticsEnabled from settingsRepo)",
+        "No-op on web platform (Platform.OS check)",
+        "Typecheck passes"
+      ],
+      "dependsOn": [],
+      "blocks": [],
+      "priority": 1,
+      "passes": false,
+      "notes": "Touches src/engine/haptics.ts (new), package.json. Does NOT wire up to game events yet — that happens after audio bridge."
+    },
+    {
+      "id": "US-090",
+      "title": "Runtime Telemetry Interface",
+      "description": "As a developer, I want runtime performance metrics exposed for debugging and optimization.",
+      "acceptanceCriteria": [
+        "Create `src/engine/telemetry.ts` exporting GrailguardTelemetry interface with: fps, entityCount, activeParticles, activeProjectiles, activeUnits, memoryUsageMB, frameTimeMs",
+        "Telemetry singleton updated each frame in stepRunWorld()",
+        "Create `src/components/ui/DebugOverlay.tsx` toggled via settings",
+        "Telemetry disabled in production builds (tree-shaken via __DEV__ check)",
+        "Typecheck passes"
+      ],
+      "dependsOn": [],
+      "blocks": [],
+      "priority": 1,
+      "passes": false,
+      "notes": "Touches src/engine/telemetry.ts (new), src/components/ui/DebugOverlay.tsx (new)"
+    },
+    {
+      "id": "US-070",
+      "title": "Audio Event Bus",
+      "description": "As a developer, I want the simulation to emit audio events rather than calling SoundManager directly so that audio is decoupled from the engine.",
+      "acceptanceCriteria": [
+        "Create `src/engine/audio/audioBridge.ts` with typed event emitter",
+        "Event types: combat_hit, unit_death, building_placed, building_sold, wave_start, wave_complete, boss_spawn, spell_cast, game_over, ui_click",
+        "SoundManager.ts subscribes to bridge events instead of being called directly",
+        "All direct soundManager.* calls in GameEngine.ts replaced with event emissions",
+        "Engine has zero imports from SoundManager",
+        "Tests written FIRST (verify events emitted for each game action type)",
+        "Typecheck passes",
+        "Update docs/architecture/engine.md"
+      ],
+      "dependsOn": [],
+      "blocks": ["US-071"],
+      "priority": 1,
+      "passes": false,
+      "notes": "Touches src/engine/audio/audioBridge.ts (new), src/engine/SoundManager.ts, src/engine/GameEngine.ts"
+    },
+    {
+      "id": "US-020",
+      "title": "Extract Wave System Module",
+      "description": "As a developer, I want wave spawning and pacing logic in its own module so it can be tested in isolation.",
+      "acceptanceCriteria": [
+        "Create `src/engine/systems/waveSystem.ts` with pure functions: calculateWaveBudget(wave), calculateBuildTimer(wave), allocateWaveBudget(budget, wave, rng), updateWaveState(dt, session, waveState), checkWaveCompletion(units)",
+        "All functions import from waveConfig.json",
+        "Functions are pure (no side effects, no global state mutation)",
+        "GameEngine.ts delegates to these functions",
+        "Tests written FIRST in `src/__tests__/engine/systems/waveSystem.test.ts`",
+        "Tests cover: budget formula accuracy, boss scheduling, affix assignment, wave completion detection",
+        "Typecheck passes",
+        "Update docs/architecture/engine.md with new module"
+      ],
+      "dependsOn": ["US-010", "US-028"],
+      "blocks": ["US-029", "US-043", "US-064"],
+      "priority": 2,
+      "passes": false,
+      "notes": "Touches src/engine/systems/waveSystem.ts (new), src/engine/GameEngine.ts, test file, docs/architecture/engine.md"
+    },
+    {
+      "id": "US-021",
+      "title": "Extract Combat System Module",
+      "description": "As a developer, I want combat logic (targeting, damage, healing, status effects) in its own module.",
+      "acceptanceCriteria": [
+        "Create `src/engine/systems/combatSystem.ts` with pure functions: findTarget(unit, enemies, allies), calculateDamage(attacker, defender), applyStatusEffects(unit, dt), processHealing(healer, allies), processBossAoe(boss, allies), processVampiricHeal(attacker, damage), processExplosiveDeath(unit, allies)",
+        "All functions import from combatConfig.json and unitConfig.json",
+        "Functions are pure — take entity data in, return mutation descriptors out",
+        "GameEngine.ts delegates to these functions",
+        "Tests written FIRST in `src/__tests__/engine/systems/combatSystem.test.ts`",
+        "Tests cover: target selection priorities, damage with armor, vampiric healing, explosive death AoE, healer targeting, boss AoE radius",
+        "Typecheck passes"
+      ],
+      "dependsOn": ["US-015", "US-011", "US-028"],
+      "blocks": ["US-029", "US-041", "US-080", "US-081", "US-084"],
+      "priority": 2,
+      "passes": false,
+      "notes": "Touches src/engine/systems/combatSystem.ts (new), src/engine/GameEngine.ts, test file"
+    },
+    {
+      "id": "US-022",
+      "title": "Extract Building System Module",
+      "description": "As a developer, I want building placement, spawning, upgrading, and selling logic in its own module.",
+      "acceptanceCriteria": [
+        "Create `src/engine/systems/buildingSystem.ts` with pure functions: validatePlacement(type, position, roadSamples, existingBuildings), calculateUpgradeCost(building, branch), calculateSellValue(building), updateBuildingTimers(buildings, dt, session), spawnUnitFromBuilding(building, config, session)",
+        "All functions import from buildingConfig.json",
+        "Functions are pure",
+        "GameEngine.ts delegates to these functions",
+        "Tests written FIRST in `src/__tests__/engine/systems/buildingSystem.test.ts`",
+        "Tests cover: placement validation (road distance, overlap, grid snap), upgrade cost scaling (1.5x exponential), sell value (50%), spawn timer with upgrade multiplier",
+        "Typecheck passes"
+      ],
+      "dependsOn": ["US-012"],
+      "blocks": ["US-029", "US-086", "US-062", "US-042"],
+      "priority": 2,
+      "passes": false,
+      "notes": "Touches src/engine/systems/buildingSystem.ts (new), src/engine/GameEngine.ts, test file"
+    },
+    {
+      "id": "US-023",
+      "title": "Extract Logistics System Module",
+      "description": "As a developer, I want resource cart spawning, BFS pathfinding, and delivery logic in its own module.",
+      "acceptanceCriteria": [
+        "Create `src/engine/systems/logisticsSystem.ts` with pure functions: findTrackPath(source, sink, tracks), updateCarts(carts, dt, session), deliverResource(cart, session), spawnResourceCart(building, tracks, sinks)",
+        "All functions import from economyConfig.json",
+        "Functions are pure",
+        "GameEngine.ts delegates to these functions",
+        "Tests written FIRST in `src/__tests__/engine/systems/logisticsSystem.test.ts`",
+        "Tests cover: BFS pathfinding, cart movement, resource delivery amounts, 'No Track!' error case",
+        "Typecheck passes"
+      ],
+      "dependsOn": ["US-017"],
+      "blocks": ["US-029"],
+      "priority": 2,
+      "passes": false,
+      "notes": "Touches src/engine/systems/logisticsSystem.ts (new), src/engine/GameEngine.ts, test file"
+    },
+    {
+      "id": "US-024",
+      "title": "Extract Projectile System Module",
+      "description": "As a developer, I want projectile movement and impact logic in its own module.",
+      "acceptanceCriteria": [
+        "Create `src/engine/systems/projectileSystem.ts` with pure functions: updateProjectiles(projectiles, targets, dt), processImpact(projectile, target), spawnProjectile(source, target, config)",
+        "Functions are pure",
+        "GameEngine.ts delegates to these functions",
+        "Tests written FIRST in `src/__tests__/engine/systems/projectileSystem.test.ts`",
+        "Tests cover: tracking movement, damage application, splash radius, heal projectiles, poison projectiles, slow projectiles",
+        "Typecheck passes"
+      ],
+      "dependsOn": ["US-015"],
+      "blocks": ["US-029"],
+      "priority": 2,
+      "passes": false,
+      "notes": "Touches src/engine/systems/projectileSystem.ts (new), src/engine/GameEngine.ts, test file"
+    },
+    {
+      "id": "US-025",
+      "title": "Extract VFX System Module",
+      "description": "As a developer, I want particle physics, floating text, and world effect logic in its own module.",
+      "acceptanceCriteria": [
+        "Create `src/engine/systems/vfxSystem.ts` with pure functions: updateParticles(particles, dt), updateFloatingText(texts, dt), updateWorldEffects(effects, dt), spawnParticleBurst(position, color, count, intensity, rng)",
+        "All functions import from renderConfig.json",
+        "Functions are pure",
+        "GameEngine.ts delegates to these functions",
+        "Tests written FIRST in `src/__tests__/engine/systems/vfxSystem.test.ts`",
+        "Tests cover: gravity (30 units/s2), drag (0.96), lifetime decay, particle burst count, floating text rise speed (5 units/sec)",
+        "Typecheck passes"
+      ],
+      "dependsOn": ["US-016", "US-028"],
+      "blocks": ["US-029", "US-050", "US-056"],
+      "priority": 2,
+      "passes": false,
+      "notes": "Touches src/engine/systems/vfxSystem.ts (new), src/engine/GameEngine.ts, test file"
+    },
+    {
+      "id": "US-026",
+      "title": "Extract Spell System Module",
+      "description": "As a developer, I want spell casting, cooldowns, and effect application in its own module.",
+      "acceptanceCriteria": [
+        "Create `src/engine/systems/spellSystem.ts` with pure functions: canCastSpell(spellId, session), castSpell(spellId, session, units, buildings), updateSpellCooldowns(session, dt), getSpellConfig(spellId)",
+        "All functions import from spellConfig.json",
+        "Functions are pure",
+        "GameEngine.ts delegates to these functions",
+        "Tests written FIRST in `src/__tests__/engine/systems/spellSystem.test.ts`",
+        "Tests cover: faith cost deduction, cooldown enforcement, each spell's effect (smite damage, holy_nova heal, earthquake AoE, etc.), doctrine modifiers",
+        "Typecheck passes"
+      ],
+      "dependsOn": ["US-013"],
+      "blocks": ["US-029"],
+      "priority": 2,
+      "passes": false,
+      "notes": "Touches src/engine/systems/spellSystem.ts (new), src/engine/GameEngine.ts, test file"
+    },
+    {
+      "id": "US-027",
+      "title": "Extract Codex Discovery Module",
+      "description": "As a developer, I want codex discovery logic in its own module.",
+      "acceptanceCriteria": [
+        "Create `src/engine/systems/codexSystem.ts` with pure function: discoverNewEntities(entities, discoveredSet) returning new discovery IDs",
+        "GameEngine.ts delegates to this function",
+        "Tests written FIRST in `src/__tests__/engine/systems/codexSystem.test.ts`",
+        "Tests cover: new entity discovery, duplicate prevention, all unit/building types discoverable",
+        "Typecheck passes"
+      ],
+      "dependsOn": [],
+      "blocks": ["US-029"],
+      "priority": 2,
+      "passes": false,
+      "notes": "Touches src/engine/systems/codexSystem.ts (new), src/engine/GameEngine.ts, test file"
+    },
+    {
+      "id": "US-031",
+      "title": "Meta Service Test Suite",
+      "description": "As a developer, I want tests for the database service facade (meta.ts).",
+      "acceptanceCriteria": [
+        "Expand `src/__tests__/db/metaService.test.ts` with: profile operations, settings CRUD, unlock flow, doctrine purchase, codex recording, run save/resume/finalize lifecycle",
+        "Tests use in-memory SQLite",
+        "Tests verify the React hooks return expected data shapes",
+        ">85% coverage on src/db/meta.ts",
+        "Typecheck passes"
+      ],
+      "dependsOn": ["US-030"],
+      "blocks": [],
+      "priority": 2,
+      "passes": false,
+      "notes": "Touches src/__tests__/db/metaService.test.ts"
+    },
+    {
+      "id": "US-029",
+      "title": "Slim GameEngine Orchestrator",
+      "description": "As a developer, I want GameEngine.ts reduced to an orchestrator that imports and calls subsystem modules.",
+      "acceptanceCriteria": [
+        "GameEngine.ts contains ONLY: trait definitions, world lifecycle (create/step/serialize/hydrate/dispose), command processing, and system orchestration",
+        "All game logic delegated to src/engine/systems/*.ts modules",
+        "GameEngine.ts is under 600 LOC",
+        "All existing tests still pass (gameEngine.test.ts)",
+        "No behavioral changes — same game, cleaner code",
+        "All Math.random() calls replaced with seeded PRNG from rng.ts",
+        "Typecheck passes",
+        "Update docs/architecture/engine.md and docs/memory-bank/systemPatterns.md"
+      ],
+      "dependsOn": ["US-020", "US-021", "US-022", "US-023", "US-024", "US-025", "US-026", "US-027", "US-028", "US-070"],
+      "blocks": ["US-003", "US-032", "US-082"],
+      "priority": 3,
+      "passes": false,
+      "notes": "Touches src/engine/GameEngine.ts (major refactor), docs/"
+    },
+    {
+      "id": "US-043",
+      "title": "Wave Director with Enemy Unlock Progression",
+      "description": "As a game designer, I want enemies to unlock progressively by wave so that early game is approachable.",
+      "acceptanceCriteria": [
+        "Create `src/data/enemyProgression.json` with: goblin unlockWave 1, orc unlockWave 3, troll unlockWave 6, boss unlockWave 5",
+        "Update waveSystem.ts allocateWaveBudget to only consider unlocked enemy types for current wave",
+        "Add wave labels based on budget thresholds: <100='Scout Party', 100-300='Raiding Force', 300+='War Host'",
+        "Tests written FIRST",
+        "Typecheck passes",
+        "Update docs/game-design/combat.md"
+      ],
+      "dependsOn": ["US-020", "US-010"],
+      "blocks": [],
+      "priority": 3,
+      "passes": false,
+      "notes": "Touches src/data/enemyProgression.json (new), src/engine/systems/waveSystem.ts, test file, docs/"
+    },
+    {
+      "id": "US-041",
+      "title": "Enemy Siege Targeting",
+      "description": "As a player, I want different enemy types to target different buildings so that I must protect high-value structures strategically.",
+      "acceptanceCriteria": [
+        "Create `src/data/siegeTargeting.json` with per-enemy-type building priorities: orc targets hut then range, troll targets range then temple then keep, boss targets keep, goblin targets nearest",
+        "Add selectSiegeTarget(enemyType, buildings) to combatSystem.ts",
+        "Enemies switch to siege when no enemy units in range and buildings exist",
+        "Tests written FIRST",
+        "Typecheck passes",
+        "Update docs/game-design/combat.md"
+      ],
+      "dependsOn": ["US-021", "US-015"],
+      "blocks": [],
+      "priority": 3,
+      "passes": false,
+      "notes": "Touches src/data/siegeTargeting.json (new), src/engine/systems/combatSystem.ts, test file, docs/"
+    },
+    {
+      "id": "US-064",
+      "title": "Wave Announcement Labels",
+      "description": "As a player, I want to see wave names announced at wave start for atmosphere.",
+      "acceptanceCriteria": [
+        "Create `src/data/waveLabels.json` with budget-threshold-to-label mappings",
+        "Banner displays wave label alongside wave number at defend phase start",
+        "Labels driven by wave budget from waveSystem.ts",
+        "Banner uses existing triggerBanner() system",
+        "Tests written FIRST",
+        "Typecheck passes"
+      ],
+      "dependsOn": ["US-020", "US-010"],
+      "blocks": [],
+      "priority": 3,
+      "passes": false,
+      "notes": "Touches src/data/waveLabels.json (new), src/engine/systems/waveSystem.ts"
+    },
+    {
+      "id": "US-086",
+      "title": "Upgrade Cost Formula",
+      "description": "As a game designer, I want building upgrade costs to follow an explicit exponential formula for balanced progression.",
+      "acceptanceCriteria": [
+        "Implement in buildingSystem.ts: upgradeCost(baseCost, level) = baseCost * 1.5^(level-1)",
+        "Formula coefficient (1.5) loaded from buildingConfig.json upgradeCostMultiplier field",
+        "Applies to both gold and wood costs",
+        "Max level 5 enforced",
+        "Tests written FIRST verifying cost at each level (L1=1x, L2=1.5x, L3=2.25x, L4=3.375x, L5=5.0625x)",
+        "Typecheck passes",
+        "Update docs/game-design/buildings.md"
+      ],
+      "dependsOn": ["US-022", "US-012"],
+      "blocks": [],
+      "priority": 3,
+      "passes": false,
+      "notes": "Touches src/engine/systems/buildingSystem.ts, test file, docs/"
+    },
+    {
+      "id": "US-050",
+      "title": "InstancedMesh Particle System",
+      "description": "As a developer, I want particles rendered via a pre-allocated InstancedMesh pool so that combat doesn't cause GC pressure.",
+      "acceptanceCriteria": [
+        "Create `src/components/3d/ParticlePool.tsx` with pre-allocated 500-slot InstancedMesh",
+        "Pool supports 4 types: hit sparks, death burst, heal glow, boss explosion",
+        "Particle bounce physics: on ground hit (y <= 0), velocity.y negated with 0.5x dampening",
+        "Replace current individual ParticleMesh.tsx spawning",
+        "Pool stats (active/total) readable for telemetry",
+        "Import render parameters from renderConfig.json",
+        "No visual regression — same particle colors, sizes, and behaviors",
+        "Typecheck passes",
+        "Update docs/architecture/rendering.md"
+      ],
+      "dependsOn": ["US-025", "US-016"],
+      "blocks": [],
+      "priority": 3,
+      "passes": false,
+      "notes": "Touches src/components/3d/ParticlePool.tsx (new), src/components/3d/Entities/ParticleMesh.tsx, src/components/3d/Arena.tsx, docs/"
+    },
+    {
+      "id": "US-056",
+      "title": "Reduced-FX Path",
+      "description": "As a player on a low-end device, I want to disable particles and floating text so the game runs smoothly.",
+      "acceptanceCriteria": [
+        "Read reducedFx setting from settings repo",
+        "When enabled: skip particle spawning, skip floating text, skip camera shake, skip world effects",
+        "No performance cost for checking the flag (early return in vfxSystem functions)",
+        "Settings screen toggle already exists — wire it to actual behavior in vfxSystem.ts",
+        "Tests written FIRST (verify VFX functions return early when reducedFx=true)",
+        "Typecheck passes"
+      ],
+      "dependsOn": ["US-025"],
+      "blocks": [],
+      "priority": 3,
+      "passes": false,
+      "notes": "Touches src/engine/systems/vfxSystem.ts, test file"
+    },
+    {
+      "id": "US-055",
+      "title": "Viewport Camera Presets",
+      "description": "As a player, I want the camera to automatically adjust between build and defend phases for optimal viewing.",
+      "acceptanceCriteria": [
+        "Create `src/data/viewportPresets.json` with named camera configs: overview (wide zoom for build), action (tight zoom for defend), cinematic (boss spawn transitions)",
+        "Create `src/components/3d/CameraController.tsx` (logic extracted from Arena.tsx)",
+        "Smooth camera transitions between presets on phase change using lerp",
+        "Transition duration configurable in JSON",
+        "Typecheck passes"
+      ],
+      "dependsOn": ["US-016"],
+      "blocks": [],
+      "priority": 3,
+      "passes": false,
+      "notes": "Touches src/data/viewportPresets.json (new), src/components/3d/CameraController.tsx (new), src/components/3d/Arena.tsx"
+    },
+    {
+      "id": "US-060",
+      "title": "Touch Gesture Controls",
+      "description": "As a mobile player, I want pan and pinch-zoom gestures so that I can navigate the 3D arena on touchscreen.",
+      "acceptanceCriteria": [
+        "Implement pan gesture (two-finger drag) to move camera position",
+        "Implement pinch-zoom gesture to change camera zoom level",
+        "Respect zoom bounds from renderConfig.json (22-80)",
+        "Gestures work alongside tap-to-place building flow (single tap = place)",
+        "No conflict with Toychest horizontal scroll gesture",
+        "Uses react-native-gesture-handler (already installed)",
+        "Typecheck passes"
+      ],
+      "dependsOn": ["US-016"],
+      "blocks": [],
+      "priority": 3,
+      "passes": false,
+      "notes": "Touches src/components/3d/Arena.tsx or CameraController.tsx"
+    },
+    {
+      "id": "US-071",
+      "title": "Ambience Manager",
+      "description": "As a player, I want ambient audio that changes with the environment.",
+      "acceptanceCriteria": [
+        "Create `src/engine/audio/ambienceManager.ts` with biome-specific ambient layers",
+        "Create `src/data/ambienceConfig.json` with per-biome audio parameters (noise type, frequency, volume)",
+        "Ambience transitions smoothly between biomes via crossfade",
+        "Ambience subscribes to audio bridge events (wave_start, wave_complete for intensity changes)",
+        "Typecheck passes"
+      ],
+      "dependsOn": ["US-070"],
+      "blocks": [],
+      "priority": 3,
+      "passes": false,
+      "notes": "Touches src/engine/audio/ambienceManager.ts (new), src/data/ambienceConfig.json (new)"
+    },
+    {
+      "id": "US-040",
+      "title": "Enemy Flocking Behaviors",
+      "description": "As a player, I want enemies to move in realistic groups with alignment, cohesion, and evasion so that combat feels dynamic.",
+      "acceptanceCriteria": [
+        "Create `src/engine/ai/enemyBrain.ts` with configurable Yuka steering behaviors",
+        "Create `src/data/aiConfig.json` with: alignmentWeight (0.5), cohesionWeight (0.5), separationWeight (1.0), evasionWeight (0.4), laneOffsetRange (2.0)",
+        "Enemies use AlignmentBehavior + CohesionBehavior + SeparationBehavior + EvadeBehavior from Yuka",
+        "Enemy vehicles respect lane offsets for multi-lane roads",
+        "GameEngine.ts delegates enemy vehicle setup to this module",
+        "Tests written FIRST in `src/__tests__/engine/ai/enemyBrain.test.ts`",
+        "Typecheck passes",
+        "Update docs/architecture/engine.md"
+      ],
+      "dependsOn": ["US-021"],
+      "blocks": ["US-042"],
+      "priority": 3,
+      "passes": false,
+      "notes": "Touches src/engine/ai/enemyBrain.ts (new), src/data/aiConfig.json (new), src/engine/GameEngine.ts, test file, docs/"
+    },
+    {
+      "id": "US-062",
+      "title": "Building Sell/Refund UI",
+      "description": "As a player, I want to sell buildings during build phase to recover resources and adjust my strategy.",
+      "acceptanceCriteria": [
+        "Sell button visible on building selection panel during build phase only",
+        "Shows refund amount before confirming (50% of gold cost, 50% of wood cost from buildingSystem.calculateSellValue)",
+        "Confirmation dialog prevents accidental sales",
+        "Gold and wood refunded to session resources via WorldCommand",
+        "Building entity removed from world",
+        "Works for both buildings and walls (walls refund wood only)",
+        "Tests written FIRST (sell value calculations)",
+        "Typecheck passes"
+      ],
+      "dependsOn": ["US-022"],
+      "blocks": ["US-061"],
+      "priority": 3,
+      "passes": false,
+      "notes": "Touches src/components/ui/HUD.tsx, src/engine/GameEngine.ts (command handler), test file"
+    },
+    {
+      "id": "US-003",
+      "title": "CD Pipeline — GitHub Pages Deployment",
+      "description": "As a developer, I want every push to main to auto-deploy the web build to GitHub Pages so that the game is always playable at the project URL.",
+      "acceptanceCriteria": [
+        "`.github/workflows/cd.yml` runs `expo export -p web` and deploys dist/ to gh-pages",
+        "Deployment only triggers after CI workflow passes (workflow_run trigger or needs)",
+        "coi-serviceworker.js is present in the exported dist/ directory",
+        "Base path configured correctly for GitHub Pages subdirectory hosting",
+        "Game loads and runs in browser after deployment",
+        "Typecheck passes"
+      ],
+      "dependsOn": ["US-002", "US-029"],
+      "blocks": ["US-032"],
+      "priority": 4,
+      "passes": false,
+      "notes": "Touches .github/workflows/cd.yml"
+    },
+    {
+      "id": "US-083",
+      "title": "Difficulty Tiers",
+      "description": "As a player, I want difficulty tiers so I can challenge myself for better rewards.",
+      "acceptanceCriteria": [
+        "Create `src/data/difficultyConfig.json` with tiers: pilgrim (0.8x enemy stats, 1x coins), crusader (1.0x, 1.5x coins), inquisitor (1.3x enemy stats, 2x coins, affixes from wave 3)",
+        "Difficulty selected at run start on main menu",
+        "Difficulty multiplier applied to enemy stats at spawn in waveSystem.ts",
+        "Coin reward multiplier applied at run end",
+        "Difficulty stored in GameSession and run history",
+        "Tests written FIRST",
+        "Typecheck passes"
+      ],
+      "dependsOn": ["US-020", "US-010"],
+      "blocks": [],
+      "priority": 4,
+      "passes": false,
+      "notes": "Touches src/data/difficultyConfig.json (new), src/engine/systems/waveSystem.ts, src/app/index.tsx, test file"
+    },
+    {
+      "id": "US-084",
+      "title": "Rare Item Drops",
+      "description": "As a player, I want rare items to drop from defeated enemies for micro-reward satisfaction.",
+      "acceptanceCriteria": [
+        "Create `src/data/dropConfig.json` with: potion (5% chance, heals nearest ally 50% max HP), star (3% chance, grants 10 bonus gold)",
+        "Drops spawn as collectible entities near death position",
+        "Auto-collected after 1 second with particle burst effect",
+        "Drop chances use seeded RNG from rng.ts",
+        "Drop chances modifiable by relics",
+        "Tests written FIRST",
+        "Typecheck passes",
+        "Update docs/game-design/combat.md"
+      ],
+      "dependsOn": ["US-021", "US-028"],
+      "blocks": [],
+      "priority": 4,
+      "passes": false,
+      "notes": "Touches src/data/dropConfig.json (new), src/engine/systems/combatSystem.ts, test file, docs/"
+    },
+    {
+      "id": "US-080",
+      "title": "Additional Enemy Types",
+      "description": "As a player, I want new enemy types (flying, shield-bearer, summoner) for greater combat variety.",
+      "acceptanceCriteria": [
+        "Add to src/data/unitConfig.json: flying (ignores walls, speed 8, HP 20), shieldBearer (75% frontal reduction, HP 100), summoner (spawns goblin minions every 5s, HP 60)",
+        "Update UnitType in constants.ts with new types",
+        "Implement unique behaviors in combatSystem.ts (flying bypasses wall targeting, shield checks facing angle, summoner periodic spawn)",
+        "Add distinctive mesh colors per new type",
+        "Add to enemyProgression.json (flying wave 8, shieldBearer wave 10, summoner wave 12)",
+        "Tests written FIRST",
+        "Typecheck passes",
+        "Update docs/game-design/combat.md"
+      ],
+      "dependsOn": ["US-021", "US-011"],
+      "blocks": [],
+      "priority": 4,
+      "passes": false,
+      "notes": "Touches src/data/unitConfig.json, src/engine/constants.ts, src/engine/systems/combatSystem.ts, test file, docs/"
+    },
+    {
+      "id": "US-081",
+      "title": "Boss Ability Variants",
+      "description": "As a player, I want different boss types per boss wave for strategic variety.",
+      "acceptanceCriteria": [
+        "Create `src/data/bossConfig.json` with: Warlord (AoE slam, wave 5), Necromancer (summons minions on death, wave 10), Dragon (ranged fire breath, wave 15), Siege Engine (targets buildings exclusively, wave 20)",
+        "Boss variant selected based on wave number",
+        "Each variant has unique combat behavior in combatSystem.ts",
+        "Tests written FIRST",
+        "Typecheck passes",
+        "Update docs/game-design/combat.md"
+      ],
+      "dependsOn": ["US-021", "US-011"],
+      "blocks": [],
+      "priority": 4,
+      "passes": false,
+      "notes": "Touches src/data/bossConfig.json (new), src/engine/systems/combatSystem.ts, test file, docs/"
+    },
+    {
+      "id": "US-085",
+      "title": "Road Template System",
+      "description": "As a developer, I want pre-designed road templates alongside procedural generation for curated strategic layouts.",
+      "acceptanceCriteria": [
+        "Create `src/data/roadTemplates.json` with 3 templates: simple S-curve (2 lanes), U-turn kill zone (3 lanes), winding path (4 lanes)",
+        "Each template defines waypoint arrays and lane offset values",
+        "Update mapGenerator.ts to accept template OR use procedural generation",
+        "Template selection: random or biome-driven",
+        "Templates create natural kill zones (tight curves where enemies spend more time in turret range)",
+        "Tests written FIRST",
+        "Typecheck passes"
+      ],
+      "dependsOn": ["US-018"],
+      "blocks": [],
+      "priority": 4,
+      "passes": false,
+      "notes": "Touches src/data/roadTemplates.json (new), src/engine/mapGenerator.ts, test file"
+    },
+    {
+      "id": "US-051",
+      "title": "InstancedMesh Terrain Grid",
+      "description": "As a developer, I want terrain rendered as an InstancedMesh grid for visual variety and performance.",
+      "acceptanceCriteria": [
+        "Create `src/components/3d/TerrainGrid.tsx` using InstancedMesh for terrain tiles",
+        "Per-tile color variation (3-4 grass shades, seeded random)",
+        "Grid dimensions from mapConfig.json mapSize",
+        "Single draw call for entire terrain",
+        "Replaces current ground plane mesh in Arena.tsx",
+        "Typecheck passes",
+        "Update docs/architecture/rendering.md"
+      ],
+      "dependsOn": ["US-018"],
+      "blocks": [],
+      "priority": 4,
+      "passes": false,
+      "notes": "Touches src/components/3d/TerrainGrid.tsx (new), src/components/3d/Arena.tsx, docs/"
+    },
+    {
+      "id": "US-052",
+      "title": "InstancedMesh Scenery",
+      "description": "As a developer, I want procedural scenery rendered via InstancedMesh instead of individual meshes.",
+      "acceptanceCriteria": [
+        "Modify scenery generation in Arena.tsx to use InstancedMesh",
+        "One InstancedMesh per scenery type (tree, rock, bush)",
+        "Scatter parameters from mapConfig.json",
+        "Reduces draw calls from O(n) to O(types)",
+        "Typecheck passes"
+      ],
+      "dependsOn": ["US-018"],
+      "blocks": [],
+      "priority": 4,
+      "passes": false,
+      "notes": "Touches src/components/3d/Arena.tsx"
+    },
+    {
+      "id": "US-042",
+      "title": "GOAP Player Governor",
+      "description": "As a developer, I want an autonomous AI governor that plays the game for demo mode and balance testing.",
+      "acceptanceCriteria": [
+        "Create `src/engine/ai/playerGovernor.ts` using Yuka GOAP Think/Goal/GoalEvaluator",
+        "Implement goal evaluators: BuildStructureGoal, StartWaveGoal, RepairGoal, SmiteGoal",
+        "Each goal has calculateDesirability(session) scoring function",
+        "Governor emits WorldCommand objects (same interface as player input)",
+        "Create `src/data/governorConfig.json` with desirability weights and thresholds",
+        "GOAP planner selects highest-desirability action each tick",
+        "Tests written FIRST in `src/__tests__/engine/ai/playerGovernor.test.ts`",
+        "Tests cover: goal scoring under various game states, action selection priority",
+        "Typecheck passes",
+        "Update docs/architecture/engine.md"
+      ],
+      "dependsOn": ["US-040", "US-022"],
+      "blocks": [],
+      "priority": 4,
+      "passes": false,
+      "notes": "Touches src/engine/ai/playerGovernor.ts (new), src/data/governorConfig.json (new), test file, docs/"
+    },
+    {
+      "id": "US-053",
+      "title": "Day/Night Cycle",
+      "description": "As a player, I want a day/night lighting cycle so that the game atmosphere changes over time.",
+      "acceptanceCriteria": [
+        "Create `src/components/3d/DayNightCycle.tsx` component",
+        "Create `src/data/lightingConfig.json` with: time-of-day presets (dawn, day, dusk, night), transition durations, ambient/directional light colors and intensities per preset",
+        "Cycle advances per wave (day->dusk->night->dawn across 4 waves)",
+        "Smooth color/intensity interpolation between presets in useFrame",
+        "Typecheck passes",
+        "Update docs/architecture/rendering.md"
+      ],
+      "dependsOn": ["US-016"],
+      "blocks": [],
+      "priority": 4,
+      "passes": false,
+      "notes": "Touches src/components/3d/DayNightCycle.tsx (new), src/data/lightingConfig.json (new), src/components/3d/Arena.tsx, docs/"
+    },
+    {
+      "id": "US-054",
+      "title": "Elaborate Sanctuary Model",
+      "description": "As a player, I want a visually impressive sanctuary with towers, rotating grail, and health-based degradation.",
+      "acceptanceCriteria": [
+        "Create `src/components/3d/Sanctuary.tsx` with: 4 corner towers with conical roofs, rotating grail at center (continuous Y rotation in useFrame), corner torches with flickering point lights",
+        "Health-based visual degradation: color shifts (lerp to red) and scale reduction as HP decreases",
+        "Procedural geometry (CylinderGeometry towers, SphereGeometry grail, ConeGeometry roofs)",
+        "Replaces current simple sanctuary mesh in Arena.tsx",
+        "Typecheck passes",
+        "Update docs/architecture/rendering.md"
+      ],
+      "dependsOn": [],
+      "blocks": [],
+      "priority": 4,
+      "passes": false,
+      "notes": "Touches src/components/3d/Sanctuary.tsx (new), src/components/3d/Arena.tsx, docs/"
+    },
+    {
+      "id": "US-082",
+      "title": "Biome System",
+      "description": "As a player, I want multiple biome types that affect terrain visuals and gameplay modifiers.",
+      "acceptanceCriteria": [
+        "Create `src/data/biomeConfig.json` with: kings-road (default), desert-wastes (reduced faith regen, +gold from kills), frost-peaks (enemies start slowed, reduced build timer), shadow-marsh (enemies +20% HP, +rare drops)",
+        "Each biome defines: terrain color palette, ambient audio key, gameplay modifier multipliers, scenery type overrides",
+        "Biome selected at run start on main menu",
+        "Terrain colors and lighting reflect active biome",
+        "Gameplay modifiers applied in waveSystem.ts and combatSystem.ts",
+        "Tests written FIRST for gameplay modifiers",
+        "Typecheck passes",
+        "Update docs/game-design/combat.md and docs/architecture/rendering.md"
+      ],
+      "dependsOn": ["US-029"],
+      "blocks": [],
+      "priority": 4,
+      "passes": false,
+      "notes": "Touches src/data/biomeConfig.json (new), src/engine/systems/waveSystem.ts, src/engine/systems/combatSystem.ts, src/components/3d/Arena.tsx, src/app/index.tsx, test file, docs/"
+    },
+    {
+      "id": "US-095",
+      "title": "Leaderboard / Run History Screen",
+      "description": "As a player, I want to see my run history with stats so I can track improvement.",
+      "acceptanceCriteria": [
+        "Create `src/app/history.tsx` screen showing past runs",
+        "Display: date, waves survived, biome, difficulty, coins earned, total kills, duration",
+        "Sort by date (newest first)",
+        "Reads from runHistory table via runRepo",
+        "Accessible from main menu (add navigation button to index.tsx)",
+        "Typecheck passes"
+      ],
+      "dependsOn": ["US-030"],
+      "blocks": [],
+      "priority": 4,
+      "passes": false,
+      "notes": "Touches src/app/history.tsx (new), src/app/index.tsx"
+    },
+    {
+      "id": "US-032",
+      "title": "Playwright E2E Test Suite",
+      "description": "As a developer, I want E2E tests that verify the game loads and core flows work in a real browser.",
+      "acceptanceCriteria": [
+        "Create `e2e/gameFlow.spec.ts` covering: app loads, main menu renders, start run, build phase shows toychest, place a building, start wave, enemies spawn",
+        "Create `e2e/metaScreens.spec.ts` covering: navigate to codex/doctrine/settings screens, settings persist across reload",
+        "Tests run against `expo export -p web` static build",
+        "CI workflow runs Playwright against the export",
+        "Playwright config uses webServer to serve the export directory",
+        "Typecheck passes"
+      ],
+      "dependsOn": ["US-003", "US-029"],
+      "blocks": [],
+      "priority": 5,
+      "passes": false,
+      "notes": "Touches e2e/*.spec.ts (new), playwright.config.ts, .github/workflows/ci.yml"
+    },
+    {
+      "id": "US-061",
+      "title": "Tutorial / Onboarding Flow",
+      "description": "As a new player, I want a guided tutorial on my first run so that I understand building placement, wave starting, and resource management.",
+      "acceptanceCriteria": [
+        "Create `src/components/ui/Tutorial.tsx` with step-by-step overlay",
+        "Tutorial steps: (1) Place a wall on the road, (2) Place a militia hut, (3) Start the wave, (4) Explain gold rewards, (5) Place a lumber camp and track",
+        "Tutorial state persisted in settings repo (tutorialComplete boolean)",
+        "Tutorial skippable at any point via Skip button",
+        "Highlights relevant UI elements with semi-transparent overlay and spotlight cutout",
+        "Typecheck passes",
+        "Update docs/memory-bank/productContext.md"
+      ],
+      "dependsOn": ["US-062", "US-029"],
+      "blocks": [],
+      "priority": 5,
+      "passes": false,
+      "notes": "Touches src/components/ui/Tutorial.tsx (new), src/app/game.tsx, src/db/repos/settingsRepo.ts, docs/"
+    },
+    {
+      "id": "US-096",
+      "title": "Accessibility Improvements",
+      "description": "As a player with disabilities, I want the UI to be accessible via screen readers and high contrast.",
+      "acceptanceCriteria": [
+        "All TouchableOpacity elements have accessibilityLabel and accessibilityRole props",
+        "High-contrast mode option in settings (increases text contrast, adds outlines to UI elements)",
+        "Screen reader announces: phase changes, wave number, gold balance, building placement success/failure via AccessibilityInfo.announceForAccessibility",
+        "Typecheck passes"
+      ],
+      "dependsOn": [],
+      "blocks": [],
+      "priority": 5,
+      "passes": false,
+      "notes": "Touches src/app/*.tsx, src/components/ui/HUD.tsx, src/db/repos/settingsRepo.ts"
+    }
+  ]
+}

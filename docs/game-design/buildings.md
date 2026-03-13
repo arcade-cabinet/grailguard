@@ -103,6 +103,16 @@ Buildings have two upgrade branches, each with max level 5:
 
 Upgrade costs scale with building cost and level.
 
+### Upgrade Cost Formula (from initial-release)
+
+Initial-release used an explicit exponential formula for upgrade costs:
+- **Cost per level:** `baseCost * 1.5^(level - 1)`
+- Level 1→2: 1.5× base cost
+- Level 2→3: 2.25× base cost
+- Level 4→5: ~5.06× base cost
+
+This creates meaningful cost pressure at higher levels, preventing "max everything" strategies. feat/poc-reset should adopt this or a similar explicit formula.
+
 ## Meta-Progression Unlocks
 
 Buildings are unlocked permanently by spending "Coin of the Realm" in the Market:

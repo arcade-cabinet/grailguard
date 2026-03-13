@@ -1,0 +1,342 @@
+{
+  "version": 1,
+  "sessionId": "1bf5e559-35c3-42bf-afaa-c3a3be0a7836",
+  "status": "failed",
+  "startedAt": "2026-03-13T18:08:06.018Z",
+  "updatedAt": "2026-03-13T18:08:06.054Z",
+  "currentIteration": 0,
+  "maxIterations": 0,
+  "tasksCompleted": 0,
+  "isPaused": false,
+  "agentPlugin": "claude",
+  "trackerState": {
+    "plugin": "json",
+    "prdPath": "./tasks/prd.json",
+    "totalTasks": 53,
+    "tasks": [
+      {
+        "id": "US-002",
+        "title": "CI Pipeline Hardening",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-010",
+        "title": "Game Config — Wave & Pacing Parameters",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-011",
+        "title": "Game Config — Unit Stats",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-012",
+        "title": "Game Config — Building Stats",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-013",
+        "title": "Game Config — Spell Stats",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-014",
+        "title": "Game Config — Relic & Doctrine Data",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-015",
+        "title": "Game Config — Combat Mechanics",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-016",
+        "title": "Game Config — Rendering & VFX Parameters",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-017",
+        "title": "Game Config — Economy & Logistics",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-018",
+        "title": "Game Config — Map Generation",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-028",
+        "title": "Seeded PRNG Module",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-030",
+        "title": "DB Repository Test Suite",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-097",
+        "title": "Localization Support",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-063",
+        "title": "Haptic Feedback Integration",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-090",
+        "title": "Runtime Telemetry Interface",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-070",
+        "title": "Audio Event Bus",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-020",
+        "title": "Extract Wave System Module",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-021",
+        "title": "Extract Combat System Module",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-022",
+        "title": "Extract Building System Module",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-023",
+        "title": "Extract Logistics System Module",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-024",
+        "title": "Extract Projectile System Module",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-025",
+        "title": "Extract VFX System Module",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-026",
+        "title": "Extract Spell System Module",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-027",
+        "title": "Extract Codex Discovery Module",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-031",
+        "title": "Meta Service Test Suite",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-029",
+        "title": "Slim GameEngine Orchestrator",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-043",
+        "title": "Wave Director with Enemy Unlock Progression",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-041",
+        "title": "Enemy Siege Targeting",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-064",
+        "title": "Wave Announcement Labels",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-086",
+        "title": "Upgrade Cost Formula",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-050",
+        "title": "InstancedMesh Particle System",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-056",
+        "title": "Reduced-FX Path",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-055",
+        "title": "Viewport Camera Presets",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-060",
+        "title": "Touch Gesture Controls",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-071",
+        "title": "Ambience Manager",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-040",
+        "title": "Enemy Flocking Behaviors",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-062",
+        "title": "Building Sell/Refund UI",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-003",
+        "title": "CD Pipeline — GitHub Pages Deployment",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-083",
+        "title": "Difficulty Tiers",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-084",
+        "title": "Rare Item Drops",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-080",
+        "title": "Additional Enemy Types",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-081",
+        "title": "Boss Ability Variants",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-085",
+        "title": "Road Template System",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-051",
+        "title": "InstancedMesh Terrain Grid",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-052",
+        "title": "InstancedMesh Scenery",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-042",
+        "title": "GOAP Player Governor",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-053",
+        "title": "Day/Night Cycle",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-054",
+        "title": "Elaborate Sanctuary Model",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-082",
+        "title": "Biome System",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-095",
+        "title": "Leaderboard / Run History Screen",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-032",
+        "title": "Playwright E2E Test Suite",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-061",
+        "title": "Tutorial / Onboarding Flow",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-096",
+        "title": "Accessibility Improvements",
+        "status": "open",
+        "completedInSession": false
+      }
+    ]
+  },
+  "iterations": [],
+  "skippedTaskIds": [],
+  "cwd": "/Users/jbogaty/src/arcade-cabinet/grailguard",
+  "activeTaskIds": [],
+  "subagentPanelVisible": false
+}

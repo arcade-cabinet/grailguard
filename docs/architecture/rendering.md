@@ -77,14 +77,51 @@ Particles are spawned as 0.3-unit cubes with `MeshBasicMaterial` (unlit). Physic
 
 Floating damage/heal numbers rise at 5 units/sec for 1 second with opacity fade.
 
+#### Particle Pool System (from initial-release)
+
+Initial-release `ParticleSystem.tsx` implemented a pre-allocated 500-slot object pool with 4 particle types:
+- **Hit sparks** — on combat damage
+- **Death burst** — on unit death (larger count)
+- **Heal glow** — on cleric heal
+- **Boss explosion** — on boss death (50+ particles)
+
+Pool pre-allocation avoids GC pressure during combat. Particles also had **bounce physics** — on hitting ground (y ≤ 0), velocity.y is negated with 0.5× dampening, creating a satisfying bounce-and-settle effect. Current feat/poc-reset spawns individual Particle entities per event without pooling.
+
+### Sanctuary Model (from initial-release)
+
+Initial-release `Sanctuary.tsx` rendered an elaborate sanctuary structure:
+- 4 corner towers with conical roofs
+- Rotating grail at center (continuous Y rotation)
+- Corner torches with flickering point lights
+- Health-based visual degradation (color shifts as HP decreases)
+
+feat/poc-reset uses a simpler sanctuary representation.
+
 ## Raycasting
 
 - `projectScreenPointToGround(x, y)` -- converts screen coordinates to ground plane intersection
 - `projectWorldPointToScreen(worldPos, viewport)` -- projects 3D position to screen coordinates (for HUD tooltips over buildings)
 
+## Terrain (from initial-release)
+
+Initial-release `MapGrid.tsx` used InstancedMesh for terrain tiles — each grid cell was a pre-instanced quad, enabling the entire terrain to render in a single draw call. Combined with per-tile color variation (grass shades), this was significantly more performant than a flat ground plane for large maps.
+
+### Viewport Presets (from initial-release)
+
+Initial-release `viewport/presets.ts` defined named camera configurations for different game phases:
+- **Overview:** Wide zoom for build phase (full map visible)
+- **Action:** Tighter zoom during defend phase (focused on combat)
+- **Cinematic:** Smooth transitions for boss spawn events
+
+These enable phase-adaptive camera behavior without manual zoom.
+
 ## Planned Work
 
-- [ ] InstancedMesh for particles (currently individual meshes)
+- [ ] InstancedMesh for particles (currently individual meshes — consider 500-slot pool from initial-release)
 - [ ] LOD system for distant buildings/units
-- [ ] Day/night cycle lighting
+- [ ] Day/night cycle lighting (initial-release had HDRI swap system via `Environment.tsx` with day/dusk/night presets)
 - [ ] Biome-specific terrain materials
+- [ ] InstancedMesh terrain grid (from initial-release MapGrid.tsx)
+- [ ] Elaborate sanctuary model (4 towers, rotating grail, health-based degradation)
+- [ ] Viewport presets for phase-adaptive camera
+- [ ] Particle bounce physics (y-bounce with 0.5× dampening)

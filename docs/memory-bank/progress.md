@@ -100,9 +100,21 @@ summary: "Implementation status, what works, what's left, known issues"
 - [ ] Accessibility improvements
 - [ ] Localization
 
+## Test Coverage Gaps (vs initial-release)
+
+Initial-release had fine-grained subsystem tests that were lost in the monolithic consolidation:
+- **BuildingSystem tests** — building placement, spawning cadence, upgrade cost scaling
+- **CombatSystem tests** — siege targeting priority, damage calculations, AoE radius
+- **waveDirector tests** — budget allocation, enemy type selection, boss scheduling
+- **EnemyBrain tests** — flocking behavior weights, path following, evasion triggers
+- **PlayerGovernorBrain tests** — GOAP goal scoring, action selection
+
+feat/poc-reset only has 2 integration tests (wave completion cleanup + serialize/hydrate). Decomposing `GameEngine.ts` into modules would re-enable subsystem-level testing.
+
 ## Known Issues
 
 - `GameEngine.ts` is ~2200 LOC -- candidate for decomposition into subsystem modules
 - `Math.random()` used in some combat/particle code -- should be seeded for determinism
 - No reduced-FX path implemented yet despite settings toggle existing
 - Playwright E2E tests removed in this branch (need rewrite for new architecture)
+- Subsystem test coverage regressed from initial-release due to monolithic engine (see gap above)

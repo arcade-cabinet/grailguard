@@ -36,6 +36,7 @@ The branch represents a ground-up rebuild from the original prototype:
 16. **POC Material Audit** -- All POC materials (poc.html, GDD.md, ARCHITECTURE.md, Gemini-Conversation.md) audited, value extracted, and purged
 17. **CodeRabbit Fixes** -- Fixed 5 broken auto-fix references
 18. **PR Review Resolution** -- All 99/100 PR review threads resolved
+19. **Branch Gap Analysis** -- Comprehensive comparison with `initial-release` branch; all unique value (GOAP governor, wave director, siege targeting, road templates, particle pooling, flocking behaviors, audio bridge, data-driven config, upgrade formulas, viewport presets, bezel UI) documented into existing docs
 
 ## Active Decisions
 

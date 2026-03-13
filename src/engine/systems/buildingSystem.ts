@@ -97,23 +97,32 @@ export function isPlacementValidPure(
   return roadDistance >= 7;
 }
 
+/** Maximum building level. Upgrades beyond this are rejected. */
+const MAX_BUILDING_LEVEL = 5;
+
 /**
- * Calculates the gold cost for upgrading a building branch.
+ * Calculates the gold and wood cost for upgrading a building to the next level.
+ * Formula: baseCost * upgradeCostMultiplier^(level-1), applied to both gold and wood.
+ * Returns Infinity for both if the building is already at max level (5).
  *
- * @param branch - 'spawn' or 'stats'.
- * @param currentLevel - Current level of that branch.
- * @returns Gold cost for the upgrade.
+ * @param baseCost - The base cost of the building (same for gold and wood).
+ * @param level - The current level of the building (1-based).
+ * @returns Object with gold and wood upgrade costs (floored integers).
  */
 export function calculateUpgradeCost(
-  branch: 'spawn' | 'stats',
-  currentLevel: number,
-): number {
-  if (branch === 'spawn') return 50 * currentLevel;
-  return 75 * currentLevel;
+  baseCost: number,
+  level: number,
+): { gold: number; wood: number } {
+  if (level > MAX_BUILDING_LEVEL) {
+    return { gold: Infinity, wood: Infinity };
+  }
+  const cost = Math.floor(baseCost * upgradeCostMultiplier ** (level - 1));
+  return { gold: cost, wood: cost };
 }
 
 /**
  * Calculates the gold and wood refund from selling a building.
+ * Uses the exponential upgrade cost formula to sum total invested resources.
  *
  * @param type - Building type.
  * @param levelSpawn - Current spawn branch level.
@@ -126,8 +135,14 @@ export function calculateSellValue(
   levelStats: number,
 ): { gold: number; wood: number } {
   const config = BUILDINGS[type];
-  const totalGoldInvested =
-    config.cost + (levelSpawn - 1) * 50 + (levelStats - 1) * 75;
+  // Sum upgrade costs for all levels achieved (spawn + stats branches)
+  let totalGoldInvested = config.cost;
+  for (let i = 1; i < levelSpawn; i++) {
+    totalGoldInvested += Math.floor(config.cost * upgradeCostMultiplier ** (i - 1));
+  }
+  for (let i = 1; i < levelStats; i++) {
+    totalGoldInvested += Math.floor(config.cost * upgradeCostMultiplier ** (i - 1));
+  }
   const gold = Math.floor(totalGoldInvested * sellValuePercent);
   const wood = Math.floor((config.woodCost ?? 0) * sellValuePercent);
   return { gold, wood };

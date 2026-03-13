@@ -171,27 +171,54 @@ describe('buildingSystem', () => {
   });
 
   describe('calculateUpgradeCost', () => {
-    it('returns spawn branch cost: 50 * level', () => {
-      expect(calculateUpgradeCost('spawn', 1)).toBe(50);
-      expect(calculateUpgradeCost('spawn', 3)).toBe(150);
+    // Formula: baseCost * upgradeCostMultiplier^(level-1) where multiplier = 1.5 from config
+    it('returns baseCost at level 1 (multiplier^0 = 1)', () => {
+      expect(calculateUpgradeCost(100, 1)).toEqual({ gold: 100, wood: 100 });
     });
 
-    it('returns stats branch cost: 75 * level', () => {
-      expect(calculateUpgradeCost('stats', 1)).toBe(75);
-      expect(calculateUpgradeCost('stats', 3)).toBe(225);
+    it('returns baseCost * 1.5 at level 2', () => {
+      expect(calculateUpgradeCost(100, 2)).toEqual({ gold: 150, wood: 150 });
+    });
+
+    it('returns baseCost * 1.5^2 at level 3', () => {
+      expect(calculateUpgradeCost(100, 3)).toEqual({ gold: 225, wood: 225 });
+    });
+
+    it('returns baseCost * 1.5^3 at level 4', () => {
+      expect(calculateUpgradeCost(100, 4)).toEqual({ gold: 337, wood: 337 });
+    });
+
+    it('returns baseCost * 1.5^4 at level 5', () => {
+      expect(calculateUpgradeCost(100, 5)).toEqual({ gold: 506, wood: 506 });
+    });
+
+    it('enforces max level 5 by returning Infinity', () => {
+      expect(calculateUpgradeCost(100, 6)).toEqual({ gold: Infinity, wood: Infinity });
+    });
+
+    it('works with different base costs', () => {
+      expect(calculateUpgradeCost(50, 1)).toEqual({ gold: 50, wood: 50 });
+      expect(calculateUpgradeCost(50, 2)).toEqual({ gold: 75, wood: 75 });
+    });
+
+    it('floors fractional results', () => {
+      // 100 * 1.5^3 = 337.5 => floor = 337
+      expect(calculateUpgradeCost(100, 4)).toEqual({ gold: 337, wood: 337 });
     });
   });
 
   describe('calculateSellValue', () => {
-    it('returns 50% of total invested gold', () => {
-      // cost=50, levelSpawn=1, levelStats=1 => sell = floor(50 * 0.5) = 25
+    it('returns 50% of total invested gold at level 1', () => {
+      // hut cost=50, levelSpawn=1, levelStats=1 => total=50, sell = floor(50 * 0.5) = 25
       const result = calculateSellValue('hut', 1, 1);
       expect(result.gold).toBe(25);
     });
 
-    it('includes upgrade costs in sell value', () => {
-      // cost=50, levelSpawn=3 => (3-1)*50=100, levelStats=2 => (2-1)*75=75
-      // total = 50 + 100 + 75 = 225, sell = floor(225 * 0.5) = 112
+    it('includes exponential upgrade costs in sell value', () => {
+      // hut cost=50, levelSpawn=3 => upgrades: 50*1.5^0=50 + 50*1.5^1=75 = 125 for spawn
+      // levelStats=2 => upgrades: 50*1.5^0=50 for stats
+      // total = base(50) + spawn upgrades(50+75) + stats upgrades(50) = 225
+      // sell = floor(225 * 0.5) = 112
       const result = calculateSellValue('hut', 3, 2);
       expect(result.gold).toBe(112);
     });

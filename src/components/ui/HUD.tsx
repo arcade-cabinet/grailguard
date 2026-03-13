@@ -34,8 +34,8 @@ function BuildingCard({ entity, treasury }: { entity: Entity; treasury: number }
   const costs = getBuildingUpgradeCosts(entity);
   if (!costs) return null;
 
-  const canUpgradeSpawn = building.levelSpawn < 5 && treasury >= costs.spawn;
-  const canUpgradeStats = building.levelStats < 5 && treasury >= costs.stats;
+  const canUpgradeSpawn = building.levelSpawn < 5 && treasury >= costs.spawn.gold;
+  const canUpgradeStats = building.levelStats < 5 && treasury >= costs.stats.gold;
   const canSell = true; // Always allow selling now
 
   return (
@@ -90,7 +90,7 @@ function BuildingCard({ entity, treasury }: { entity: Entity; treasury: number }
           }`}
         >
           <Text className="text-center font-bold text-[#f7ebd0]">
-            {config.isTurret ? 'Rate' : 'Spawn'} {costs.spawn}g
+            {config.isTurret ? 'Rate' : 'Spawn'} {costs.spawn.gold}g
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -104,7 +104,7 @@ function BuildingCard({ entity, treasury }: { entity: Entity; treasury: number }
           }`}
         >
           <Text className="text-center font-bold text-[#f7ebd0]">
-            {config.isTurret ? 'Dmg' : 'Stats'} {costs.stats}g
+            {config.isTurret ? 'Dmg' : 'Stats'} {costs.stats.gold}g
           </Text>
         </TouchableOpacity>
       </View>

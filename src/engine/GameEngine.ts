@@ -1529,16 +1529,16 @@ export function upgradeBuilding(entity: Entity, branch: 'spawn' | 'stats') {
   const building = entity.get(Building);
   if (!session || !building || session.gameOver) return false;
 
-  const cost = calculateUpgradeCost(branch, branch === 'spawn' ? building.levelSpawn : building.levelStats);
-  const maxLevel = 5;
+  const config = BUILDINGS[building.type];
   const currentLevel = branch === 'spawn' ? building.levelSpawn : building.levelStats;
+  const costs = calculateUpgradeCost(config.cost, currentLevel);
 
-  if (currentLevel >= maxLevel || session.gold < cost) return false;
+  if (costs.gold === Infinity || session.gold < costs.gold || session.wood < costs.wood) return false;
 
   if (branch === 'spawn') building.levelSpawn += 1;
   else building.levelStats += 1;
 
-  setSession({ gold: session.gold - cost, cameraShake: 1.5 });
+  setSession({ gold: session.gold - costs.gold, wood: session.wood - costs.wood, cameraShake: 1.5 });
   markRunDirty(`upgrade_${branch}`);
   return true;
 }
@@ -1587,9 +1587,10 @@ export function getBuildingUpgradeCosts(entity: Entity) {
   const building = entity.get(Building);
   if (!building) return null;
   const sv = calculateSellValue(building.type, building.levelSpawn, building.levelStats);
+  const config = BUILDINGS[building.type];
   return {
-    spawn: calculateUpgradeCost('spawn', building.levelSpawn),
-    stats: calculateUpgradeCost('stats', building.levelStats),
+    spawn: calculateUpgradeCost(config.cost, building.levelSpawn),
+    stats: calculateUpgradeCost(config.cost, building.levelStats),
     sell: sv.gold,
   };
 }

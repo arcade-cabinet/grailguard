@@ -7,7 +7,7 @@ Grailguard uses a strict split:
 - React Native UI as a projection layer over DB and ECS state
 - React Three Fiber for rendering only
 
-There is no Zustand runtime authority and no Yuka dependency in the current architecture.
+There is no Zustand runtime authority, and GOAP/AI behavior is implemented with the `yuka` library within the simulation layer.
 
 ## 1. Durable State: SQLite + Drizzle
 

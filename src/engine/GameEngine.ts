@@ -5,19 +5,14 @@
  * the Koota ECS framework with Yuka-based AI steering for unit movement.
  *
  * This module owns:
- * - **ECS trait definitions** (Position, Facing, Building, Unit, Projectile,
- *   Particle, FloatingText, WorldEffect, ResourceCart, GameSession, WaveState,
- *   AutosaveState, CodexId) that describe every entity in the world.
+ * - **ECS trait definitions** that describe every entity in the world.
  * - **World lifecycle** -- creating, resetting, serializing, hydrating, and
  *   disposing the game world.
- * - **Simulation loop** -- wave spawning, unit AI, projectile tracking,
- *   building production, logistics carts, particle physics, and combat.
- * - **Player commands** -- building placement/selling/upgrading, spell
- *   casting, wave control, targeting, and game-speed toggling, all funnelled
- *   through the {@link queueWorldCommand} dispatcher.
+ * - **System orchestration** -- delegates to pure subsystem functions and
+ *   applies their results to the ECS world.
+ * - **Player commands** -- all funnelled through {@link queueWorldCommand}.
  *
- * The renderer (React Three Fiber) reads ECS data each frame but never
- * mutates it; all mutations flow through the functions exported here.
+ * All simulation logic lives in pure modules under `src/engine/systems/`.
  */
 
 import { createWorld, type Entity, trait } from 'koota';
@@ -32,14 +27,8 @@ import {
   Vector3 as YukaVector3,
 } from 'yuka';
 import { generateRoadPoints } from './mapGenerator';
-import { soundManager } from './SoundManager';
-
-/** Yuka entity manager driving AI steering behaviors for all mobile units. */
-export const yukaManager = new EntityManager();
-
-/** Maps Koota entity IDs to their corresponding Yuka Vehicle instances. */
-export const vehiclesByEntityId = new Map<number, Vehicle>();
-
+import { audioBus } from './audio/audioBridge';
+import { createRng, type Rng } from './systems/rng';
 import {
   BUILDINGS,
   type BuildingType,
@@ -50,17 +39,77 @@ import {
   type UnitType,
 } from './constants';
 
+// --- Pure subsystem imports ---
+import {
+  calculateWaveBudget as _calcBudget,
+  calculateBuildTimer as _calcBuildTimer,
+  buildWaveQueue,
+  isWaveComplete,
+  calculateWaveCompletionReward,
+} from './systems/waveSystem';
+import {
+  findCombatTargetPure,
+  calculateDamage,
+  calculateVampiricHeal,
+  processStatusEffects,
+  processBossAoe,
+  type CombatEntity,
+} from './systems/combatSystem';
+import {
+  isPlacementValidPure,
+  calculateUpgradeCost,
+  calculateSellValue,
+  calculateSpawnRate,
+  calculateStatMultiplier,
+  snapToGrid,
+  canAffordBuilding,
+} from './systems/buildingSystem';
+import {
+  findLogisticsPathPure,
+  moveCartStep,
+  calculateDelivery,
+} from './systems/logisticsSystem';
+import {
+  moveProjectile,
+  processImpact,
+} from './systems/projectileSystem';
+import {
+  updateParticlePure,
+  updateFloatingTextPure,
+  updateWorldEffectPure,
+  generateParticleBurst,
+} from './systems/vfxSystem';
+import {
+  canCastSpell,
+  computeSpellEffect,
+  updateCooldowns,
+  type SpellTarget,
+} from './systems/spellSystem';
+import { discoverNewCodexEntries } from './systems/codexSystem';
+import waveConfig from '../data/waveConfig.json';
+import combatConfig from '../data/combatConfig.json';
+
+// ────────────────────────────────────────────────────────────────
+// Yuka AI manager
+// ────────────────────────────────────────────────────────────────
+
+/** Yuka entity manager driving AI steering behaviors for all mobile units. */
+export const yukaManager = new EntityManager();
+
+/** Maps Koota entity IDs to their corresponding Yuka Vehicle instances. */
+export const vehiclesByEntityId = new Map<number, Vehicle>();
+
+// ────────────────────────────────────────────────────────────────
+// ECS Trait definitions
+// ────────────────────────────────────────────────────────────────
+
 /** ECS trait storing an entity's world-space coordinates. */
 export const Position = trait({ x: 0, y: 0, z: 0 });
 
 /** ECS trait storing an entity's Y-axis rotation (yaw) in radians. */
 export const Facing = trait({ y: 0 });
 
-/**
- * ECS trait for placed structures. Tracks the building type, upgrade levels
- * for its two branches (spawn rate and stat power), production/cooldown
- * timers, and turret targeting priority.
- */
+/** ECS trait for placed structures. */
 export const Building = trait({
   type: 'hut' as BuildingType,
   levelSpawn: 1,
@@ -69,11 +118,8 @@ export const Building = trait({
   cooldown: 0,
   targeting: 'first' as 'first' | 'strongest' | 'weakest',
 });
-/**
- * ECS trait for mobile combat entities (both allied and enemy). Contains the
- * unit's current combat stats (post-scaling), status effect timers (poison,
- * frozen, invulnerable, slowed), and pathfinding state.
- */
+
+/** ECS trait for mobile combat entities (both allied and enemy). */
 export const Unit = trait({
   type: 'militia' as UnitType,
   team: 'ally' as Faction,
@@ -95,21 +141,16 @@ export const Unit = trait({
   invulnerable: 0,
   slowed: 0,
 });
-/**
- * ECS trait for short-lived damage/heal numbers that rise above an entity
- * and fade out. Consumed by the renderer to draw billboard text sprites.
- */
+
+/** ECS trait for floating damage/heal text. */
 export const FloatingText = trait({
   text: '',
   color: '#ffffff',
   life: 1,
   riseSpeed: 8,
 });
-/**
- * ECS trait for physics-driven particle effects (explosions, build sparkles,
- * death bursts). Each particle has a velocity vector and a lifetime that
- * counts down to zero, at which point the entity is destroyed.
- */
+
+/** ECS trait for physics-driven particle effects. */
 export const Particle = trait({
   color: '#ffffff',
   life: 1,
@@ -118,11 +159,8 @@ export const Particle = trait({
   vy: 0,
   vz: 0,
 });
-/**
- * ECS trait for large-scale visual effects anchored to a world position
- * (e.g. smite ground rings, boss spawn shockwaves). The renderer uses
- * `life / maxLife` to animate scale and opacity.
- */
+
+/** ECS trait for large-scale visual effects. */
 export const WorldEffect = trait({
   kind: 'smite' as 'smite' | 'boss_spawn',
   color: '#ffffff',
@@ -130,11 +168,8 @@ export const WorldEffect = trait({
   maxLife: 1,
   radius: 4,
 });
-/**
- * ECS trait for in-flight projectiles (arrows, magic bolts, catapult
- * boulders, heal orbs). Tracks the target entity ID, damage payload,
- * flight speed, and special flags for healing, poison, splash, and slow.
- */
+
+/** ECS trait for in-flight projectiles. */
 export const Projectile = trait({
   targetId: 0 as number | string,
   damage: 0,
@@ -145,28 +180,18 @@ export const Projectile = trait({
   splashRadius: 0,
   isSlow: false,
 });
-/**
- * ECS trait that tags an entity with a codex identifier. When the codex
- * discovery system sees a new ID, it is added to the session's
- * `discoveredCodex` array for the bestiary/compendium UI.
- */
+
+/** ECS trait tagging an entity with a codex identifier. */
 export const CodexId = trait({ id: '' });
-/**
- * ECS singleton trait that tracks the autosave checkpoint status. The
- * persistence layer polls `dirty` to decide when to write a snapshot.
- */
+
+/** ECS singleton trait tracking autosave checkpoint status. */
 export const AutosaveState = trait(() => ({
   dirty: false,
   reason: 'init',
   lastCheckpointAt: 0,
 }));
-/**
- * ECS singleton trait holding all top-level game state for the active run:
- * resources (gold, wood, ore, gem, faith), player health, wave number, game
- * phase, biome, difficulty, doctrines, relics, active spells and their
- * cooldowns, UI state (banner, camera shake, selection, placement preview),
- * and elapsed time tracking.
- */
+
+/** ECS singleton trait holding all top-level game state for the active run. */
 export const GameSession = trait(() => ({
   runId: '',
   seed: '',
@@ -210,12 +235,7 @@ export const GameSession = trait(() => ({
   roadPoints: [] as { x: number; y: number; z: number }[],
 }));
 
-/**
- * ECS trait for minecart entities that transport harvested resources along
- * track networks from extractors (lumber, ore mine, gem mine) to sinks
- * (sanctuary or mint). The cart follows a pre-computed BFS path of track
- * positions and delivers its payload on arrival.
- */
+/** ECS trait for minecart entities on logistics tracks. */
 export const ResourceCart = trait(() => ({
   resource: 'wood' as 'wood' | 'ore' | 'gem',
   path: [] as { x: number; z: number }[],
@@ -223,62 +243,44 @@ export const ResourceCart = trait(() => ({
   targetId: 0,
 }));
 
-/**
- * ECS singleton trait managing the enemy spawn queue for the current wave.
- * During the defend phase, entries are popped off `spawnQueue` at intervals
- * controlled by `spawnTimer`.
- */
+/** ECS singleton managing the enemy spawn queue for the current wave. */
 export const WaveState = trait(() => ({
   spawnQueue: [] as { type: UnitType; affix?: EnemyAffix }[],
   spawnTimer: 0,
 }));
 
+// ────────────────────────────────────────────────────────────────
+// World instance + road geometry caches
+// ────────────────────────────────────────────────────────────────
+
 /** The single Koota ECS world instance. All entities live here. */
 export const gameWorld = createWorld();
+
+/** O(1) entity lookup by ID. Updated on spawn/destroy. */
+const entityIndex = new Map<number, Entity>();
 
 /** Smooth Catmull-Rom curve fitted through the road waypoints. */
 export let roadSpline = new THREE.CatmullRomCurve3([new THREE.Vector3()]);
 
-/** 120-point uniform sampling of {@link roadSpline}, used for distance checks and pathfinding. */
+/** 120-point uniform sampling of roadSpline. */
 export let roadSamples: THREE.Vector3[] = [];
 
-/** World position of the sanctuary (final road waypoint, typically the origin). */
+/** World position of the sanctuary (final road waypoint). */
 export let sanctuaryPosition = new THREE.Vector3();
 
 /** World position of the enemy spawn point (first road waypoint). */
 export let spawnPosition = new THREE.Vector3();
 
-/** Yuka `Path` derived from the road spline, consumed by enemy FollowPathBehavior. */
+/** Yuka Path for enemy FollowPathBehavior. */
 export const yukaRoadPath = new Path();
 
-/**
- * Rebuilds the shared road geometry caches from an array of waypoints.
- * Updates {@link roadSpline}, {@link roadSamples}, {@link sanctuaryPosition},
- * {@link spawnPosition}, and the Yuka {@link yukaRoadPath}. Called during
- * world creation and when hydrating a saved snapshot.
- *
- * @param points - Ordered waypoints from spawn to sanctuary.
- */
-export function updateMapData(points: { x: number; y: number; z: number }[]) {
-  const vectors = points.map((p) => new THREE.Vector3(p.x, p.y, p.z));
-  roadSpline = new THREE.CatmullRomCurve3(vectors);
-  roadSamples = roadSpline.getPoints(120);
-  sanctuaryPosition = vectors[vectors.length - 1].clone();
-  spawnPosition = vectors[0].clone();
+/** Session-scoped seeded PRNG. Recreated on each run. */
+let runRng: Rng = createRng(0);
 
-  yukaRoadPath.clear();
-  const subPoints = roadSpline.getPoints(50);
-  for (const p of subPoints) {
-    yukaRoadPath.add(new YukaVector3(p.x, 0, p.z));
-  }
-}
+// ────────────────────────────────────────────────────────────────
+// Snapshot / Command types
+// ────────────────────────────────────────────────────────────────
 
-/**
- * Versioned snapshot of an active run's complete state, suitable for
- * serialization to JSON for autosave / checkpoint persistence. Contains
- * the session singleton, wave state, and full lists of buildings and units
- * with their positions.
- */
 export interface ActiveRunSnapshotV1 {
   version: 1;
   session: SessionState;
@@ -312,12 +314,6 @@ export interface ActiveRunSnapshotV1 {
   }>;
 }
 
-/**
- * Discriminated union of every player-initiated mutation that can be applied
- * to the game world. UI code constructs one of these variants and passes it
- * to {@link queueWorldCommand}, which dispatches to the appropriate engine
- * function. This decouples the view layer from direct engine calls.
- */
 export type WorldCommand =
   | { type: 'build'; buildingType: BuildingType; position: { x: number; y: number; z: number } }
   | { type: 'upgrade'; entityId: number; branch: 'spawn' | 'stats' }
@@ -340,20 +336,39 @@ export type WorldCommand =
 type SessionState = NonNullable<ReturnType<typeof getSession>>;
 type RuntimeState = NonNullable<ReturnType<typeof getWaveState>>;
 
+// ────────────────────────────────────────────────────────────────
+// Internal helpers (minimal, not extractable)
+// ────────────────────────────────────────────────────────────────
+
 function now() {
   return Date.now();
 }
 
-function createRunId() {
-  return `run_${now()}_${Math.random().toString(36).slice(2, 8)}`;
+function distance2D(a: { x: number; z: number }, b: { x: number; z: number }) {
+  return Math.hypot(a.x - b.x, a.z - b.z);
 }
 
-/**
- * Reads the current {@link GameSession} singleton from the world.
- *
- * @returns The session state object, or `undefined` if the world has not
- *          been initialized.
- */
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function nearestRoadIndex(position: { x: number; z: number }) {
+  let bestIndex = 0;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  for (let i = 0; i < roadSamples.length; i += 1) {
+    const d = distance2D(position, roadSamples[i]);
+    if (d < bestDistance) {
+      bestDistance = d;
+      bestIndex = i;
+    }
+  }
+  return bestIndex;
+}
+
+// ────────────────────────────────────────────────────────────────
+// World state accessors
+// ────────────────────────────────────────────────────────────────
+
 export function getSession() {
   return gameWorld.get(GameSession);
 }
@@ -379,10 +394,7 @@ function setAutosaveState(patch: Partial<NonNullable<ReturnType<typeof getAutosa
 }
 
 function markRunDirty(reason: string) {
-  setAutosaveState({
-    dirty: true,
-    reason,
-  });
+  setAutosaveState({ dirty: true, reason });
 }
 
 function triggerBanner(
@@ -407,98 +419,179 @@ function nowAnnouncement(session: SessionState) {
   return session.phase === 'build' ? 'Build Phase' : 'Battle Phase';
 }
 
-function distance2D(a: { x: number; z: number }, b: { x: number; z: number }) {
-  return Math.hypot(a.x - b.x, a.z - b.z);
+// ────────────────────────────────────────────────────────────────
+// Entity index (O(1) lookup by ID)
+// ────────────────────────────────────────────────────────────────
+
+function indexEntity(entity: Entity) {
+  entityIndex.set(entity.id() as number, entity);
 }
 
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
+function unindexEntity(entity: Entity) {
+  entityIndex.delete(entity.id() as number);
 }
 
-function nearestRoadIndex(position: { x: number; z: number }) {
-  let bestIndex = 0;
-  let bestDistance = Number.POSITIVE_INFINITY;
+function getEntityById(entityId: number): Entity | null {
+  return entityIndex.get(entityId) ?? null;
+}
 
-  for (let index = 0; index < roadSamples.length; index += 1) {
-    const point = roadSamples[index];
-    const distance = distance2D(position, point);
-    if (distance < bestDistance) {
-      bestDistance = distance;
-      bestIndex = index;
-    }
+function clearEntityIndex() {
+  entityIndex.clear();
+}
+
+// ────────────────────────────────────────────────────────────────
+// Road geometry
+// ────────────────────────────────────────────────────────────────
+
+export function updateMapData(points: { x: number; y: number; z: number }[]) {
+  const vectors = points.map((p) => new THREE.Vector3(p.x, p.y, p.z));
+  roadSpline = new THREE.CatmullRomCurve3(vectors);
+  roadSamples = roadSpline.getPoints(120);
+  sanctuaryPosition = vectors[vectors.length - 1].clone();
+  spawnPosition = vectors[0].clone();
+  yukaRoadPath.clear();
+  const subPoints = roadSpline.getPoints(50);
+  for (const p of subPoints) {
+    yukaRoadPath.add(new YukaVector3(p.x, 0, p.z));
   }
-
-  return bestIndex;
 }
 
-function moveTowards(
-  position: { x: number; z: number },
-  target: { x: number; z: number },
-  step: number,
+// ────────────────────────────────────────────────────────────────
+// Spawning helpers (side-effectful, must stay in engine)
+// ────────────────────────────────────────────────────────────────
+
+function spawnFloatingText(
+  position: { x: number; y: number; z: number },
+  text: string,
+  color: string,
+  riseSpeed = 8,
 ) {
-  const dx = target.x - position.x;
-  const dz = target.z - position.z;
-  const length = Math.hypot(dx, dz);
-  if (length <= 0.001) return { x: position.x, z: position.z };
-  const ratio = Math.min(1, step / length);
-  return { x: position.x + dx * ratio, z: position.z + dz * ratio };
+  const e = gameWorld.spawn(
+    FloatingText({ text, color, life: 1, riseSpeed }),
+    Position({ x: position.x, y: position.y + 4, z: position.z }),
+  );
+  indexEntity(e);
 }
 
-function calculateWaveBudget(wave: number) {
-  return Math.floor(50 * 1.15 ** wave + 2 * wave * wave);
-}
-
-function calculateBuildTimer(wave: number) {
-  return Math.floor(30 + 10 * Math.log(wave));
-}
-
-function buildWaveQueue(wave: number) {
-  let budget = calculateWaveBudget(wave);
-  const queue: { type: UnitType; affix?: EnemyAffix }[] = [];
-  const possibleAffixes: EnemyAffix[] = ['armored', 'swift', 'regenerating', 'ranged'];
-
-  if (wave % 5 === 0 && budget >= (UNITS.boss.cost ?? 0)) {
-    queue.push({ type: 'boss' });
-    budget -= UNITS.boss.cost ?? 0;
+function spawnParticleBurstECS(
+  position: { x: number; y: number; z: number },
+  color: string,
+  count: number,
+  intensity = 1,
+) {
+  const particles = generateParticleBurst(position, color, count, intensity, runRng);
+  for (const p of particles) {
+    const e = gameWorld.spawn(
+      Particle({ color: p.color, life: p.life, size: p.size, vx: p.vx, vy: p.vy, vz: p.vz }),
+      Position({ x: p.x, y: p.y, z: p.z }),
+    );
+    indexEntity(e);
   }
+}
 
-  const pool: UnitType[] = ['troll', 'orc', 'goblin'];
-  while (budget >= (UNITS.goblin.cost ?? 0)) {
-    for (const type of pool) {
-      const cost = UNITS[type].cost ?? 0;
-      if (budget >= cost) {
-        let affix: EnemyAffix | undefined;
-        if (wave >= 6 && Math.random() < 0.2) {
-          affix = possibleAffixes[Math.floor(Math.random() * possibleAffixes.length)];
-        }
-        queue.push({ type, affix });
-        budget -= cost;
-        break;
+function spawnWorldEffect(
+  kind: 'smite' | 'boss_spawn',
+  position: { x: number; y: number; z: number },
+  color: string,
+  radius: number,
+  life: number,
+) {
+  const e = gameWorld.spawn(
+    WorldEffect({ kind, color, life, maxLife: life, radius }),
+    Position(position),
+  );
+  indexEntity(e);
+}
+
+function applyDeltaToUnit(target: Entity, amount: number, showColor: string, labelPrefix = '') {
+  const unit = target.get(Unit);
+  const position = target.get(Position);
+  if (!unit || !position) return;
+  unit.hp -= amount;
+  const magnitude = Math.round(Math.abs(amount));
+  const sign = amount < 0 ? '+' : labelPrefix;
+  spawnFloatingText(position, `${sign}${magnitude}`, showColor);
+  spawnParticleBurstECS(position, showColor, amount < 0 ? 6 : 5, amount < 0 ? 0.85 : 1);
+}
+
+function damageSanctuary(amount: number) {
+  const session = getSession();
+  if (!session) return;
+  const nextHealth = Math.max(0, session.health - amount);
+  setSession({ health: nextHealth, cameraShake: 6 });
+  spawnFloatingText(
+    { x: sanctuaryPosition.x, y: 6, z: sanctuaryPosition.z },
+    `-${amount}`,
+    '#ef4444',
+    5,
+  );
+  spawnParticleBurstECS(
+    { x: sanctuaryPosition.x, y: 6, z: sanctuaryPosition.z },
+    '#ef4444',
+    16,
+    1.25,
+  );
+  if (nextHealth <= 0) {
+    audioBus.emit({ type: 'game_over' });
+    setSession({
+      phase: 'game_over',
+      announcement: 'The Grail is Lost',
+      gameOver: true,
+      earnedCoins: session.wave * 10,
+    });
+    markRunDirty('game_over');
+  }
+}
+
+function destroyUnit(entity: Entity, rewardGold: boolean) {
+  const unit = entity.get(Unit);
+  const position = entity.get(Position);
+  if (!unit) return;
+
+  if (rewardGold && unit.team === 'enemy' && unit.reward > 0) {
+    const session = getSession();
+    if (session) {
+      setSession({ gold: session.gold + unit.reward, totalKills: session.totalKills + 1 });
+      if (position) {
+        spawnFloatingText(position, `+${unit.reward}g`, '#facc15', 10);
+        spawnParticleBurstECS(position, '#facc15', 8, 1);
       }
     }
   }
 
-  return queue;
-}
+  if (position) {
+    if (unit.team === 'enemy' && unit.affix === 'explosive') {
+      spawnParticleBurstECS(position, '#f97316', 20, 1.5);
+      const allies: Array<{ id: number; x: number; z: number; invulnerable: number }> = [];
+      for (const e of gameWorld.query(Unit, Position)) {
+        const u = e.get(Unit);
+        const p = e.get(Position);
+        if (u && p && u.team === 'ally') {
+          allies.push({ id: e.id() as number, x: p.x, z: p.z, invulnerable: u.invulnerable });
+        }
+      }
+      const hits = processBossAoe(position, combatConfig.explosiveAoeDamage, allies);
+      for (const hit of hits) {
+        const target = getEntityById(hit.id);
+        if (target) applyDeltaToUnit(target, hit.damage, '#f97316', '-');
+      }
+    } else {
+      spawnParticleBurstECS(
+        position,
+        unit.team === 'ally' ? '#a16207' : unit.type === 'boss' ? '#ef4444' : '#7f1d1d',
+        unit.type === 'boss' ? 20 : 12,
+        unit.type === 'boss' ? 1.5 : 1,
+      );
+    }
+  }
 
-function initializeWorldTraits() {
-  gameWorld.add(GameSession, WaveState, AutosaveState);
-}
-
-function initialBuildPhase() {
-  const session = getSession();
-  if (!session) return;
-
-  setWaveState({
-    spawnQueue: buildWaveQueue(session.wave),
-    spawnTimer: 0,
-  });
-  setSession({
-    phase: 'build',
-    buildTimeLeft: calculateBuildTimer(session.wave),
-    announcement: 'Build Phase',
-  });
-  triggerBanner(`Prepare for Wave ${session.wave}`, 'holy', 2.4, 0.08, '#facc15');
+  const vehicle = vehiclesByEntityId.get(entity.id() as number);
+  if (vehicle) {
+    yukaManager.remove(vehicle);
+    vehiclesByEntityId.delete(entity.id() as number);
+  }
+  unindexEntity(entity);
+  entity.destroy();
 }
 
 function spawnScaledUnit(
@@ -526,9 +619,10 @@ function spawnScaledUnit(
       maxHp: config.hp * multiplier * hpMultiplier,
       hp: config.hp * multiplier * hpMultiplier,
       damage: config.damage * multiplier,
-      speed: affix === 'swift' ? config.speed * 2 : config.speed,
+      speed: affix === 'swift' ? config.speed * combatConfig.swiftSpeedMultiplier : config.speed,
       range: affix === 'ranged' ? 15 : config.range,
-      atkSpd: affix === 'swift' ? config.atkSpd * 0.5 : config.atkSpd,
+      atkSpd:
+        affix === 'swift' ? config.atkSpd * combatConfig.swiftCooldownMultiplier : config.atkSpd,
       reward: config.reward ?? 0,
       isRanged: affix === 'ranged' ? true : config.isRanged,
       isHealer: config.isHealer,
@@ -543,21 +637,19 @@ function spawnScaledUnit(
     Facing({ y: 0 }),
     CodexId({ id: type }),
   );
+  indexEntity(entity);
 
   if (type !== 'wall') {
     const vehicle = new Vehicle();
     vehicle.position.set(position.x, 0, position.z);
-    vehicle.maxSpeed = affix === 'swift' ? config.speed * 2 : config.speed;
-
+    vehicle.maxSpeed = affix === 'swift' ? config.speed * combatConfig.swiftSpeedMultiplier : config.speed;
     const followBehavior = new FollowPathBehavior(yukaRoadPath);
     followBehavior.active = team === 'enemy';
     vehicle.steering.add(followBehavior);
-
     if (team === 'ally') {
       vehicle.steering.add(new SeparationBehavior());
       vehicle.steering.add(new SeekBehavior(new YukaVector3()));
     }
-
     yukaManager.add(vehicle);
     vehiclesByEntityId.set(entity.id() as number, vehicle);
   }
@@ -565,262 +657,36 @@ function spawnScaledUnit(
   return entity;
 }
 
-function spawnFloatingText(
-  position: { x: number; y: number; z: number },
-  text: string,
-  color: string,
-  riseSpeed = 8,
-) {
-  gameWorld.spawn(
-    FloatingText({
-      text,
-      color,
-      life: 1,
-      riseSpeed,
-    }),
-    Position({ x: position.x, y: position.y + 4, z: position.z }),
-  );
-}
+// ────────────────────────────────────────────────────────────────
+// System orchestration: update* functions
+// ────────────────────────────────────────────────────────────────
 
-function spawnParticleBurst(
-  position: { x: number; y: number; z: number },
-  color: string,
-  count: number,
-  intensity = 1,
-) {
-  for (let index = 0; index < count; index += 1) {
-    gameWorld.spawn(
-      Particle({
-        color,
-        life: 0.45 + Math.random() * 0.4,
-        size: 0.15 + Math.random() * 0.28,
-        vx: (Math.random() - 0.5) * 8 * intensity,
-        vy: (4 + Math.random() * 7) * intensity,
-        vz: (Math.random() - 0.5) * 8 * intensity,
-      }),
-      Position({ x: position.x, y: position.y + 1.5, z: position.z }),
-    );
-  }
-}
-
-function spawnWorldEffect(
-  kind: 'smite' | 'boss_spawn',
-  position: { x: number; y: number; z: number },
-  color: string,
-  radius: number,
-  life: number,
-) {
-  gameWorld.spawn(
-    WorldEffect({
-      kind,
-      color,
-      life,
-      maxLife: life,
-      radius,
-    }),
-    Position(position),
-  );
-}
-
-function applyDeltaToUnit(target: Entity, amount: number, showColor: string, labelPrefix = '') {
-  const unit = target.get(Unit);
-  const position = target.get(Position);
-  if (!unit || !position) return;
-
-  unit.hp -= amount;
-  const magnitude = Math.round(Math.abs(amount));
-  const sign = amount < 0 ? '+' : labelPrefix;
-  spawnFloatingText(position, `${sign}${magnitude}`, showColor);
-  spawnParticleBurst(position, showColor, amount < 0 ? 6 : 5, amount < 0 ? 0.85 : 1);
-}
-
-function damageSanctuary(amount: number) {
-  const session = getSession();
-  if (!session) return;
-
-  const nextHealth = Math.max(0, session.health - amount);
-  setSession({ health: nextHealth, cameraShake: 6 });
-  spawnFloatingText(
-    { x: sanctuaryPosition.x, y: 6, z: sanctuaryPosition.z },
-    `-${amount}`,
-    '#ef4444',
-    5,
-  );
-  spawnParticleBurst({ x: sanctuaryPosition.x, y: 6, z: sanctuaryPosition.z }, '#ef4444', 16, 1.25);
-  if (nextHealth <= 0) {
-    soundManager.playGameOver();
-    setSession({
-      phase: 'game_over',
-      announcement: 'The Grail is Lost',
-      gameOver: true,
-      earnedCoins: session.wave * 10,
-    });
-    markRunDirty('game_over');
-  }
-}
-
-function destroyUnit(entity: Entity, rewardGold: boolean) {
-  const unit = entity.get(Unit);
-  const position = entity.get(Position);
-  if (!unit) return;
-
-  if (rewardGold && unit.team === 'enemy' && unit.reward > 0) {
-    const session = getSession();
-    if (session) {
-      setSession({ gold: session.gold + unit.reward, totalKills: session.totalKills + 1 });
-      if (position) {
-        spawnFloatingText(position, `+${unit.reward}g`, '#facc15', 10);
-        spawnParticleBurst(position, '#facc15', 8, 1);
-      }
-    }
-  }
-
-  if (position) {
-    if (unit.team === 'enemy' && unit.affix === 'explosive') {
-      spawnParticleBurst(position, '#f97316', 20, 1.5);
-      for (const e of gameWorld.query(Unit, Position)) {
-        const u = e.get(Unit);
-        const p = e.get(Position);
-        if (u && p && u.team === 'ally' && distance2D(position, p) <= 6) {
-          applyDeltaToUnit(e, 50, '#f97316', '-');
-        }
-      }
-    } else {
-      spawnParticleBurst(
-        position,
-        unit.team === 'ally' ? '#a16207' : unit.type === 'boss' ? '#ef4444' : '#7f1d1d',
-        unit.type === 'boss' ? 20 : 12,
-        unit.type === 'boss' ? 1.5 : 1,
-      );
-    }
-  }
-
-  const vehicle = vehiclesByEntityId.get(entity.id() as number);
-  if (vehicle) {
-    yukaManager.remove(vehicle);
-    vehiclesByEntityId.delete(entity.id() as number);
-  }
-
-  entity.destroy();
-}
-
-function findCombatTarget(entity: Entity) {
-  const unit = entity.get(Unit);
-  const position = entity.get(Position);
-  if (!unit || !position) return undefined;
-
-  let bestTarget: Entity | undefined;
-  let bestDistance = Number.POSITIVE_INFINITY;
-  const searchRange = unit.isRanged ? 25 : 8;
-
-  for (const candidate of gameWorld.query(Unit, Position)) {
-    if (candidate === entity) continue;
-
-    const candidateUnit = candidate.get(Unit);
-    const candidatePosition = candidate.get(Position);
-    if (!candidateUnit || !candidatePosition || candidateUnit.hp <= 0) continue;
-
-    if (unit.isHealer) {
-      if (candidateUnit.team !== 'ally' || candidateUnit.hp >= candidateUnit.maxHp) continue;
-      const distance = distance2D(position, candidatePosition);
-      if (distance <= unit.range && distance < bestDistance) {
-        bestTarget = candidate;
-        bestDistance = distance;
-      }
-      continue;
-    }
-
-    if (candidateUnit.team === unit.team) continue;
-    const distance = distance2D(position, candidatePosition);
-
-    if (unit.team === 'enemy' && candidateUnit.type === 'wall' && distance < 5) {
-      bestTarget = candidate;
-      bestDistance = distance;
-      break;
-    }
-
-    if (distance <= searchRange && distance < bestDistance) {
-      bestTarget = candidate;
-      bestDistance = distance;
-    }
-  }
-
-  return bestTarget;
-}
-
-function executeAttack(attacker: Entity, target: Entity) {
-  const attackerUnit = attacker.get(Unit);
-  const attackerPosition = attacker.get(Position);
-  if (!attackerUnit || !attackerPosition) return;
-
-  soundManager.playCombat();
-
-  if (attackerUnit.type === 'boss') {
-    setSession({ cameraShake: 5 });
-    spawnParticleBurst(attackerPosition, '#f97316', 16, 1.4);
-    for (const entity of gameWorld.query(Unit, Position)) {
-      const candidate = entity.get(Unit);
-      const candidatePosition = entity.get(Position);
-      if (!candidate || !candidatePosition || candidate.team !== 'ally') continue;
-      if (distance2D(attackerPosition, candidatePosition) < 8) {
-        if (candidate.invulnerable > 0) continue;
-        applyDeltaToUnit(entity, attackerUnit.damage, '#ef4444', '-');
-      }
-    }
-    if (attackerUnit.affix === 'vampiric') {
-      applyDeltaToUnit(attacker, -Math.floor(attackerUnit.damage * 0.5), '#4ade80');
-    }
-    return;
-  }
-
-  const defender = target.get(Unit);
-  if (!defender) return;
-
-  const isHeal = attackerUnit.isHealer || attackerUnit.damage < 0;
-  const isMagic = isHeal || attackerUnit.type === 'cleric';
-  const session = getSession();
-  const isPoison =
-    attackerUnit.type === 'archer' && session?.relics?.includes('venomous_fletching');
-
-  if (attackerUnit.isRanged) {
-    gameWorld.spawn(
-      Position({ x: attackerPosition.x, y: attackerPosition.y + 1, z: attackerPosition.z }),
-      Projectile({
-        targetId: target.id() as number,
-        damage: attackerUnit.damage,
-        speed: 15,
-        color: isHeal ? '#34d399' : isPoison ? '#10b981' : '#e2e8f0',
-        isHeal,
-        isPoison: isPoison ?? false,
-      }),
-    );
-    return;
-  }
-
-  if (isHeal) {
-    applyDeltaToUnit(target, attackerUnit.damage, '#4ade80');
-    return;
-  }
-
-  if (defender.invulnerable > 0) {
-    return;
-  }
-
-  const damage =
-    defender.affix === 'armored' && !isMagic
-      ? Math.max(1, Math.floor(attackerUnit.damage * 0.5))
-      : attackerUnit.damage;
-  applyDeltaToUnit(target, damage, '#fde047', '-');
-
-  if (attackerUnit.affix === 'vampiric') {
-    applyDeltaToUnit(attacker, -Math.floor(damage * 0.5), '#4ade80');
-  }
+function ecsToCombatEntity(e: Entity): CombatEntity | null {
+  const u = e.get(Unit);
+  const p = e.get(Position);
+  if (!u || !p) return null;
+  const id = e.id() as number;
+  return {
+    id, x: p.x, z: p.z,
+    unit: {
+      id, type: u.type, team: u.team, hp: u.hp, maxHp: u.maxHp, damage: u.damage,
+      speed: u.speed, range: u.range, atkSpd: u.atkSpd, isRanged: u.isRanged,
+      isHealer: u.isHealer, affix: u.affix, poison: u.poison, frozen: u.frozen,
+      invulnerable: u.invulnerable, slowed: u.slowed, cooldown: u.cooldown,
+      pathIndex: u.pathIndex, timeAlive: u.timeAlive,
+    },
+  };
 }
 
 function updateUnits(dt: number) {
   const unitEntities: Entity[] = [];
-  for (const entity of gameWorld.query(Unit, Position)) {
-    unitEntities.push(entity);
+  for (const entity of gameWorld.query(Unit, Position)) unitEntities.push(entity);
+
+  // Build candidate list once per frame for targeting
+  const candidates: CombatEntity[] = [];
+  for (const e of unitEntities) {
+    const ce = ecsToCombatEntity(e);
+    if (ce) candidates.push(ce);
   }
 
   for (const entity of unitEntities) {
@@ -829,73 +695,55 @@ function updateUnits(dt: number) {
     const facing = entity.get(Facing);
     if (!unit || !position || !facing) continue;
 
-    if (unit.poison > 0) {
-      const pDmg = unit.poison * 0.2 * dt;
-      unit.hp -= pDmg;
-      unit.poison = Math.max(0, unit.poison - dt * 2);
-      if (Math.random() < 0.1) spawnParticleBurst(position, '#10b981', 1, 0.5);
-    }
+    // Status effects via pure function
+    const sr = processStatusEffects(
+      { hp: unit.hp, maxHp: unit.maxHp, poison: unit.poison, frozen: unit.frozen, slowed: unit.slowed, affix: unit.affix },
+      dt,
+    );
+    unit.hp = sr.hp; unit.poison = sr.poison; unit.frozen = sr.frozen;
+    if (unit.poison > 0 && runRng.next() < 0.1) spawnParticleBurstECS(position, '#10b981', 1, 0.5);
 
-    if (unit.affix === 'regenerating' && unit.hp < unit.maxHp && unit.hp > 0) {
-      unit.hp = Math.min(unit.maxHp, unit.hp + 2 * dt);
-    }
-
-    if (unit.hp <= 0) {
-      destroyUnit(entity, true);
-      continue;
-    }
-
+    if (unit.hp <= 0) { destroyUnit(entity, true); continue; }
     unit.timeAlive += dt;
     unit.cooldown -= dt;
 
     if (unit.frozen > 0) {
-      unit.frozen -= dt;
-      if (Math.random() < 0.1) spawnParticleBurst(position, '#38bdf8', 1, 0.5);
-      const vehicle = vehiclesByEntityId.get(entity.id() as number);
-      if (vehicle) vehicle.velocity.set(0, 0, 0);
+      if (runRng.next() < 0.1) spawnParticleBurstECS(position, '#38bdf8', 1, 0.5);
+      const v = vehiclesByEntityId.get(entity.id() as number);
+      if (v) v.velocity.set(0, 0, 0);
       continue;
     }
-
     if (unit.type === 'wall') continue;
 
     const vehicle = vehiclesByEntityId.get(entity.id() as number);
     if (vehicle) {
       position.x = vehicle.position.x;
       position.z = vehicle.position.z;
-      if (vehicle.velocity.squaredLength() > 0.001) {
+      if (vehicle.velocity.squaredLength() > 0.001)
         facing.y = Math.atan2(vehicle.velocity.x, vehicle.velocity.z);
-      }
     }
 
-    const target = findCombatTarget(entity);
-    if (target) {
-      const targetPosition = target.get(Position);
-      if (!targetPosition) continue;
+    const attacker = ecsToCombatEntity(entity);
+    if (!attacker) continue;
+    const targetResult = findCombatTargetPure(attacker, candidates);
 
-      const distance = distance2D(position, targetPosition);
+    if (targetResult) {
+      const target = getEntityById(targetResult.id);
+      const targetPosition = target?.get(Position);
+      if (!target || !targetPosition) continue;
+      const dist = distance2D(position, targetPosition);
 
-      if (distance <= unit.range) {
+      if (dist <= unit.range) {
         facing.y = Math.atan2(targetPosition.x - position.x, targetPosition.z - position.z);
-        if (unit.cooldown <= 0) {
-          executeAttack(entity, target);
-          unit.cooldown = unit.atkSpd;
-        }
+        if (unit.cooldown <= 0) { executeAttack(entity, target); unit.cooldown = unit.atkSpd; }
         if (vehicle) vehicle.velocity.set(0, 0, 0);
-      } else {
-        if (vehicle) {
-          let seek = vehicle.steering.behaviors.find((b) => b instanceof SeekBehavior) as
-            | SeekBehavior
-            | undefined;
-          if (!seek) {
-            seek = new SeekBehavior();
-            vehicle.steering.add(seek);
-          }
-          seek.target.set(targetPosition.x, 0, targetPosition.z);
-          seek.active = true;
-
-          const follow = vehicle.steering.behaviors.find((b) => b instanceof FollowPathBehavior);
-          if (follow) follow.active = false;
-        }
+      } else if (vehicle) {
+        let seek = vehicle.steering.behaviors.find((b) => b instanceof SeekBehavior) as SeekBehavior | undefined;
+        if (!seek) { seek = new SeekBehavior(); vehicle.steering.add(seek); }
+        seek.target.set(targetPosition.x, 0, targetPosition.z);
+        seek.active = true;
+        const follow = vehicle.steering.behaviors.find((b) => b instanceof FollowPathBehavior);
+        if (follow) follow.active = false;
       }
       continue;
     }
@@ -910,9 +758,8 @@ function updateUnits(dt: number) {
         if (follow) follow.active = true;
         const seek = vehicle.steering.behaviors.find((b) => b instanceof SeekBehavior);
         if (seek) seek.active = false;
-
         if (distance2D(position, sanctuaryPosition) < 6) {
-          damageSanctuary(unit.type === 'boss' ? 5 : 1);
+          damageSanctuary(unit.type === 'boss' ? waveConfig.grailDamageBoss : waveConfig.grailDamageNormal);
           destroyUnit(entity, false);
         }
       }
@@ -920,13 +767,80 @@ function updateUnits(dt: number) {
   }
 }
 
+function executeAttack(attacker: Entity, target: Entity) {
+  const attackerUnit = attacker.get(Unit);
+  const attackerPosition = attacker.get(Position);
+  if (!attackerUnit || !attackerPosition) return;
+
+  audioBus.emit({ type: 'combat_hit' });
+
+  if (attackerUnit.type === 'boss') {
+    setSession({ cameraShake: 5 });
+    spawnParticleBurstECS(attackerPosition, '#f97316', 16, 1.4);
+    const allies: Array<{ id: number; x: number; z: number; invulnerable: number }> = [];
+    for (const e of gameWorld.query(Unit, Position)) {
+      const u = e.get(Unit);
+      const p = e.get(Position);
+      if (u && p && u.team === 'ally') {
+        allies.push({ id: e.id() as number, x: p.x, z: p.z, invulnerable: u.invulnerable });
+      }
+    }
+    const hits = processBossAoe(attackerPosition, attackerUnit.damage, allies);
+    for (const hit of hits) {
+      const hitTarget = getEntityById(hit.id);
+      if (hitTarget) applyDeltaToUnit(hitTarget, hit.damage, '#ef4444', '-');
+    }
+    if (attackerUnit.affix === 'vampiric') {
+      applyDeltaToUnit(attacker, -calculateVampiricHeal(attackerUnit.damage), '#4ade80');
+    }
+    return;
+  }
+
+  const defender = target.get(Unit);
+  if (!defender) return;
+
+  const isHeal = attackerUnit.isHealer || attackerUnit.damage < 0;
+  const isMagic = isHeal || attackerUnit.type === 'cleric';
+  const session = getSession();
+  const isPoison =
+    attackerUnit.type === 'archer' && session?.relics?.includes('venomous_fletching');
+
+  if (attackerUnit.isRanged) {
+    const e = gameWorld.spawn(
+      Position({ x: attackerPosition.x, y: attackerPosition.y + 1, z: attackerPosition.z }),
+      Projectile({
+        targetId: target.id() as number,
+        damage: attackerUnit.damage,
+        speed: 15,
+        color: isHeal ? '#34d399' : isPoison ? '#10b981' : '#e2e8f0',
+        isHeal,
+        isPoison: isPoison ?? false,
+      }),
+    );
+    indexEntity(e);
+    return;
+  }
+
+  if (isHeal) {
+    applyDeltaToUnit(target, attackerUnit.damage, '#4ade80');
+    return;
+  }
+
+  if (defender.invulnerable > 0) return;
+
+  const damage = calculateDamage(attackerUnit.damage, defender.affix === 'armored', isMagic);
+  applyDeltaToUnit(target, damage, '#fde047', '-');
+
+  if (attackerUnit.affix === 'vampiric') {
+    applyDeltaToUnit(attacker, -calculateVampiricHeal(damage), '#4ade80');
+  }
+}
+
 function updateBuildings(dt: number) {
   const session = getSession();
   if (!session || session.phase !== 'defend') return;
 
-  // Faith generation
   if (session.health > 0) {
-    // Arbitrary generation rate: +1 faith per second per 10 health
     const faithRate = (session.health / 10) * dt;
     setSession({ faith: session.faith + faithRate });
   }
@@ -947,13 +861,29 @@ function updateBuildings(dt: number) {
       if (building.timer <= 0) {
         const resType =
           building.type === 'lumber' ? 'wood' : building.type === 'mine_ore' ? 'ore' : 'gem';
-        const path = findLogisticsPath(position, resType);
+
+        const trackNodes = Array.from(gameWorld.query(Building, Position))
+          .filter((e) => e.get(Building)?.type === 'track')
+          .map((e) => {
+            const p = e.get(Position);
+            return { x: p?.x ?? 0, z: p?.z ?? 0 };
+          });
+
+        const mintPositions = Array.from(gameWorld.query(Building, Position))
+          .filter((e) => e.get(Building)?.type === 'mint')
+          .map((e) => {
+            const p = e.get(Position);
+            return { x: p?.x ?? 0, z: p?.z ?? 0 };
+          });
+
+        const path = findLogisticsPathPure(position, resType, trackNodes, mintPositions, sanctuaryPosition);
 
         if (path) {
-          gameWorld.spawn(
+          const e = gameWorld.spawn(
             ResourceCart({ resource: resType, path, pathIndex: 0, targetId: 0 }),
             Position({ x: position.x, y: position.y + 1, z: position.z }),
           );
+          indexEntity(e);
         } else {
           spawnFloatingText(position, 'No Track!', '#ef4444', 5);
         }
@@ -972,10 +902,7 @@ function updateBuildings(dt: number) {
       continue;
     }
 
-    if (building.type === 'mint' || building.type === 'track') {
-      // Passive buildings, no ticks needed
-      continue;
-    }
+    if (building.type === 'mint' || building.type === 'track') continue;
 
     if (config.isTurret) {
       building.cooldown -= dt;
@@ -988,14 +915,12 @@ function updateBuildings(dt: number) {
           const u = e.get(Unit);
           const p = e.get(Position);
           if (!u || !p || u.team !== 'enemy') continue;
-
           const dist = distance2D(position, p);
           if (dist <= range) {
             let score = 0;
             if (building.targeting === 'first') score = u.pathIndex;
             else if (building.targeting === 'strongest') score = u.hp;
             else if (building.targeting === 'weakest') score = -u.hp;
-
             if (score > bestScore) {
               bestScore = score;
               bestTarget = e;
@@ -1009,7 +934,7 @@ function updateBuildings(dt: number) {
           const damageMult = hasCrystalLens ? 1.5 : 1;
           const cdMult = hasCrystalLens ? 1.2 : 1;
 
-          gameWorld.spawn(
+          const e = gameWorld.spawn(
             Position({ x: position.x, y: position.y + 2, z: position.z }),
             Projectile({
               targetId: bestTarget.id() as number,
@@ -1029,8 +954,9 @@ function updateBuildings(dt: number) {
               isSlow: building.type === 'sorcerer',
             }),
           );
+          indexEntity(e);
           building.cooldown = ((config.atkSpd ?? 1) / 1.1 ** (building.levelStats - 1)) * cdMult;
-          soundManager.playCombat();
+          audioBus.emit({ type: 'combat_hit' });
         }
       }
       continue;
@@ -1038,9 +964,9 @@ function updateBuildings(dt: number) {
 
     if (config.unit) {
       building.timer -= dt;
-      const spawnRate = config.spawnTime * 0.8 ** (building.levelSpawn - 1);
+      const spawnRate = calculateSpawnRate(building.type, building.levelSpawn);
       if (building.timer <= 0) {
-        spawnScaledUnit(config.unit, 'ally', position, 1.3 ** (building.levelStats - 1));
+        spawnScaledUnit(config.unit, 'ally', position, calculateStatMultiplier(building.levelStats));
         building.timer = spawnRate;
       }
     }
@@ -1056,16 +982,10 @@ function updateWaveState(dt: number) {
     setSession({ cameraShake: session.cameraShake * 0.9 > 0.1 ? session.cameraShake * 0.9 : 0 });
   }
 
-  let updatedCooldowns = false;
-  const newCooldowns = { ...session.spellCooldowns };
-  for (const [spell, cd] of Object.entries(newCooldowns)) {
-    if (cd > 0) {
-      newCooldowns[spell] = Math.max(0, cd - dt);
-      updatedCooldowns = true;
-    }
-  }
-  if (updatedCooldowns) {
-    setSession({ spellCooldowns: newCooldowns });
+  // Spell cooldown updates via pure function
+  const updatedCooldowns = updateCooldowns(session.spellCooldowns, dt);
+  if (JSON.stringify(updatedCooldowns) !== JSON.stringify(session.spellCooldowns)) {
+    setSession({ spellCooldowns: updatedCooldowns });
   }
 
   if (session.bannerLife > 0 || session.screenFlash > 0) {
@@ -1100,6 +1020,7 @@ function updateWaveState(dt: number) {
     );
     if (next.type === 'boss') {
       triggerBanner('Boss Approaches', 'danger', 2.8, 0.22, '#ef4444');
+      audioBus.emit({ type: 'boss_spawn' });
       spawnWorldEffect(
         'boss_spawn',
         { x: spawnPosition.x, y: 0.3, z: spawnPosition.z },
@@ -1107,13 +1028,14 @@ function updateWaveState(dt: number) {
         10,
         1.6,
       );
-      spawnParticleBurst({ x: spawnPosition.x, y: 1.5, z: spawnPosition.z }, '#ef4444', 24, 1.6);
+      spawnParticleBurstECS({ x: spawnPosition.x, y: 1.5, z: spawnPosition.z }, '#ef4444', 24, 1.6);
     }
-    setWaveState({ spawnQueue: rest, spawnTimer: 1 });
+    setWaveState({ spawnQueue: rest, spawnTimer: waveConfig.spawnInterval });
   } else {
     setWaveState({ spawnTimer: nextSpawnTimer });
   }
 
+  // Wave completion check via pure function
   let enemiesAlive = false;
   for (const entity of gameWorld.query(Unit)) {
     const unit = entity.get(Unit);
@@ -1123,96 +1045,248 @@ function updateWaveState(dt: number) {
     }
   }
 
-  if (waveState.spawnQueue.length === 0 && !enemiesAlive) {
+  if (isWaveComplete(waveState.spawnQueue.length, enemiesAlive)) {
     cleanupAlliedWaveUnits();
 
-    let interest = 0;
-    if (session.relics?.includes('golden_age')) {
-      interest = Math.floor(session.gold * 0.05);
-    }
+    const reward = calculateWaveCompletionReward(
+      session.wave,
+      session.gold,
+      session.relics?.includes('golden_age') ?? false,
+    );
 
     const nextWave = session.wave + 1;
-    if (nextWave > 20) {
+    if (nextWave > waveConfig.victoryWave) {
       setSession({
         phase: 'game_over',
         announcement: 'Victory Achieved!',
         gameOver: true,
         earnedCoins: session.wave * 25,
       });
-      soundManager.playGameOver();
+      audioBus.emit({ type: 'game_over' });
       return;
     }
 
     setSession({
-      gold: session.gold + 50 + session.wave * 10 + interest,
+      gold: session.gold + reward.goldReward + reward.interest,
       wave: nextWave,
-      pendingRelicDraft: session.wave % 5 === 0,
+      pendingRelicDraft: session.wave % waveConfig.bossWaveInterval === 0,
     });
 
     markRunDirty('wave_complete');
+    audioBus.emit({ type: 'wave_complete' });
     initialBuildPhase();
   }
 }
 
-function updateFloatingTexts(dt: number) {
-  const floatingTextEntities: Entity[] = [];
-  for (const entity of gameWorld.query(FloatingText, Position)) {
-    floatingTextEntities.push(entity);
+function updateProjectiles(dt: number) {
+  for (const entity of gameWorld.query(Projectile, Position)) {
+    const proj = entity.get(Projectile);
+    const pos = entity.get(Position);
+    if (!proj || !pos) continue;
+
+    const targetIdNum =
+      typeof proj.targetId === 'string' ? parseInt(proj.targetId, 10) : proj.targetId;
+    const target = getEntityById(targetIdNum);
+
+    if (!target) {
+      unindexEntity(entity);
+      entity.destroy();
+      continue;
+    }
+
+    const targetPos = target.get(Position);
+    if (!targetPos) {
+      unindexEntity(entity);
+      entity.destroy();
+      continue;
+    }
+
+    const moveResult = moveProjectile(
+      pos,
+      targetPos,
+      proj.speed,
+      dt,
+    );
+
+    if (moveResult.hit) {
+      // Gather nearby units for splash
+      const nearby: Array<{ id: number; team: Faction; x: number; z: number }> = [];
+      if (proj.splashRadius > 0) {
+        for (const e of gameWorld.query(Unit, Position)) {
+          const u = e.get(Unit);
+          const p = e.get(Position);
+          if (u && p) {
+            nearby.push({ id: e.id() as number, team: u.team, x: p.x, z: p.z });
+          }
+        }
+      }
+
+      const targetUnit = target.get(Unit);
+      if (targetUnit) {
+        const impact = processImpact(
+          {
+            damage: proj.damage,
+            isHeal: proj.isHeal,
+            isPoison: proj.isPoison,
+            splashRadius: proj.splashRadius,
+            isSlow: proj.isSlow,
+            color: proj.color,
+          },
+          { id: targetIdNum, team: targetUnit.team },
+          targetPos,
+          nearby,
+        );
+
+        if (impact.splashTargets.length > 0) {
+          for (const st of impact.splashTargets) {
+            const splashTarget = getEntityById(st.id);
+            if (splashTarget) {
+              applyDeltaToUnit(splashTarget, st.damage, impact.color, proj.isHeal ? '' : '-');
+            }
+          }
+          spawnParticleBurstECS(targetPos, proj.color, 12, 1.5);
+        } else {
+          applyDeltaToUnit(target, impact.directDamage, impact.color, proj.isHeal ? '' : '-');
+          if (impact.applyPoison) targetUnit.poison += impact.poisonAmount;
+          if (impact.applySlow) targetUnit.slowed = impact.slowDuration;
+        }
+      }
+
+      unindexEntity(entity);
+      entity.destroy();
+    } else {
+      pos.x = moveResult.x;
+      pos.y = moveResult.y;
+      pos.z = moveResult.z;
+    }
+  }
+}
+
+function updateLogistics(dt: number) {
+  const session = getSession();
+  if (!session) return;
+
+  const toDestroy: Entity[] = [];
+  for (const entity of gameWorld.query(ResourceCart, Position)) {
+    const cart = entity.get(ResourceCart);
+    const pos = entity.get(Position);
+    if (!cart || !pos) continue;
+
+    if (cart.pathIndex >= cart.path.length) {
+      toDestroy.push(entity);
+      continue;
+    }
+
+    const speed = session.relics.includes('miners_lantern') ? 10 : 5;
+    const step = moveCartStep(pos, cart.path, cart.pathIndex, speed, dt);
+
+    pos.x = step.x;
+    pos.z = step.z;
+    cart.pathIndex = step.pathIndex;
+
+    if (step.arrived) {
+      const lastPoint = cart.path[cart.path.length - 1];
+      const isMint =
+        cart.resource === 'ore' && distance2D(lastPoint, sanctuaryPosition) > 10;
+      const delivery = calculateDelivery(
+        cart.resource,
+        isMint,
+        session.relics?.includes('blessed_pickaxe') ?? false,
+      );
+
+      if (delivery.gold > 0) {
+        setSession({ gold: session.gold + delivery.gold });
+        spawnFloatingText({ x: lastPoint.x, y: 3, z: lastPoint.z }, `+${delivery.gold}g`, '#facc15', 10);
+      } else {
+        const key = delivery.resource as 'wood' | 'ore' | 'gem';
+        setSession({ [key]: (session[key] as number) + delivery.amount });
+      }
+      toDestroy.push(entity);
+    }
   }
 
-  for (const entity of floatingTextEntities) {
-    const floatingText = entity.get(FloatingText);
+  for (const e of toDestroy) {
+    unindexEntity(e);
+    e.destroy();
+  }
+}
+
+function updateFloatingTexts(dt: number) {
+  const toDestroy: Entity[] = [];
+  for (const entity of gameWorld.query(FloatingText, Position)) {
+    const ft = entity.get(FloatingText);
     const position = entity.get(Position);
-    if (!floatingText || !position) continue;
+    if (!ft || !position) continue;
 
-    floatingText.life -= dt;
-    position.y += floatingText.riseSpeed * dt;
+    const result = updateFloatingTextPure({ y: position.y, life: ft.life, riseSpeed: ft.riseSpeed }, dt);
+    ft.life = result.life;
+    position.y = result.y;
 
-    if (floatingText.life <= 0) {
-      entity.destroy();
-    }
+    if (result.dead) toDestroy.push(entity);
+  }
+  for (const e of toDestroy) {
+    unindexEntity(e);
+    e.destroy();
   }
 }
 
 function updateParticles(dt: number) {
-  const particleEntities: Entity[] = [];
+  const toDestroy: Entity[] = [];
   for (const entity of gameWorld.query(Particle, Position)) {
-    particleEntities.push(entity);
-  }
-
-  for (const entity of particleEntities) {
     const particle = entity.get(Particle);
     const position = entity.get(Position);
     if (!particle || !position) continue;
 
-    particle.life -= dt;
-    position.x += particle.vx * dt;
-    position.y += particle.vy * dt;
-    position.z += particle.vz * dt;
-    particle.vy -= 18 * dt;
-    particle.vx *= 0.96;
-    particle.vz *= 0.96;
+    const result = updateParticlePure(
+      { x: position.x, y: position.y, z: position.z, vx: particle.vx, vy: particle.vy, vz: particle.vz, life: particle.life },
+      dt,
+    );
+    position.x = result.x;
+    position.y = result.y;
+    position.z = result.z;
+    particle.vx = result.vx;
+    particle.vy = result.vy;
+    particle.vz = result.vz;
+    particle.life = result.life;
 
-    if (particle.life <= 0) {
-      entity.destroy();
-    }
+    if (result.dead) toDestroy.push(entity);
+  }
+  for (const e of toDestroy) {
+    unindexEntity(e);
+    e.destroy();
   }
 }
 
 function updateWorldEffects(dt: number) {
-  const effectEntities: Entity[] = [];
+  const toDestroy: Entity[] = [];
   for (const entity of gameWorld.query(WorldEffect, Position)) {
-    effectEntities.push(entity);
-  }
-
-  for (const entity of effectEntities) {
     const effect = entity.get(WorldEffect);
     if (!effect) continue;
 
-    effect.life -= dt;
-    if (effect.life <= 0) {
-      entity.destroy();
-    }
+    const result = updateWorldEffectPure({ life: effect.life }, dt);
+    effect.life = result.life;
+
+    if (result.dead) toDestroy.push(entity);
+  }
+  for (const e of toDestroy) {
+    unindexEntity(e);
+    e.destroy();
+  }
+}
+
+function codexDiscoverySystem() {
+  const session = getSession();
+  if (!session) return;
+
+  const visibleIds: string[] = [];
+  for (const entity of gameWorld.query(CodexId)) {
+    const codex = entity.get(CodexId);
+    if (codex) visibleIds.push(codex.id);
+  }
+
+  const newEntries = discoverNewCodexEntries(session.discoveredCodex, visibleIds);
+  if (newEntries.length > 0) {
+    setSession({ discoveredCodex: [...session.discoveredCodex, ...newEntries] });
   }
 }
 
@@ -1220,31 +1294,40 @@ function cleanupAlliedWaveUnits() {
   const toDestroy: Entity[] = [];
   for (const entity of gameWorld.query(Unit)) {
     const unit = entity.get(Unit);
-    if (!unit) continue;
-    if (unit.team === 'ally' && unit.type !== 'wall') {
+    if (unit?.team === 'ally' && unit.type !== 'wall') {
       toDestroy.push(entity);
     }
   }
-
   for (const entity of toDestroy) {
     destroyUnit(entity, false);
   }
 }
 
-/**
- * Initializes a brand-new game run. Resets the ECS world, generates a
- * procedural road from the seed, applies doctrine bonuses to starting
- * resources and health, and enters the first build phase.
- *
- * @param options - Optional overrides for the run configuration.
- * @param options.preferredSpeed - Initial game speed multiplier (default 1).
- * @param options.biome - Map biome identifier (default `'kings-road'`).
- * @param options.difficulty - Difficulty tier (default `'pilgrim'`).
- * @param options.doctrines - Pre-selected doctrine upgrades from the metagame.
- * @param options.spells - Equipped spell IDs (default `['smite']`).
- * @param options.seed - Deterministic seed string for road generation.
- * @param options.mapSize - Side length of the square map (default 100).
- */
+// ────────────────────────────────────────────────────────────────
+// World lifecycle
+// ────────────────────────────────────────────────────────────────
+
+function initializeWorldTraits() {
+  gameWorld.add(GameSession, WaveState, AutosaveState);
+}
+
+function initialBuildPhase() {
+  const session = getSession();
+  if (!session) return;
+
+  const waveRng = runRng.fork(`wave-${session.wave}`);
+  setWaveState({
+    spawnQueue: buildWaveQueue(session.wave, waveRng),
+    spawnTimer: 0,
+  });
+  setSession({
+    phase: 'build',
+    buildTimeLeft: _calcBuildTimer(session.wave),
+    announcement: 'Build Phase',
+  });
+  triggerBanner(`Prepare for Wave ${session.wave}`, 'holy', 2.4, 0.08, '#facc15');
+}
+
 export function createRunWorld(options?: {
   preferredSpeed?: number;
   biome?: string;
@@ -1255,6 +1338,7 @@ export function createRunWorld(options?: {
   mapSize?: number;
 }) {
   gameWorld.reset();
+  clearEntityIndex();
   initializeWorldTraits();
 
   const doctrines = options?.doctrines ?? [];
@@ -1271,8 +1355,9 @@ export function createRunWorld(options?: {
     initialCooldowns[spell] = 0;
   }
 
-  const runId = createRunId();
+  const runId = `run_${now()}_${runRng.next().toString(36).slice(2, 8)}`;
   const seed = options?.seed || runId;
+  runRng = createRng(seed);
   const mapSize = options?.mapSize || 100;
   const roadVectors = generateRoadPoints(seed, mapSize);
   const rawRoadPoints = roadVectors.map((v) => ({ x: v.x, y: v.y, z: v.z }));
@@ -1301,249 +1386,28 @@ export function createRunWorld(options?: {
     placementValid: false,
     roadPoints: rawRoadPoints,
   });
-  setAutosaveState({
-    dirty: true,
-    reason: 'create_run',
-    lastCheckpointAt: 0,
-  });
+  setAutosaveState({ dirty: true, reason: 'create_run', lastCheckpointAt: 0 });
   initialBuildPhase();
 }
 
-/**
- * Convenience alias for {@link createRunWorld}. Tears down any existing run
- * and starts a fresh one with the given options.
- *
- * @param options - Same options accepted by {@link createRunWorld}.
- */
-export function resetGameWorld(options?: {
-  preferredSpeed?: number;
-  biome?: string;
-  difficulty?: string;
-  doctrines?: { nodeId: string; level: number }[];
-  spells?: string[];
-  seed?: string;
-  mapSize?: number;
-}) {
+export function resetGameWorld(options?: Parameters<typeof createRunWorld>[0]) {
   createRunWorld(options);
 }
 
-/**
- * Destroys all entities and resets the ECS world. Call this when the player
- * leaves a run or the component unmounts to free resources.
- */
 export function disposeRunWorld() {
   gameWorld.reset();
+  clearEntityIndex();
 }
 
-function codexDiscoverySystem() {
-  const session = getSession();
-  if (!session) return;
+// ────────────────────────────────────────────────────────────────
+// Main update loop
+// ────────────────────────────────────────────────────────────────
 
-  let changed = false;
-  let newDiscovered = session.discoveredCodex;
-  for (const entity of gameWorld.query(CodexId)) {
-    const codex = entity.get(CodexId);
-    if (codex && !newDiscovered.includes(codex.id)) {
-      newDiscovered = [...newDiscovered, codex.id];
-      changed = true;
-    }
-  }
-
-  if (changed) {
-    setSession({ discoveredCodex: newDiscovered });
-  }
-}
-
-function updateProjectiles(dt: number) {
-  for (const entity of gameWorld.query(Projectile, Position)) {
-    const proj = entity.get(Projectile);
-    const pos = entity.get(Position);
-    if (!proj || !pos) continue;
-
-    const targetIdNum =
-      typeof proj.targetId === 'string' ? parseInt(proj.targetId, 10) : proj.targetId;
-    const target = getEntityById(targetIdNum);
-
-    if (!target) {
-      entity.destroy();
-      continue;
-    }
-
-    const targetPos = target.get(Position);
-    if (!targetPos) {
-      entity.destroy();
-      continue;
-    }
-
-    const dist = distance2D(pos, targetPos);
-    if (dist < 1.0) {
-      if (proj.splashRadius && proj.splashRadius > 0) {
-        const targetUnit = target.get(Unit);
-        if (targetUnit) {
-          for (const e of gameWorld.query(Unit, Position)) {
-            const u = e.get(Unit);
-            const p = e.get(Position);
-            if (
-              u &&
-              p &&
-              u.team === targetUnit.team &&
-              distance2D(targetPos, p) <= (proj.splashRadius ?? 0)
-            ) {
-              applyDeltaToUnit(e, proj.damage, proj.color, proj.isHeal ? '' : '-');
-            }
-          }
-          spawnParticleBurst(targetPos, proj.color, 12, 1.5);
-        }
-      } else {
-        applyDeltaToUnit(target, proj.damage, proj.color, proj.isHeal ? '' : '-');
-        const targetUnit = target.get(Unit);
-        if (targetUnit) {
-          if (proj.isPoison) {
-            targetUnit.poison += 10;
-          }
-          if (proj.isSlow) {
-            targetUnit.slowed = 3;
-          }
-        }
-      }
-      entity.destroy();
-    } else {
-      const moved = moveTowards(pos, targetPos, proj.speed * dt);
-      pos.x = moved.x;
-      pos.z = moved.z;
-      pos.y += (targetPos.y + 0.5 - pos.y) * Math.min(1, (proj.speed * dt) / Math.max(0.1, dist));
-    }
-  }
-}
-
-function findLogisticsPath(
-  startPos: { x: number; z: number },
-  resourceType: string,
-): { x: number; z: number }[] | null {
-  const trackNodes = Array.from(gameWorld.query(Building, Position))
-    .filter((e) => e.get(Building)?.type === 'track')
-    .map((e) => {
-      const p = e.get(Position);
-      return { x: p?.x ?? 0, z: p?.z ?? 0 };
-    });
-
-  const sinks: { x: number; z: number }[] = [
-    { x: Math.round(sanctuaryPosition.x / 5) * 5, z: Math.round(sanctuaryPosition.z / 5) * 5 },
-  ];
-  if (resourceType === 'ore') {
-    const mints = Array.from(gameWorld.query(Building, Position))
-      .filter((e) => e.get(Building)?.type === 'mint')
-      .map((e) => {
-        const p = e.get(Position);
-        return { x: p?.x ?? 0, z: p?.z ?? 0 };
-      });
-    sinks.push(...mints);
-  }
-
-  const queue: { pos: { x: number; z: number }; path: { x: number; z: number }[] }[] = [];
-  const visited = new Set<string>();
-
-  // Find tracks adjacent to startPos
-  for (const track of trackNodes) {
-    if (distance2D(startPos, track) < 6) {
-      queue.push({ pos: track, path: [track] });
-      visited.add(`${track.x},${track.z}`);
-    }
-  }
-
-  while (queue.length > 0) {
-    const item = queue.shift();
-    if (!item) break;
-    const { pos, path } = item;
-
-    // Check if adjacent to sink
-    for (const sink of sinks) {
-      if (distance2D(pos, sink) < 6) {
-        return [...path, sink];
-      }
-    }
-
-    // Traverse adjacent tracks
-    for (const track of trackNodes) {
-      const key = `${track.x},${track.z}`;
-      if (!visited.has(key) && distance2D(pos, track) < 6) {
-        visited.add(key);
-        queue.push({ pos: track, path: [...path, track] });
-      }
-    }
-  }
-
-  return null; // No path to sink
-}
-
-function updateLogistics(dt: number) {
-  const session = getSession();
-  if (!session) return;
-
-  const toDestroy: Entity[] = [];
-
-  for (const entity of gameWorld.query(ResourceCart, Position)) {
-    const cart = entity.get(ResourceCart);
-    const pos = entity.get(Position);
-    if (!cart || !pos) continue;
-
-    if (cart.pathIndex >= cart.path.length) {
-      toDestroy.push(entity);
-      continue;
-    }
-
-    const target = cart.path[cart.pathIndex];
-    const dist = distance2D(pos, target);
-
-    if (dist < 0.5) {
-      cart.pathIndex++;
-      if (cart.pathIndex >= cart.path.length) {
-        // Reached destination
-        const isMint = cart.resource === 'ore' && distance2D(target, sanctuaryPosition) > 10;
-
-        if (isMint) {
-          setSession({ gold: session.gold + 15 });
-          spawnFloatingText({ x: target.x, y: 3, z: target.z }, '+15g', '#facc15', 10);
-        } else {
-          if (cart.resource === 'wood') setSession({ wood: session.wood + 10 });
-          if (cart.resource === 'ore') setSession({ ore: session.ore + 1 });
-          if (cart.resource === 'gem')
-            setSession({
-              gem: session.gem + (session.relics?.includes('blessed_pickaxe') ? 2 : 1),
-            });
-        }
-        toDestroy.push(entity);
-      }
-    } else {
-      const speed = session.relics.includes('miners_lantern') ? 10 : 5;
-      const moved = moveTowards(pos, target, speed * dt);
-      pos.x = moved.x;
-      pos.z = moved.z;
-    }
-  }
-
-  for (const e of toDestroy) {
-    e.destroy();
-  }
-}
-
-/**
- * Advances the entire simulation by `dt` seconds. Runs all subsystems in
- * order: Yuka steering, wave/phase state, building production, logistics,
- * unit AI and combat, projectile tracking, floating text, particles, world
- * effects, and codex discovery.
- *
- * Typically called via {@link stepRunWorld} which applies game-speed scaling
- * and a delta-time cap.
- *
- * @param dt - Elapsed time in seconds since the last update.
- */
 export function updateGameWorld(dt: number) {
   const session = getSession();
   if (!session || session.gameOver) return;
 
   yukaManager.update(dt);
-
   setSession({ elapsedMs: session.elapsedMs + dt * 1000 });
 
   updateWaveState(dt);
@@ -1562,118 +1426,71 @@ export function updateGameWorld(dt: number) {
   }
 }
 
-/**
- * Snaps a world position to the placement grid. Buildings are placed on a
- * 5-unit grid at a fixed Y of 1.5.
- *
- * @param position - Raw world-space position (e.g. from a raycast hit).
- * @returns Grid-aligned position suitable for building placement.
- */
+export function stepRunWorld(dt: number) {
+  const speed = getSession()?.gameSpeed ?? 1;
+  updateGameWorld(Math.min(dt, 0.1) * speed);
+}
+
+// ────────────────────────────────────────────────────────────────
+// Player commands
+// ────────────────────────────────────────────────────────────────
+
 export function snapPlacementPosition(position: { x: number; y: number; z: number }) {
-  return {
-    x: Math.round(position.x / 5) * 5,
-    y: 1.5,
-    z: Math.round(position.z / 5) * 5,
-  };
+  return snapToGrid(position);
 }
 
-function getRoadDistance(position: { x: number; z: number }) {
-  let closestDistance = Number.POSITIVE_INFINITY;
-  for (const roadPoint of roadSamples) {
-    const distance = distance2D(position, roadPoint);
-    if (distance < closestDistance) {
-      closestDistance = distance;
-    }
-  }
-  return closestDistance;
-}
-
-function overlapsExistingStructure(type: BuildingType, position: { x: number; z: number }) {
-  const allowedOverlaps: BuildingType[] = ['mine_ore', 'mine_gem', 'lumber', 'mint'];
-
-  if (type !== 'track' && distance2D(position, sanctuaryPosition) < 5) {
-    return true;
-  }
-
-  for (const entity of gameWorld.query(Building, Position)) {
-    const building = entity.get(Building);
-    const buildingPosition = entity.get(Position);
-    if (buildingPosition && distance2D(position, buildingPosition) < 5) {
-      if (type === 'track' && building && allowedOverlaps.includes(building.type)) {
-        continue;
-      }
-      return true;
-    }
-  }
-
-  for (const entity of gameWorld.query(Unit, Position)) {
-    const unit = entity.get(Unit);
-    const unitPosition = entity.get(Position);
-    if (unit?.type === 'wall' && unitPosition && distance2D(position, unitPosition) < 5) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-/**
- * Checks whether a building of the given type can legally be placed at the
- * specified grid position. Validates road proximity rules (walls must be on
- * the road, buildings must be off it, tracks are unconstrained), overlap
- * with existing structures or wall units, and game-over state.
- *
- * @param type - The building type to place.
- * @param position - Grid-snapped XZ position.
- * @returns `true` if placement is allowed.
- */
 export function isPlacementValid(type: BuildingType, position: { x: number; z: number }) {
   const session = getSession();
   if (!session || session.gameOver) return false;
 
-  const roadDistance = getRoadDistance(position);
-  if (overlapsExistingStructure(type, position)) return false;
+  const existingBuildings = Array.from(gameWorld.query(Building, Position)).map((e) => {
+    const b = e.get(Building);
+    const p = e.get(Position);
+    return { type: b!.type, x: p!.x, z: p!.z };
+  });
 
-  if (type === 'track') return true;
-  if (type === 'wall') return roadDistance <= 4;
-  return roadDistance >= 7;
+  const wallPositions = Array.from(gameWorld.query(Unit, Position))
+    .filter((e) => e.get(Unit)?.type === 'wall')
+    .map((e) => {
+      const p = e.get(Position);
+      return { x: p!.x, z: p!.z };
+    });
+
+  const roadSampleData = roadSamples.map((s) => ({ x: s.x, z: s.z }));
+
+  return isPlacementValidPure(
+    type,
+    position,
+    roadSampleData,
+    sanctuaryPosition,
+    existingBuildings,
+    wallPositions,
+  );
 }
 
-/**
- * Attempts to place a building of the given type at the specified position.
- * Deducts gold and wood costs (accounting for relic discounts), validates
- * placement, spawns the appropriate ECS entity (a {@link Unit} for walls,
- * a {@link Building} for everything else), and triggers build audio/VFX.
- *
- * @param type - The building type to construct.
- * @param position - World-space position (will be grid-snapped internally).
- * @returns `true` if the building was successfully placed, `false` if
- *          placement was invalid or the player lacks resources.
- */
 export function buildStructure(type: BuildingType, position: { x: number; y: number; z: number }) {
   const session = getSession();
   if (!session || session.gameOver) return false;
 
   const config = BUILDINGS[type];
-  let woodCost = config.woodCost ?? 0;
-  if (type === 'track' && session.relics?.includes('iron_tracks')) {
-    woodCost = 0;
-  }
-  if (session.gold < config.cost || session.wood < woodCost) return false;
+  if (!canAffordBuilding(type, session.gold, session.wood, session.relics ?? [])) return false;
 
-  const snappedPosition = snapPlacementPosition(position);
+  const snappedPosition = snapToGrid(position);
   if (!isPlacementValid(type, snappedPosition)) return false;
 
-  soundManager.playBuild();
+  let woodCost = config.woodCost ?? 0;
+  if (type === 'track' && session.relics?.includes('iron_tracks')) woodCost = 0;
+
+  audioBus.emit({ type: 'building_placed' });
   setSession({ gold: session.gold - config.cost, wood: session.wood - woodCost, cameraShake: 2 });
   markRunDirty('build_structure');
-  spawnParticleBurst(snappedPosition, '#d4af37', 10, 0.85);
+  spawnParticleBurstECS(snappedPosition, '#d4af37', 10, 0.85);
 
   const ironVanguard = session.doctrines.find((d) => d.nodeId === 'iron_vanguard');
   const hpMultiplier = ironVanguard ? 1 + 0.1 * ironVanguard.level : 1;
 
   if (type === 'wall') {
-    gameWorld.spawn(
+    const e = gameWorld.spawn(
       Unit({
         type: 'wall',
         team: 'ally',
@@ -1694,20 +1511,16 @@ export function buildStructure(type: BuildingType, position: { x: number; y: num
       Facing({ y: 0 }),
       CodexId({ id: 'wall' }),
     );
+    indexEntity(e);
     return true;
   }
 
-  gameWorld.spawn(
-    Building({
-      type,
-      levelSpawn: 1,
-      levelStats: 1,
-      timer: config.spawnTime,
-    }),
+  const e = gameWorld.spawn(
+    Building({ type, levelSpawn: 1, levelStats: 1, timer: config.spawnTime }),
     Position(snappedPosition),
     CodexId({ id: type }),
   );
-
+  indexEntity(e);
   return true;
 }
 
@@ -1716,20 +1529,17 @@ export function upgradeBuilding(entity: Entity, branch: 'spawn' | 'stats') {
   const building = entity.get(Building);
   if (!session || !building || session.gameOver) return false;
 
-  if (branch === 'spawn') {
-    const cost = 50 * building.levelSpawn;
-    if (building.levelSpawn >= 5 || session.gold < cost) return false;
-    building.levelSpawn += 1;
-    setSession({ gold: session.gold - cost, cameraShake: 1.5 });
-    markRunDirty('upgrade_spawn');
-    return true;
-  }
+  const cost = calculateUpgradeCost(branch, branch === 'spawn' ? building.levelSpawn : building.levelStats);
+  const maxLevel = 5;
+  const currentLevel = branch === 'spawn' ? building.levelSpawn : building.levelStats;
 
-  const cost = 75 * building.levelStats;
-  if (building.levelStats >= 5 || session.gold < cost) return false;
-  building.levelStats += 1;
+  if (currentLevel >= maxLevel || session.gold < cost) return false;
+
+  if (branch === 'spawn') building.levelSpawn += 1;
+  else building.levelStats += 1;
+
   setSession({ gold: session.gold - cost, cameraShake: 1.5 });
-  markRunDirty('upgrade_stats');
+  markRunDirty(`upgrade_${branch}`);
   return true;
 }
 
@@ -1738,21 +1548,16 @@ export function sellBuilding(entity: Entity) {
   const building = entity.get(Building);
   if (!session || !building || session.gameOver) return false;
 
-  const config = BUILDINGS[building.type];
-  const sellValue = Math.floor(
-    (config.cost + (building.levelSpawn - 1) * 50 + (building.levelStats - 1) * 75) * 0.5,
-  );
-  const woodValue = Math.floor((config.woodCost ?? 0) * 0.5);
-
+  const sv = calculateSellValue(building.type, building.levelSpawn, building.levelStats);
   const position = entity.get(Position);
   const posClone = position ? { x: position.x, y: position.y, z: position.z } : null;
 
+  unindexEntity(entity);
   entity.destroy();
 
-  if (posClone) {
-    spawnParticleBurst(posClone, '#64748b', 10, 0.9);
-  }
-  setSession({ gold: session.gold + sellValue, wood: session.wood + woodValue, cameraShake: 1 });
+  if (posClone) spawnParticleBurstECS(posClone, '#64748b', 10, 0.9);
+  audioBus.emit({ type: 'building_sold' });
+  setSession({ gold: session.gold + sv.gold, wood: session.wood + sv.wood, cameraShake: 1 });
   markRunDirty('sell_building');
   return true;
 }
@@ -1760,18 +1565,16 @@ export function sellBuilding(entity: Entity) {
 export function sellWall(entity: Entity) {
   const session = getSession();
   const unit = entity.get(Unit);
-  if (!session || !unit || unit.type !== 'wall' || session.gameOver) {
-    return false;
-  }
+  if (!session || !unit || unit.type !== 'wall' || session.gameOver) return false;
 
   const position = entity.get(Position);
   const posClone = position ? { x: position.x, y: position.y, z: position.z } : null;
 
+  unindexEntity(entity);
   entity.destroy();
 
-  if (posClone) {
-    spawnParticleBurst(posClone, '#64748b', 8, 0.8);
-  }
+  if (posClone) spawnParticleBurstECS(posClone, '#64748b', 8, 0.8);
+  audioBus.emit({ type: 'building_sold' });
   setSession({
     wood: session.wood + Math.floor((BUILDINGS.wall.woodCost ?? 0) * 0.5),
     cameraShake: 1,
@@ -1780,27 +1583,14 @@ export function sellWall(entity: Entity) {
   return true;
 }
 
-/**
- * Returns the gold costs for upgrading a building's spawn-rate and stat
- * branches, plus its sell-back value (50% of total invested gold).
- *
- * @param entity - A Koota entity that has the {@link Building} trait.
- * @returns An object with `spawn`, `stats`, and `sell` costs, or `null`
- *          if the entity is not a building.
- */
 export function getBuildingUpgradeCosts(entity: Entity) {
   const building = entity.get(Building);
   if (!building) return null;
-
+  const sv = calculateSellValue(building.type, building.levelSpawn, building.levelStats);
   return {
-    spawn: 50 * building.levelSpawn,
-    stats: 75 * building.levelStats,
-    sell: Math.floor(
-      (BUILDINGS[building.type].cost +
-        (building.levelSpawn - 1) * 50 +
-        (building.levelStats - 1) * 75) *
-        0.5,
-    ),
+    spawn: calculateUpgradeCost('spawn', building.levelSpawn),
+    stats: calculateUpgradeCost('stats', building.levelStats),
+    sell: sv.gold,
   };
 }
 
@@ -1812,22 +1602,22 @@ export function getSelectableEntityAtPosition(position: { x: number; z: number }
   let bestDistance = Number.POSITIVE_INFINITY;
 
   for (const entity of gameWorld.query(Building, Position)) {
-    const entityPosition = entity.get(Position);
-    if (!entityPosition) continue;
-    const distance = distance2D(position, entityPosition);
-    if (distance < 5 && distance < bestDistance) {
-      bestDistance = distance;
+    const p = entity.get(Position);
+    if (!p) continue;
+    const d = distance2D(position, p);
+    if (d < 5 && d < bestDistance) {
+      bestDistance = d;
       bestEntity = entity;
     }
   }
 
   for (const entity of gameWorld.query(Unit, Position)) {
-    const unit = entity.get(Unit);
-    const entityPosition = entity.get(Position);
-    if (!unit || unit.type !== 'wall' || !entityPosition) continue;
-    const distance = distance2D(position, entityPosition);
-    if (distance < 5 && distance < bestDistance) {
-      bestDistance = distance;
+    const u = entity.get(Unit);
+    const p = entity.get(Position);
+    if (!u || u.type !== 'wall' || !p) continue;
+    const d = distance2D(position, p);
+    if (d < 5 && d < bestDistance) {
+      bestDistance = d;
       bestEntity = entity;
     }
   }
@@ -1839,8 +1629,8 @@ export function startWave() {
   const session = getSession();
   if (!session || session.phase !== 'build') return;
 
-  const earlyBonus = Math.max(0, Math.floor(session.buildTimeLeft * 2));
-  const isBossWave = session.wave % 5 === 0;
+  const earlyBonus = Math.max(0, Math.floor(session.buildTimeLeft * waveConfig.earlyStartBonusRate));
+  const isBossWave = session.wave % waveConfig.bossWaveInterval === 0;
   setSession({
     gold: session.gold + earlyBonus,
     phase: 'defend',
@@ -1849,6 +1639,7 @@ export function startWave() {
   });
   setWaveState({ spawnTimer: 0.5 });
   markRunDirty('start_wave');
+  audioBus.emit({ type: 'wave_start' });
   triggerBanner(
     isBossWave ? `Boss Wave ${session.wave}` : `Wave ${session.wave} Begins`,
     isBossWave ? 'danger' : 'holy',
@@ -1861,438 +1652,227 @@ export function startWave() {
 export function skipBuildPhase() {
   const session = getSession();
   if (!session || session.phase !== 'build') return;
-
-  const earlyBonus = Math.max(0, Math.floor(session.buildTimeLeft * 2));
-  setSession({
-    gold: session.gold + earlyBonus,
-    buildTimeLeft: 0,
-  });
+  const earlyBonus = Math.max(0, Math.floor(session.buildTimeLeft * waveConfig.earlyStartBonusRate));
+  setSession({ gold: session.gold + earlyBonus, buildTimeLeft: 0 });
 }
 
 export function toggleGameSpeed() {
   const session = getSession();
   if (!session) return 1;
-
   const next = session.gameSpeed === 1 ? 1.5 : session.gameSpeed === 1.5 ? 2 : 1;
   setSession({ gameSpeed: next });
   return next;
 }
 
 export function castSpell(spellId: string) {
-  if (spellId === 'smite') return castSmite();
-  if (spellId === 'holy_nova') return castHolyNova();
-  if (spellId === 'zealous_haste') return castZealousHaste();
-  if (spellId === 'earthquake') return castEarthquake();
-  if (spellId === 'chrono_shift') return castChronoShift();
-  if (spellId === 'meteor_strike') return castMeteorStrike();
-  if (spellId === 'divine_shield') return castDivineShield();
-  return false;
-}
-
-export function castMeteorStrike() {
   const session = getSession();
-  if (
-    !session ||
-    (session.spellCooldowns['meteor_strike'] ?? 0) > 0 ||
-    session.gameOver ||
-    session.faith < 35
-  )
-    return false;
+  if (!session) return false;
 
-  const enemyEntities: Entity[] = [];
+  if (!canCastSpell(spellId, session.faith, session.spellCooldowns, session.gameOver)) {
+    return false;
+  }
+
+  // Build target lists from ECS
+  const enemies: SpellTarget[] = [];
+  const allies: SpellTarget[] = [];
   for (const entity of gameWorld.query(Unit, Position)) {
     const unit = entity.get(Unit);
-    if (unit?.team === 'enemy') {
-      enemyEntities.push(entity);
+    const pos = entity.get(Position);
+    if (!unit || !pos) continue;
+    const t: SpellTarget = {
+      id: entity.id() as number,
+      team: unit.team,
+      x: pos.x,
+      z: pos.z,
+      hp: unit.hp,
+      maxHp: unit.maxHp,
+      type: unit.type,
+    };
+    if (unit.team === 'enemy') enemies.push(t);
+    else allies.push(t);
+  }
+
+  // If smite or meteor_strike needs enemies and there are none, bail
+  if ((spellId === 'smite' || spellId === 'meteor_strike') && enemies.length === 0) {
+    return false;
+  }
+
+  const effect = computeSpellEffect(spellId, enemies, allies, sanctuaryPosition);
+
+  // Apply damage
+  for (const dt of effect.damageTargets) {
+    const target = getEntityById(dt.id);
+    if (target) {
+      const unit = target.get(Unit);
+      if (unit) unit.hp -= dt.damage;
     }
   }
 
-  if (enemyEntities.length === 0) return false;
+  // Apply heals
+  for (const ht of effect.healTargets) {
+    const target = getEntityById(ht.id);
+    if (target) applyDeltaToUnit(target, -ht.heal, '#4ade80');
+  }
 
-  const targetEnemy = [...enemyEntities].sort((left, right) => {
-    const leftPosition = left.get(Position);
-    const rightPosition = right.get(Position);
-    if (!leftPosition || !rightPosition) return 0;
-    return (
-      distance2D(leftPosition, sanctuaryPosition) - distance2D(rightPosition, sanctuaryPosition)
-    );
-  })[0];
+  // Apply freezes
+  for (const ft of effect.freezeTargets) {
+    const target = getEntityById(ft.id);
+    if (target) {
+      const unit = target.get(Unit);
+      if (unit) unit.frozen += ft.freezeDuration;
+    }
+  }
 
-  const targetPosition = targetEnemy.get(Position);
-  if (targetPosition) {
-    for (const e of gameWorld.query(Unit, Position)) {
-      const u = e.get(Unit);
-      const p = e.get(Position);
-      if (u && p && u.team === 'enemy' && distance2D(targetPosition, p) < 10) {
-        applyDeltaToUnit(e, 400, '#ef4444', '-');
+  // Apply stuns
+  for (const st of effect.stunTargets) {
+    const target = getEntityById(st.id);
+    if (target) {
+      const unit = target.get(Unit);
+      if (unit) unit.cooldown += st.stunDuration;
+    }
+  }
+
+  // Apply shields
+  for (const sh of effect.shieldTargets) {
+    const target = getEntityById(sh.id);
+    if (target) {
+      const unit = target.get(Unit);
+      if (unit) unit.invulnerable = sh.duration;
+    }
+  }
+
+  // Apply cooldown resets
+  for (const rc of effect.resetCooldownTargets) {
+    const target = getEntityById(rc.id);
+    if (target) {
+      const unit = target.get(Unit);
+      if (unit) unit.cooldown = 0;
+    }
+  }
+
+  // VFX for primary target
+  if (effect.primaryTargetId !== undefined) {
+    const primary = getEntityById(effect.primaryTargetId);
+    if (primary) {
+      const pos = primary.get(Position);
+      if (pos) {
+        spawnParticleBurstECS(pos, spellId === 'meteor_strike' ? '#ef4444' : '#facc15', spellId === 'meteor_strike' ? 30 : 18, spellId === 'meteor_strike' ? 2.5 : 1.6);
+        spawnWorldEffect(
+          'smite',
+          { x: pos.x, y: 0.2, z: pos.z },
+          spellId === 'meteor_strike' ? '#ef4444' : '#facc15',
+          spellId === 'meteor_strike' ? 15 : 12,
+          spellId === 'meteor_strike' ? 1.5 : 0.75,
+        );
       }
     }
-    spawnParticleBurst(targetPosition, '#ef4444', 30, 2.5);
-    spawnWorldEffect('smite', targetPosition, '#ef4444', 15, 1.5);
   }
 
-  triggerBanner('Meteor Strike', 'danger', 1.4, 0.24, '#ef4444');
+  // Banner + session updates
+  const spellNames: Record<string, string> = {
+    smite: 'Divine Smite',
+    holy_nova: 'Holy Nova',
+    zealous_haste: 'Zealous Haste',
+    earthquake: 'Earthquake',
+    chrono_shift: 'Chrono Shift',
+    meteor_strike: 'Meteor Strike',
+    divine_shield: 'Divine Shield',
+  };
+  const bannerColors: Record<string, { tone: 'holy' | 'danger'; color: string }> = {
+    smite: { tone: 'holy', color: '#fde68a' },
+    holy_nova: { tone: 'holy', color: '#4ade80' },
+    zealous_haste: { tone: 'holy', color: '#fde047' },
+    earthquake: { tone: 'danger', color: '#f97316' },
+    chrono_shift: { tone: 'holy', color: '#38bdf8' },
+    meteor_strike: { tone: 'danger', color: '#ef4444' },
+    divine_shield: { tone: 'holy', color: '#3b82f6' },
+  };
+
+  const banner = bannerColors[spellId] ?? { tone: 'holy' as const, color: '#facc15' };
+  triggerBanner(spellNames[spellId] ?? spellId, banner.tone, 1.4, 0.24, banner.color);
+  audioBus.emit({ type: 'spell_cast', detail: spellId });
   setSession({
-    spellCooldowns: { ...session.spellCooldowns, meteor_strike: 25 },
-    cameraShake: 8,
-    faith: session.faith - 35,
+    spellCooldowns: { ...session.spellCooldowns, [spellId]: effect.cooldown },
+    cameraShake: effect.cameraShake,
+    faith: session.faith - effect.faithCost,
   });
   markRunDirty('cast_spell');
   return true;
 }
 
-export function castDivineShield() {
+export function draftRelic(relicId: string) {
   const session = getSession();
-  if (
-    !session ||
-    (session.spellCooldowns['divine_shield'] ?? 0) > 0 ||
-    session.gameOver ||
-    session.faith < 40
-  )
-    return false;
-
-  let shielded = false;
-  for (const entity of gameWorld.query(Unit)) {
-    const unit = entity.get(Unit);
-    if (unit?.team === 'ally') {
-      unit.invulnerable = 5; // 5 seconds of invulnerability
-      shielded = true;
-    }
-  }
-
-  if (shielded) {
-    triggerBanner('Divine Shield', 'holy', 1.4, 0.24, '#3b82f6');
-    setSession({
-      spellCooldowns: { ...session.spellCooldowns, divine_shield: 30 },
-      faith: session.faith - 40,
-    });
-    markRunDirty('cast_spell');
-    return true;
-  }
-  return false;
-}
-
-export function castChronoShift() {
-  const session = getSession();
-  if (
-    !session ||
-    (session.spellCooldowns['chrono_shift'] ?? 0) > 0 ||
-    session.gameOver ||
-    session.faith < 50
-  )
-    return false;
-
-  let frozen = false;
-  for (const entity of gameWorld.query(Unit, Position)) {
-    const unit = entity.get(Unit);
-    if (unit?.team === 'enemy') {
-      unit.frozen += 4;
-      frozen = true;
-    }
-  }
-
-  if (frozen) {
-    triggerBanner('Chrono Shift', 'holy', 1.4, 0.24, '#38bdf8');
-    setSession({
-      spellCooldowns: { ...session.spellCooldowns, chrono_shift: 30 },
-      faith: session.faith - 50,
-    });
-    markRunDirty('cast_spell');
-    return true;
-  }
-  return false;
-}
-
-export function castHolyNova() {
-  const session = getSession();
-  if (
-    !session ||
-    (session.spellCooldowns['holy_nova'] ?? 0) > 0 ||
-    session.gameOver ||
-    session.faith < 25
-  )
-    return false;
-
-  let healed = false;
-  for (const entity of gameWorld.query(Unit, Position)) {
-    const unit = entity.get(Unit);
-    if (unit?.team === 'ally' && unit.type !== 'wall') {
-      applyDeltaToUnit(entity, -50, '#4ade80');
-      healed = true;
-    }
-  }
-
-  if (healed) {
-    triggerBanner('Holy Nova', 'holy', 1.4, 0.24, '#4ade80');
-    setSession({
-      spellCooldowns: { ...session.spellCooldowns, holy_nova: 20 },
-      faith: session.faith - 25,
-    });
-    markRunDirty('cast_spell');
-    return true;
-  }
-  return false;
-}
-export function castZealousHaste() {
-  const session = getSession();
-  if (
-    !session ||
-    (session.spellCooldowns['zealous_haste'] ?? 0) > 0 ||
-    session.gameOver ||
-    session.faith < 25
-  )
-    return false;
-
-  for (const entity of gameWorld.query(Unit, Position)) {
-    const unit = entity.get(Unit);
-    if (unit?.team === 'ally') {
-      unit.cooldown = 0; // immediate attack
-    }
-  }
-
-  triggerBanner('Zealous Haste', 'holy', 1.4, 0.24, '#fde047');
-  setSession({
-    spellCooldowns: { ...session.spellCooldowns, zealous_haste: 30 },
-    faith: session.faith - 25,
-  });
-  markRunDirty('cast_spell');
+  if (!session || !session.pendingRelicDraft) return false;
+  setSession({ relics: [...(session.relics || []), relicId], pendingRelicDraft: false });
+  markRunDirty('draft_relic');
   return true;
 }
 
-export function castEarthquake() {
-  const session = getSession();
-  if (
-    !session ||
-    (session.spellCooldowns['earthquake'] ?? 0) > 0 ||
-    session.gameOver ||
-    session.faith < 25
-  )
-    return false;
+// ────────────────────────────────────────────────────────────────
+// Serialization
+// ────────────────────────────────────────────────────────────────
 
-  for (const entity of gameWorld.query(Unit, Position)) {
-    const unit = entity.get(Unit);
-    if (unit?.team === 'enemy') {
-      applyDeltaToUnit(entity, 20, '#f97316', '-');
-      // simple stun representation
-      unit.cooldown += 3;
-    }
-  }
-
-  triggerBanner('Earthquake', 'danger', 1.4, 0.24, '#f97316');
-  setSession({
-    spellCooldowns: { ...session.spellCooldowns, earthquake: 25 },
-    cameraShake: 8,
-    faith: session.faith - 25,
-  });
-  markRunDirty('cast_spell');
-  return true;
-}
-
-export function castSmite() {
-  const session = getSession();
-  if (
-    !session ||
-    (session.spellCooldowns['smite'] ?? 0) > 0 ||
-    session.gameOver ||
-    session.faith < 25
-  )
-    return false;
-
-  const enemyEntities: Entity[] = [];
-  for (const entity of gameWorld.query(Unit, Position)) {
-    const unit = entity.get(Unit);
-    if (unit?.team === 'enemy') {
-      enemyEntities.push(entity);
-    }
-  }
-
-  if (enemyEntities.length === 0) return false;
-
-  const prioritizedEnemies = enemyEntities
-    .sort((left, right) => {
-      const leftPosition = left.get(Position);
-      const rightPosition = right.get(Position);
-      if (!leftPosition || !rightPosition) return 0;
-      return (
-        distance2D(leftPosition, sanctuaryPosition) - distance2D(rightPosition, sanctuaryPosition)
-      );
-    })
-    .slice(0, 3);
-
-  for (const entity of prioritizedEnemies) {
-    const unit = entity.get(Unit);
-    if (unit) {
-      unit.hp -= 300;
-    }
-  }
-
-  if (prioritizedEnemies[0]) {
-    const hitPosition = prioritizedEnemies[0].get(Position);
-    if (hitPosition) {
-      spawnParticleBurst(hitPosition, '#facc15', 18, 1.6);
-      spawnWorldEffect(
-        'smite',
-        { x: hitPosition.x, y: 0.2, z: hitPosition.z },
-        '#facc15',
-        12,
-        0.75,
-      );
-    }
-  }
-
-  triggerBanner('Divine Smite', 'holy', 1.4, 0.24, '#fde68a');
-  setSession({
-    spellCooldowns: { ...session.spellCooldowns, smite: 15 },
-    cameraShake: 4,
-    faith: session.faith - 25,
-  });
-  markRunDirty('cast_smite');
-  return true;
-}
-
-function getEntityById(entityId: number) {
-  for (const entity of gameWorld.query(Position)) {
-    if (entity.id() === entityId) return entity;
-  }
-  return null;
-}
-
-/**
- * Serializes the current game world into an {@link ActiveRunSnapshotV1}
- * plain object suitable for JSON persistence. Captures the session
- * singleton, wave state, and every building/unit entity with its position.
- *
- * @returns A version-1 snapshot of the active run.
- * @throws If the world has not been initialized (no session or wave state).
- *
- * @example
- * ```ts
- * const snap = serializeRunWorld();
- * localStorage.setItem('autosave', JSON.stringify(snap));
- * ```
- */
 export function serializeRunWorld(): ActiveRunSnapshotV1 {
   const session = getSession();
   const waveState = getWaveState();
-  if (!session || !waveState) {
-    throw new Error('Cannot serialize an uninitialized run world.');
-  }
+  if (!session || !waveState) throw new Error('Cannot serialize an uninitialized run world.');
 
   const buildings = Array.from(gameWorld.query(Building, Position)).flatMap((entity) => {
-    const building = entity.get(Building);
-    const position = entity.get(Position);
-    if (!building || !position) return [];
-    return [
-      {
-        type: building.type,
-        levelSpawn: building.levelSpawn,
-        levelStats: building.levelStats,
-        timer: building.timer,
-        position: { x: position.x, y: position.y, z: position.z },
-      },
-    ];
+    const b = entity.get(Building);
+    const p = entity.get(Position);
+    if (!b || !p) return [];
+    return [{ type: b.type, levelSpawn: b.levelSpawn, levelStats: b.levelStats, timer: b.timer, position: { x: p.x, y: p.y, z: p.z } }];
   });
 
   const units = Array.from(gameWorld.query(Unit, Position, Facing)).flatMap((entity) => {
-    const unit = entity.get(Unit);
-    const position = entity.get(Position);
-    const facing = entity.get(Facing);
-    if (!unit || !position || !facing) return [];
-    return [
-      {
-        type: unit.type,
-        team: unit.team,
-        maxHp: unit.maxHp,
-        hp: unit.hp,
-        damage: unit.damage,
-        speed: unit.speed,
-        range: unit.range,
-        atkSpd: unit.atkSpd,
-        reward: unit.reward,
-        isRanged: unit.isRanged,
-        isHealer: unit.isHealer,
-        cooldown: unit.cooldown,
-        timeAlive: unit.timeAlive,
-        pathIndex: unit.pathIndex,
-        affix: unit.affix,
-        poison: unit.poison,
-        position: { x: position.x, y: position.y, z: position.z },
-        facingY: facing.y,
-      },
-    ];
+    const u = entity.get(Unit);
+    const p = entity.get(Position);
+    const f = entity.get(Facing);
+    if (!u || !p || !f) return [];
+    return [{
+      type: u.type, team: u.team, maxHp: u.maxHp, hp: u.hp, damage: u.damage, speed: u.speed,
+      range: u.range, atkSpd: u.atkSpd, reward: u.reward, isRanged: u.isRanged, isHealer: u.isHealer,
+      cooldown: u.cooldown, timeAlive: u.timeAlive, pathIndex: u.pathIndex, affix: u.affix,
+      poison: u.poison, position: { x: p.x, y: p.y, z: p.z }, facingY: f.y,
+    }];
   });
 
-  return {
-    version: 1,
-    session: { ...session },
-    waveState: { ...waveState },
-    buildings,
-    units,
-  };
+  return { version: 1, session: { ...session }, waveState: { ...waveState }, buildings, units };
 }
 
-/**
- * Restores a game world from a previously serialized snapshot. Resets the
- * ECS world, re-applies session and wave state, rebuilds the road geometry,
- * and re-spawns all building and unit entities including their Yuka steering
- * vehicles.
- *
- * @param snapshot - A version-1 snapshot (e.g. from {@link serializeRunWorld}).
- * @throws If the snapshot version is not `1`.
- */
 export function hydrateRunWorld(snapshot: ActiveRunSnapshotV1) {
-  if (snapshot.version !== 1) {
-    throw new Error(`Unsupported run snapshot version: ${snapshot.version}`);
-  }
+  if (snapshot.version !== 1) throw new Error(`Unsupported run snapshot version: ${snapshot.version}`);
 
   gameWorld.reset();
+  clearEntityIndex();
   initializeWorldTraits();
   setSession({ ...snapshot.session });
   setWaveState({ ...snapshot.waveState });
-  if (snapshot.session.roadPoints) {
-    updateMapData(snapshot.session.roadPoints);
-  }
-  setAutosaveState({
-    dirty: false,
-    reason: 'hydrate_run',
-    lastCheckpointAt: now(),
-  });
+  if (snapshot.session.roadPoints) updateMapData(snapshot.session.roadPoints);
+  runRng = createRng(snapshot.session.seed || 'hydrated');
+  setAutosaveState({ dirty: false, reason: 'hydrate_run', lastCheckpointAt: now() });
 
   for (const building of snapshot.buildings) {
-    gameWorld.spawn(
-      Building({
-        type: building.type,
-        levelSpawn: building.levelSpawn,
-        levelStats: building.levelStats,
-        timer: building.timer,
-      }),
+    const e = gameWorld.spawn(
+      Building({ type: building.type, levelSpawn: building.levelSpawn, levelStats: building.levelStats, timer: building.timer }),
       Position(building.position),
     );
+    indexEntity(e);
   }
 
   for (const unit of snapshot.units) {
     const entity = gameWorld.spawn(
       Unit({
-        type: unit.type,
-        team: unit.team,
-        maxHp: unit.maxHp,
-        hp: unit.hp,
-        damage: unit.damage,
-        speed: unit.speed,
-        range: unit.range,
-        atkSpd: unit.atkSpd,
-        reward: unit.reward,
-        isRanged: unit.isRanged,
-        isHealer: unit.isHealer,
-        cooldown: unit.cooldown,
-        timeAlive: unit.timeAlive,
-        pathIndex: unit.pathIndex,
-        affix: unit.affix,
+        type: unit.type, team: unit.team, maxHp: unit.maxHp, hp: unit.hp, damage: unit.damage,
+        speed: unit.speed, range: unit.range, atkSpd: unit.atkSpd, reward: unit.reward,
+        isRanged: unit.isRanged, isHealer: unit.isHealer, cooldown: unit.cooldown,
+        timeAlive: unit.timeAlive, pathIndex: unit.pathIndex, affix: unit.affix,
         poison: unit.poison ?? 0,
       }),
       Position(unit.position),
       Facing({ y: unit.facingY }),
     );
+    indexEntity(entity);
 
     if (unit.type !== 'wall') {
       const config = UNITS[unit.type];
@@ -2307,18 +1887,13 @@ export function hydrateRunWorld(snapshot: ActiveRunSnapshotV1) {
         vehicle.steering.add(pathBehavior);
       } else {
         const reversePath = new Path();
-        const waypoints =
-          (yukaRoadPath as unknown as { _waypoints?: YukaVector3[] })._waypoints || [];
-        for (const wp of [...waypoints].reverse()) {
-          reversePath.add(wp);
-        }
+        const waypoints = (yukaRoadPath as unknown as { _waypoints?: YukaVector3[] })._waypoints || [];
+        for (const wp of [...waypoints].reverse()) reversePath.add(wp);
         const advBehavior = new FollowPathBehavior(reversePath, 1.5);
         vehicle.steering.add(advBehavior);
-
         const separation = new SeparationBehavior();
         separation.weight = 2.0;
         vehicle.steering.add(separation);
-
         const seek = new SeekBehavior();
         seek.active = false;
         vehicle.steering.add(seek);
@@ -2332,65 +1907,24 @@ export function hydrateRunWorld(snapshot: ActiveRunSnapshotV1) {
 
 export function checkpointRun(reason: string) {
   const snapshot = serializeRunWorld();
-  setAutosaveState({
-    dirty: false,
-    reason,
-    lastCheckpointAt: now(),
-  });
+  setAutosaveState({ dirty: false, reason, lastCheckpointAt: now() });
   return snapshot;
 }
 
 export function finalizeRun(result: 'defeat' | 'abandoned') {
   const session = getSession();
-  if (!session) {
-    throw new Error('Cannot finalize an uninitialized run.');
-  }
-
+  if (!session) throw new Error('Cannot finalize an uninitialized run.');
   return {
-    runId: session.runId,
-    waveReached: session.wave,
-    earnedCoins: session.earnedCoins,
-    kills: session.totalKills,
-    durationMs: Math.round(session.elapsedMs),
-    biome: session.biome,
-    difficulty: session.difficulty,
-    result,
+    runId: session.runId, waveReached: session.wave, earnedCoins: session.earnedCoins,
+    kills: session.totalKills, durationMs: Math.round(session.elapsedMs),
+    biome: session.biome, difficulty: session.difficulty, result,
   };
 }
 
-/**
- * Top-level frame tick intended to be called from the render loop. Applies
- * the player's game-speed multiplier (1x / 1.5x / 2x) and clamps the
- * effective delta to 100 ms to prevent physics explosions after tab
- * backgrounding.
- *
- * @param dt - Raw wall-clock delta in seconds since the last frame.
- */
-export function stepRunWorld(dt: number) {
-  const speed = getSession()?.gameSpeed ?? 1;
-  updateGameWorld(Math.min(dt, 0.1) * speed);
-}
+// ────────────────────────────────────────────────────────────────
+// Command dispatcher
+// ────────────────────────────────────────────────────────────────
 
-export function draftRelic(relicId: string) {
-  const session = getSession();
-  if (!session || !session.pendingRelicDraft) return false;
-
-  const newRelics = [...(session.relics || []), relicId];
-  setSession({ relics: newRelics, pendingRelicDraft: false });
-  markRunDirty('draft_relic');
-  return true;
-}
-
-/**
- * Central command dispatcher. The UI layer calls this with a
- * {@link WorldCommand} discriminated union, and this function routes to the
- * appropriate engine mutation (build, upgrade, sell, spell cast, wave
- * control, selection, etc.).
- *
- * @param command - The player-initiated command to execute.
- * @returns `true` if the command was successfully applied, `false` otherwise
- *          (e.g. insufficient resources, invalid target).
- */
 export function queueWorldCommand(command: WorldCommand) {
   switch (command.type) {
     case 'build':
@@ -2455,15 +1989,9 @@ export function getSessionSummary() {
   const session = getSession();
   if (!session) return null;
   return {
-    runId: session.runId,
-    phase: session.phase,
-    wave: session.wave,
-    biome: session.biome,
-    gameOver: session.gameOver,
-    totalKills: session.totalKills,
-    elapsedMs: session.elapsedMs,
-    gold: session.gold,
-    health: session.health,
+    runId: session.runId, phase: session.phase, wave: session.wave, biome: session.biome,
+    gameOver: session.gameOver, totalKills: session.totalKills, elapsedMs: session.elapsedMs,
+    gold: session.gold, health: session.health,
   };
 }
 

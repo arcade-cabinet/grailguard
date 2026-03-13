@@ -71,6 +71,9 @@ docs/AGENTS.md                   -- Documentation navigation guide
     │   ├── buildings.md         -- Buildings, economy, logistics
     │   └── spells-relics-doctrines.md
     │
+    ├── docs/design/            -- Brand & UX design
+    │   └── brand-and-ux.md     -- Visual identity, metaphors, component patterns
+    │
     └── docs/guides/             -- Developer guides
         └── getting-started.md   -- Setup, commands, conventions
 ```

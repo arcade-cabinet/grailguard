@@ -55,15 +55,21 @@ export interface FloatingTextUpdateResult {
 
 /**
  * Advances a floating text entity by one time step. Pure function.
+ * When reducedFx is true, skips processing and returns the input unchanged.
  *
  * @param state - Current floating text state.
  * @param dt - Delta time in seconds.
+ * @param reducedFx - When true, skips all processing.
  * @returns Updated state including dead flag.
  */
 export function updateFloatingTextPure(
   state: { y: number; life: number; riseSpeed: number },
   dt: number,
+  reducedFx?: boolean,
 ): FloatingTextUpdateResult {
+  if (reducedFx) {
+    return { y: state.y, life: state.life, dead: false };
+  }
   const life = state.life - dt;
   const y = state.y + state.riseSpeed * dt;
   return { y, life, dead: life <= 0 };
@@ -106,12 +112,14 @@ export interface ParticleBurstEntry {
 /**
  * Generates a burst of particles at a position with randomized velocities.
  * Uses a seeded PRNG for determinism.
+ * When reducedFx is true, returns an empty array (no particles spawned).
  *
  * @param position - World-space origin of the burst.
  * @param color - Particle color.
  * @param count - Number of particles to generate.
  * @param intensity - Velocity scale factor.
  * @param rng - Seeded PRNG instance.
+ * @param reducedFx - When true, returns empty array.
  * @returns Array of particle initial states.
  */
 export function generateParticleBurst(
@@ -120,7 +128,12 @@ export function generateParticleBurst(
   count: number,
   intensity: number,
   rng: Rng,
+  reducedFx?: boolean,
 ): ParticleBurstEntry[] {
+  if (reducedFx) {
+    return [];
+  }
+
   const particles: ParticleBurstEntry[] = [];
 
   for (let i = 0; i < count; i++) {

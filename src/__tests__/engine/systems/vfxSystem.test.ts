@@ -133,5 +133,65 @@ describe('vfxSystem', () => {
       const avgVyHigh = high.reduce((s, p) => s + p.vy, 0) / high.length;
       expect(avgVyHigh).toBeGreaterThan(avgVyLow);
     });
+
+    it('returns empty array when reducedFx is true', () => {
+      const rng = createRng('reduced-fx');
+      const particles = generateParticleBurst(
+        { x: 0, y: 0, z: 0 },
+        '#ff0000',
+        10,
+        1.0,
+        rng,
+        true,
+      );
+      expect(particles).toHaveLength(0);
+    });
+
+    it('returns normal particles when reducedFx is false', () => {
+      const rng = createRng('not-reduced');
+      const particles = generateParticleBurst(
+        { x: 0, y: 0, z: 0 },
+        '#ff0000',
+        10,
+        1.0,
+        rng,
+        false,
+      );
+      expect(particles).toHaveLength(10);
+    });
+
+    it('returns normal particles when reducedFx is omitted', () => {
+      const rng = createRng('default-fx');
+      const particles = generateParticleBurst(
+        { x: 0, y: 0, z: 0 },
+        '#ff0000',
+        10,
+        1.0,
+        rng,
+      );
+      expect(particles).toHaveLength(10);
+    });
+  });
+
+  describe('updateFloatingTextPure (reducedFx)', () => {
+    it('skips processing when reducedFx is true', () => {
+      const result = updateFloatingTextPure({ y: 5, life: 1, riseSpeed: 8 }, 0.1, true);
+      // When reduced, y and life should be unchanged
+      expect(result.y).toBe(5);
+      expect(result.life).toBe(1);
+      expect(result.dead).toBe(false);
+    });
+
+    it('processes normally when reducedFx is false', () => {
+      const result = updateFloatingTextPure({ y: 5, life: 1, riseSpeed: 8 }, 0.1, false);
+      expect(result.life).toBeCloseTo(0.9, 2);
+      expect(result.y).toBeCloseTo(5.8, 1);
+    });
+
+    it('processes normally when reducedFx is omitted', () => {
+      const result = updateFloatingTextPure({ y: 5, life: 1, riseSpeed: 8 }, 0.1);
+      expect(result.life).toBeCloseTo(0.9, 2);
+      expect(result.y).toBeCloseTo(5.8, 1);
+    });
   });
 });

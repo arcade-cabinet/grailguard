@@ -10,6 +10,7 @@ import {
   buildWaveQueue,
   isWaveComplete,
   calculateWaveCompletionReward,
+  allocateWaveBudget,
 } from '../../../engine/systems/waveSystem';
 import { createRng } from '../../../engine/systems/rng';
 import type { UnitType, EnemyAffix } from '../../../engine/constants';
@@ -147,6 +148,74 @@ describe('waveSystem', () => {
       // interest = floor(500 * 0.05) = 25
       expect(reward.interest).toBe(25);
       expect(reward.goldReward).toBe(80);
+    });
+  });
+
+  describe('allocateWaveBudget', () => {
+    it('only includes goblins on wave 1 (no orc/troll unlocked)', () => {
+      const rng = createRng('wave1-progression');
+      const queue = allocateWaveBudget(1, 200, rng);
+      for (const entry of queue) {
+        if (entry.type !== 'boss') {
+          expect(entry.type).toBe('goblin');
+        }
+      }
+    });
+
+    it('includes goblins on wave 2 but not orcs or trolls', () => {
+      const rng = createRng('wave2-progression');
+      const queue = allocateWaveBudget(2, 200, rng);
+      for (const entry of queue) {
+        expect(entry.type).not.toBe('orc');
+        expect(entry.type).not.toBe('troll');
+      }
+    });
+
+    it('includes orcs starting at wave 3', () => {
+      // Use enough budget and seeds to get orcs
+      let foundOrc = false;
+      for (let i = 0; i < 50; i++) {
+        const rng = createRng(`wave3-orc-${i}`);
+        const queue = allocateWaveBudget(3, 500, rng);
+        if (queue.some((e) => e.type === 'orc')) {
+          foundOrc = true;
+          break;
+        }
+      }
+      expect(foundOrc).toBe(true);
+    });
+
+    it('does not include trolls before wave 6', () => {
+      for (let i = 0; i < 20; i++) {
+        const rng = createRng(`wave5-no-troll-${i}`);
+        const queue = allocateWaveBudget(5, 500, rng);
+        expect(queue.some((e) => e.type === 'troll')).toBe(false);
+      }
+    });
+
+    it('includes trolls starting at wave 6', () => {
+      let foundTroll = false;
+      for (let i = 0; i < 50; i++) {
+        const rng = createRng(`wave6-troll-${i}`);
+        const queue = allocateWaveBudget(6, 500, rng);
+        if (queue.some((e) => e.type === 'troll')) {
+          foundTroll = true;
+          break;
+        }
+      }
+      expect(foundTroll).toBe(true);
+    });
+
+    it('spends entire budget (no leftover exceeding cheapest unit)', () => {
+      const rng = createRng('budget-spend');
+      const queue = allocateWaveBudget(10, 200, rng);
+      const totalCost = queue.reduce((sum, e) => {
+        const costs: Record<string, number> = { goblin: 5, orc: 12, troll: 25, boss: 150 };
+        return sum + (costs[e.type] ?? 0);
+      }, 0);
+      expect(totalCost).toBeLessThanOrEqual(200);
+      // leftover should be less than cheapest available unit (goblin=5)
+      expect(200 - totalCost).toBeLessThan(5);
     });
   });
 });

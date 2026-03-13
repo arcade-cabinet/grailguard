@@ -7,8 +7,23 @@
  */
 
 import waveConfig from '../../data/waveConfig.json';
+import enemyProgression from '../../data/enemyProgression.json';
 import { UNITS, type UnitType, type EnemyAffix } from '../constants';
 import type { Rng } from './rng';
+
+/** Enemy types that participate in wave budget allocation (excludes boss). */
+const ENEMY_POOL: UnitType[] = ['troll', 'orc', 'goblin'];
+
+/**
+ * Returns the subset of enemy types unlocked for a given wave number,
+ * based on the enemyProgression.json config.
+ */
+function getUnlockedEnemies(wave: number): UnitType[] {
+  return ENEMY_POOL.filter((type) => {
+    const entry = enemyProgression[type as keyof typeof enemyProgression];
+    return entry && wave >= entry.unlockWave;
+  });
+}
 
 const {
   waveBudgetBase,
@@ -45,27 +60,28 @@ export function calculateBuildTimer(wave: number): number {
 }
 
 /**
- * Builds the enemy spawn queue for a given wave using a seeded PRNG.
+ * Allocates a budget into a queue of enemy types, respecting wave-based
+ * enemy unlock progression from enemyProgression.json. Only enemy types
+ * whose unlockWave <= current wave are eligible for spawning.
  *
- * @param wave - The current wave number.
- * @param rng - A seeded PRNG instance for deterministic affix rolls.
+ * @param wave - The current wave number (used for unlock checks).
+ * @param budget - The remaining budget to spend.
+ * @param rng - A seeded PRNG instance for affix rolls.
  * @returns An array of spawn entries with unit type and optional affix.
  */
-export function buildWaveQueue(
+export function allocateWaveBudget(
   wave: number,
+  budget: number,
   rng: Rng,
 ): { type: UnitType; affix?: EnemyAffix }[] {
-  let budget = calculateWaveBudget(wave);
   const queue: { type: UnitType; affix?: EnemyAffix }[] = [];
   const possibleAffixes: EnemyAffix[] = ['armored', 'swift', 'regenerating', 'ranged'];
+  const pool = getUnlockedEnemies(wave);
 
-  if (wave % bossWaveInterval === 0 && budget >= (UNITS.boss.cost ?? 0)) {
-    queue.push({ type: 'boss' });
-    budget -= UNITS.boss.cost ?? 0;
-  }
+  // Find the cheapest available enemy
+  const cheapest = Math.min(...pool.map((t) => UNITS[t].cost ?? Infinity));
 
-  const pool: UnitType[] = ['troll', 'orc', 'goblin'];
-  while (budget >= (UNITS.goblin.cost ?? 0)) {
+  while (budget >= cheapest) {
     for (const type of pool) {
       const cost = UNITS[type].cost ?? 0;
       if (budget >= cost) {
@@ -79,6 +95,39 @@ export function buildWaveQueue(
       }
     }
   }
+
+  return queue;
+}
+
+/**
+ * Builds the enemy spawn queue for a given wave using a seeded PRNG.
+ * Delegates to allocateWaveBudget for unlock-aware budget allocation.
+ *
+ * @param wave - The current wave number.
+ * @param rng - A seeded PRNG instance for deterministic affix rolls.
+ * @returns An array of spawn entries with unit type and optional affix.
+ */
+export function buildWaveQueue(
+  wave: number,
+  rng: Rng,
+): { type: UnitType; affix?: EnemyAffix }[] {
+  let budget = calculateWaveBudget(wave);
+  const queue: { type: UnitType; affix?: EnemyAffix }[] = [];
+
+  // Boss check (bosses have their own unlock in enemyProgression)
+  const bossEntry = enemyProgression.boss;
+  if (
+    wave % bossWaveInterval === 0 &&
+    wave >= bossEntry.unlockWave &&
+    budget >= (UNITS.boss.cost ?? 0)
+  ) {
+    queue.push({ type: 'boss' });
+    budget -= UNITS.boss.cost ?? 0;
+  }
+
+  // Fill remaining budget with unlocked enemies
+  const allocated = allocateWaveBudget(wave, budget, rng);
+  queue.push(...allocated);
 
   return queue;
 }

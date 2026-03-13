@@ -1,0 +1,6 @@
+{
+  "goblin": { "unlockWave": 1 },
+  "orc": { "unlockWave": 3 },
+  "troll": { "unlockWave": 6 },
+  "boss": { "unlockWave": 5 }
+}

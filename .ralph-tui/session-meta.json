@@ -1,0 +1,15 @@
+{
+  "id": "1bf5e559-35c3-42bf-afaa-c3a3be0a7836",
+  "status": "failed",
+  "startedAt": "2026-03-13T18:08:05.966Z",
+  "updatedAt": "2026-03-13T18:08:06.056Z",
+  "agentPlugin": "claude",
+  "trackerPlugin": "json",
+  "prdPath": "./tasks/prd.json",
+  "currentIteration": 0,
+  "maxIterations": 0,
+  "totalTasks": 0,
+  "tasksCompleted": 0,
+  "cwd": "/Users/jbogaty/src/arcade-cabinet/grailguard",
+  "endedAt": "2026-03-13T18:08:06.056Z"
+}

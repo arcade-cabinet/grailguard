@@ -1,4 +1,5 @@
 {
+  "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
     "target": "ES2020",
@@ -23,6 +24,7 @@
     "app/**/*.tsx",
     "e2e/**/*.ts",
     "expo-env.d.ts",
-    "nativewind-env.d.ts"
+    "nativewind-env.d.ts",
+    ".expo/types/**/*.ts"
   ]
 }

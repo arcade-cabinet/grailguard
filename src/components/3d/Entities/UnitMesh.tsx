@@ -1,129 +1,139 @@
+/**
+ * @module UnitMesh
+ *
+ * Renders a single unit entity (friend or foe) as an animated 3D mesh.
+ */
+import { Clone, useAnimations, useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
+import type { Entity } from 'koota';
 import { useRef } from 'react';
-import type * as THREE from 'three';
-import { useGameStore } from '../../../store/useGameStore';
-
-// Pre-baked integer colours – no allocations inside useFrame
-const TYPE_COLOR: Record<string, number> = {
-  wall: 0x887766,
-  militia: 0x44aa44,
-  archer: 0x22cc88,
-  cleric: 0xeeeeff,
-  knight: 0x8899cc,
-  goblin: 0xaa6600,
-  orc: 0x775522,
-  troll: 0x554433,
-  boss: 0xff1111,
-};
-
-interface UnitMeshProps {
-  /** Entity ID only — mesh reads live position from the store in useFrame,
-   *  so React never re-renders this component for position/HP changes. */
-  entityId: string;
-}
+import * as THREE from 'three';
+import { Facing, Position, Unit } from '../../../engine/GameEngine';
+import { UNIT_MODEL_PATHS } from '../modelPaths';
 
 /**
- * Renders a 3D unit mesh and its HP bar, updating transforms and HP visuals each frame without causing React re-renders for position or HP changes.
+ * Renders a unit entity with its GLB model, driving idle/walk/attack
+ * animation transitions based on velocity and cooldown state. Shows a
+ * camera-facing HP bar that changes color with health ratio and a golden
+ * selection ring when selected. Units bob vertically while moving to add
+ * liveliness. Scale is determined by unit type.
  *
- * @param entityId - The game entity identifier of the unit to render
- * @returns The React Three Fiber group for the unit, or `null` if the unit no longer exists
+ * @param props.entity - The Koota entity carrying `Unit`, `Position`, and `Facing` traits.
+ * @param props.selected - Whether to show the golden selection ring around the unit.
  */
-export function UnitMesh({ entityId }: UnitMeshProps) {
-  // ── All hooks MUST come before any conditional returns ────────────────
-  const meshRef = useRef<THREE.Mesh>(null);
-  const hpBgRef = useRef<THREE.Mesh>(null);
+export function UnitMesh({ entity, selected = false }: { entity: Entity; selected?: boolean }) {
+  const groupRef = useRef<THREE.Group>(null);
+  const hpBarGroupRef = useRef<THREE.Group>(null);
   const hpBarRef = useRef<THREE.Mesh>(null);
-  const hpMatRef = useRef<THREE.MeshBasicMaterial>(null);
+  const selectionRef = useRef<THREE.Mesh>(null);
+  const unit = entity.get(Unit);
+  const position = entity.get(Position);
 
-  // Every frame: read entity from store and imperatively update mesh transforms.
-  // No React re-render triggered – only mesh refs mutated.
-  useFrame((state) => {
-    const e = useGameStore.getState().units[entityId];
-    if (!e) return; // unit was removed — component unmounts next React tick
+  const modelPath = unit ? UNIT_MODEL_PATHS[unit.type] : '';
+  const { scene, animations } = useGLTF(modelPath as string);
+  const { actions } = useAnimations(animations, groupRef);
 
-    const snap = useGameStore.getState().units[entityId];
-    if (!snap) return;
+  const currentAnimationRef = useRef('');
+  const previousPositionRef = useRef(new THREE.Vector3());
 
-    const baseY = snap.type === 'wall' ? 0.5 : 0.35;
-    const t = state.clock.elapsedTime;
-    const bob = snap.type === 'wall' ? 0 : Math.abs(Math.sin(t * snap.speed * 2.5)) * 0.12;
+  useFrame((state, delta) => {
+    const currentUnit = entity.get(Unit);
+    const currentPosition = entity.get(Position);
+    const facing = entity.get(Facing);
+    if (!groupRef.current || !currentUnit || !currentPosition || !facing) return;
 
-    if (meshRef.current) {
-      meshRef.current.position.set(snap.position.x, baseY + bob, snap.position.z);
+    let nextAnimation = 'idle';
+    if (currentUnit.type !== 'wall') {
+      const dx = currentPosition.x - previousPositionRef.current.x;
+      const dz = currentPosition.z - previousPositionRef.current.z;
+      const velocity = Math.hypot(dx, dz) / Math.max(0.001, delta);
+
+      if (currentUnit.cooldown > currentUnit.atkSpd * 0.8) {
+        nextAnimation = 'attack';
+      } else if (velocity > 0.1) {
+        nextAnimation = 'walk';
+      }
     }
 
-    // HP bar background + fill follow unit in world space
-    const ratio = Math.max(0, snap.hp / snap.maxHp);
-    const barY = baseY + (snap.type === 'wall' ? 1.3 : 0.9);
-
-    if (hpBgRef.current) {
-      hpBgRef.current.position.set(snap.position.x, barY, snap.position.z);
+    if (nextAnimation !== currentAnimationRef.current) {
+      const prevAction = actions?.[currentAnimationRef.current];
+      const nextAction = actions?.[nextAnimation];
+      if (prevAction) prevAction.fadeOut(0.2);
+      if (nextAction) nextAction.reset().fadeIn(0.2).play();
+      currentAnimationRef.current = nextAnimation;
     }
+
+    previousPositionRef.current.set(currentPosition.x, currentPosition.y, currentPosition.z);
+
+    const bob =
+      currentUnit.type === 'wall'
+        ? 0
+        : Math.abs(Math.sin(state.clock.elapsedTime * currentUnit.speed * 2.5)) * 0.12;
+
+    groupRef.current.position.set(currentPosition.x, currentPosition.y + bob, currentPosition.z);
+    groupRef.current.rotation.y = facing.y;
+
     if (hpBarRef.current) {
-      // Anchor left edge so bar shrinks rightward
-      hpBarRef.current.position.set(snap.position.x - (1 - ratio) * 0.4, barY, snap.position.z);
-      hpBarRef.current.scale.x = Math.max(0.01, ratio);
+      const ratio = Math.max(0, currentUnit.hp / currentUnit.maxHp);
+      hpBarRef.current.scale.x = Math.max(0.05, ratio);
+      const material = hpBarRef.current.material;
+      if (material instanceof THREE.MeshBasicMaterial) {
+        material.color.set(ratio > 0.6 ? '#22c55e' : ratio > 0.3 ? '#f59e0b' : '#ef4444');
+      }
+      hpBarGroupRef.current?.quaternion.copy(state.camera.quaternion);
     }
-    if (hpMatRef.current) {
-      hpMatRef.current.color.setHex(ratio > 0.6 ? 0x22dd22 : ratio > 0.3 ? 0xffaa00 : 0xff2222);
+
+    if (selectionRef.current) {
+      selectionRef.current.visible = selected;
+      selectionRef.current.rotation.z += 1.5 / 60;
     }
   });
 
-  // ── Read ONCE for initial JSX (no subscription → no re-renders on state change) ──
-  const snap = useGameStore.getState().units[entityId];
-  if (!snap) return null; // unit may have been removed between render cycle and mount
+  if (!unit || !position) return null;
 
-  const isWall = snap.type === 'wall';
-  const isBoss = snap.type === 'boss';
-  const isTroll = snap.type === 'troll';
-  const baseY = isWall ? 0.5 : 0.35;
-  const color = TYPE_COLOR[snap.type] ?? 0x4488ff;
+  const scale = (() => {
+    switch (unit.type) {
+      case 'wall':
+        return 0.5;
+      case 'boss':
+        return 1.5;
+      case 'troll':
+        return 1.2;
+      case 'orc':
+        return 0.8;
+      case 'goblin':
+        return 0.6;
+      case 'knight':
+        return 0.9;
+      case 'militia':
+        return 0.8;
+      default:
+        return 0.7;
+    }
+  })();
 
   return (
-    <group>
-      {/* Unit body */}
-      <mesh ref={meshRef} castShadow position={[snap.position.x, baseY, snap.position.z]}>
-        {isWall ? (
-          <boxGeometry args={[1.9, 2.1, 0.55]} />
-        ) : isBoss ? (
-          <sphereGeometry args={[0.55, 10, 10]} />
-        ) : isTroll ? (
-          <boxGeometry args={[0.65, 0.85, 0.65]} />
-        ) : (
-          <capsuleGeometry args={[0.22, 0.38, 4, 8]} />
-        )}
-        <meshStandardMaterial
-          color={color}
-          roughness={0.55}
-          metalness={snap.type === 'knight' ? 0.65 : snap.type === 'boss' ? 0.3 : 0}
-          emissive={snap.type === 'boss' ? 0x330000 : snap.type === 'cleric' ? 0x111122 : 0x000000}
-          emissiveIntensity={snap.type === 'boss' ? 0.6 : 0.2}
-        />
+    <group ref={groupRef}>
+      <Clone object={scene} scale={scale} castShadow receiveShadow />
+      <mesh
+        ref={selectionRef}
+        position={[0, 0.2, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        visible={selected}
+      >
+        <ringGeometry args={[2.2, 2.9, 32]} />
+        <meshBasicMaterial color="#d4af37" transparent opacity={0.85} />
       </mesh>
-
-      {/* HP bar (hidden for walls) */}
-      {!isWall && (
-        <>
-          {/* grey background */}
-          <mesh
-            ref={hpBgRef}
-            position={[snap.position.x, baseY + 0.9, snap.position.z]}
-            renderOrder={4}
-          >
-            <planeGeometry args={[0.82, 0.1]} />
-            <meshBasicMaterial color={0x333333} depthTest={false} />
-          </mesh>
-          {/* coloured fill */}
-          <mesh
-            ref={hpBarRef}
-            position={[snap.position.x, baseY + 0.9, snap.position.z]}
-            renderOrder={5}
-          >
-            <planeGeometry args={[0.8, 0.08]} />
-            <meshBasicMaterial ref={hpMatRef} color={0x22dd22} depthTest={false} />
-          </mesh>
-        </>
-      )}
+      <group ref={hpBarGroupRef} position={[0, unit.type === 'wall' ? 4 : 2.6, 0]}>
+        <mesh>
+          <planeGeometry args={[2.3, 0.26]} />
+          <meshBasicMaterial color="#111111" transparent opacity={0.8} depthTest={false} />
+        </mesh>
+        <mesh ref={hpBarRef} position={[0, 0, 0.02]}>
+          <planeGeometry args={[2.1, 0.18]} />
+          <meshBasicMaterial color="#22c55e" transparent opacity={0.95} depthTest={false} />
+        </mesh>
+      </group>
     </group>
   );
 }

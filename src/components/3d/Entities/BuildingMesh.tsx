@@ -1,152 +1,95 @@
-import { useMemo } from 'react';
-import { type Building, CELL_SIZE, HALF_GRID } from '../../../engine/constants';
-import { generateNoiseTexture } from '../../../engine/textureUtils';
-
-interface BuildingMeshProps {
-  building: Building;
-}
-
-const BUILDING_COLORS: Record<string, string> = {
-  wall: '#775533',
-  hut: '#aa7744',
-  range: '#446633',
-  temple: '#9988cc',
-  keep: '#778866',
-};
+/**
+ * @module BuildingMesh
+ *
+ * Renders a single building entity as a 3D mesh inside the Arena scene.
+ */
+import { Clone, useGLTF } from '@react-three/drei';
+import { useFrame } from '@react-three/fiber';
+import type { Entity } from 'koota';
+import { useRef } from 'react';
+import type * as THREE from 'three';
+import { BUILDINGS } from '../../../engine/constants';
+import { Building, Position } from '../../../engine/GameEngine';
+import { BUILDING_MODEL_PATHS } from '../modelPaths';
 
 /**
- * Render a 3D building mesh at the building's world position using the building's type to choose shape, color, and textures.
+ * Renders a building entity using its associated GLB model. Displays a
+ * camera-facing spawn/rate progress bar above the building and a golden
+ * selection ring when selected. The model is scaled per building type and
+ * updated each frame to track entity position.
  *
- * @param building - Building data (gridX, gridZ, type, etc.) used to compute world coordinates and select the building variant to render
- * @returns A JSX element containing the composed three.js meshes/groups that visualize the specified building
+ * @param props.entity - The Koota entity that carries `Building` and `Position` traits.
+ * @param props.selected - Whether to show the golden selection ring around the building.
  */
-export function BuildingMesh({ building }: BuildingMeshProps) {
-  const wx = building.gridX * CELL_SIZE - HALF_GRID + CELL_SIZE / 2;
-  const wz = building.gridZ * CELL_SIZE - HALF_GRID + CELL_SIZE / 2;
-  const color = BUILDING_COLORS[building.type] ?? '#888888';
-  const stoneTex = useMemo(() => generateNoiseTexture('stone_col'), []);
-  const woodTex = useMemo(() => generateNoiseTexture('wood_col'), []);
+export function BuildingMesh({ entity, selected = false }: { entity: Entity; selected?: boolean }) {
+  const groupRef = useRef<THREE.Group>(null);
+  const progressGroupRef = useRef<THREE.Group>(null);
+  const progressBarRef = useRef<THREE.Mesh>(null);
+  const selectionRef = useRef<THREE.Mesh>(null);
+  const building = entity.get(Building);
+  const position = entity.get(Position);
 
-  const mat = (
-    <meshStandardMaterial
-      map={building.type === 'hut' || building.type === 'wall' ? woodTex : stoneTex}
-      color={color}
-      roughness={0.78}
-    />
-  );
+  const modelPath = building ? BUILDING_MODEL_PATHS[building.type] : '';
+  const { scene } = useGLTF(modelPath as string);
 
-  if (building.type === 'wall') {
-    return (
-      <mesh position={[wx, 1.1, wz]} castShadow receiveShadow>
-        <boxGeometry args={[CELL_SIZE * 0.85, 2.2, CELL_SIZE * 0.32]} />
-        {mat}
-      </mesh>
-    );
-  }
+  useFrame((state) => {
+    const currentBuilding = entity.get(Building);
+    const currentPosition = entity.get(Position);
+    if (!groupRef.current || !currentBuilding || !currentPosition) return;
 
-  if (building.type === 'hut') {
-    return (
-      <group position={[wx, 0, wz]}>
-        <mesh position={[0, 0.55, 0]} castShadow receiveShadow>
-          <boxGeometry args={[1.4, 1.1, 1.4]} />
-          {mat}
-        </mesh>
-        {/* Roof */}
-        <mesh position={[0, 1.35, 0]} castShadow>
-          <coneGeometry args={[1.05, 0.85, 4]} />
-          <meshStandardMaterial color="#882222" roughness={0.9} />
-        </mesh>
-      </group>
-    );
-  }
+    groupRef.current.position.set(currentPosition.x, currentPosition.y, currentPosition.z);
 
-  if (building.type === 'range') {
-    return (
-      <group position={[wx, 0, wz]}>
-        <mesh position={[0, 0.75, 0]} castShadow receiveShadow>
-          <boxGeometry args={[1.5, 1.5, 1.2]} />
-          {mat}
-        </mesh>
-        {/* Parapet / battlement hint */}
-        {([-0.5, 0.5] as number[]).map((ox) => (
-          <mesh key={`parapet-${ox}`} position={[ox, 1.65, 0]} castShadow>
-            <boxGeometry args={[0.35, 0.4, 0.25]} />
-            {mat}
-          </mesh>
-        ))}
-        {/* Flag */}
-        <mesh position={[0, 2.1, 0]}>
-          <cylinderGeometry args={[0.04, 0.04, 0.9, 5]} />
-          <meshStandardMaterial color="#555" />
-        </mesh>
-        <mesh position={[0.2, 2.45, 0]}>
-          <planeGeometry args={[0.4, 0.25]} />
-          <meshBasicMaterial color="#cc2222" side={2} />
-        </mesh>
-      </group>
-    );
-  }
+    if (selectionRef.current) {
+      selectionRef.current.visible = selected;
+      selectionRef.current.rotation.z += 1.25 / 60;
+    }
 
-  if (building.type === 'temple') {
-    return (
-      <group position={[wx, 0, wz]}>
-        <mesh position={[0, 0.9, 0]} castShadow receiveShadow>
-          <cylinderGeometry args={[0.85, 1.0, 1.8, 8]} />
-          {mat}
-        </mesh>
-        {/* Dome */}
-        <mesh position={[0, 2.0, 0]} castShadow>
-          <sphereGeometry args={[0.75, 8, 8, 0, Math.PI * 2, 0, Math.PI / 2]} />
-          <meshStandardMaterial color="#bbaadd" roughness={0.4} metalness={0.3} />
-        </mesh>
-        {/* Cross/spire */}
-        <mesh position={[0, 2.8, 0]} castShadow>
-          <cylinderGeometry args={[0.04, 0.04, 0.7, 5]} />
-          <meshStandardMaterial color="#ddddff" metalness={0.7} roughness={0.2} />
-        </mesh>
-        <pointLight position={[0, 2.0, 0]} color="#aaaaff" intensity={0.8} distance={5} />
-      </group>
-    );
-  }
+    if (progressBarRef.current && progressGroupRef.current) {
+      const spawnRate =
+        BUILDINGS[currentBuilding.type].spawnTime * 0.8 ** (currentBuilding.levelSpawn - 1);
+      const progress = spawnRate <= 0 ? 1 : 1 - Math.max(0, currentBuilding.timer / spawnRate);
+      progressBarRef.current.scale.x = Math.max(0.04, Math.min(1, progress));
+      progressGroupRef.current.quaternion.copy(state.camera.quaternion);
+    }
+  });
 
-  // keep
+  if (!building || !position) return null;
+
+  let scale: number | [number, number, number] = 0.8;
+  if (building.type === 'wall') scale = 0.5;
+  if (building.type === 'track') scale = [0.8, 0.8, 0.8]; // Conveyor kit
+  if (building.type === 'mine_ore') scale = 1.2; // Hexagon mine
+  if (building.type === 'mine_gem') scale = 1.5; // detail-crystal-large
+  if (building.type === 'sentry') scale = 0.5;
+  if (building.type === 'obelisk') scale = 0.6;
+  if (building.type === 'mint') scale = [0.6, 0.4, 0.6];
+  if (building.type === 'lumber') scale = [0.7, 0.6, 0.7];
+  if (building.type === 'catapult') scale = 0.6;
+  if (building.type === 'sorcerer') scale = [0.5, 0.7, 0.5];
+  if (building.type === 'vault') scale = [0.8, 0.6, 0.8];
+
   return (
-    <group position={[wx, 0, wz]}>
-      {/* Main tower */}
-      <mesh position={[0, 1.5, 0]} castShadow receiveShadow>
-        <boxGeometry args={[1.6, 3.0, 1.6]} />
-        {mat}
+    <group ref={groupRef}>
+      <Clone object={scene} scale={scale} castShadow receiveShadow />
+      <mesh
+        ref={selectionRef}
+        position={[0, 0.2, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        visible={selected}
+      >
+        <ringGeometry args={[2.7, 3.5, 36]} />
+        <meshBasicMaterial color="#d4af37" transparent opacity={0.85} />
       </mesh>
-      {/* Corner turrets */}
-      {(
-        [
-          [-0.72, -0.72],
-          [0.72, -0.72],
-          [-0.72, 0.72],
-          [0.72, 0.72],
-        ] as [number, number][]
-      ).map(([ox, oz]) => (
-        <mesh key={`turret-${ox}-${oz}`} position={[ox, 1.6, oz]} castShadow>
-          <cylinderGeometry args={[0.22, 0.26, 3.2, 6]} />
-          {mat}
+      <group ref={progressGroupRef} position={[0, 4.8, 0]}>
+        <mesh>
+          <planeGeometry args={[2.9, 0.3]} />
+          <meshBasicMaterial color="#111111" transparent opacity={0.8} depthTest={false} />
         </mesh>
-      ))}
-      {/* Battlements */}
-      {([-0.55, 0, 0.55] as number[]).map((ox) => (
-        <mesh key={`battlement-${ox}`} position={[ox, 3.25, 0]} castShadow>
-          <boxGeometry args={[0.28, 0.42, 1.65]} />
-          {mat}
+        <mesh ref={progressBarRef} position={[0, 0, 0.02]}>
+          <planeGeometry args={[2.6, 0.2]} />
+          <meshBasicMaterial color="#d4af37" transparent opacity={0.95} depthTest={false} />
         </mesh>
-      ))}
-      {/* Banner */}
-      <mesh position={[0, 3.85, 0]}>
-        <cylinderGeometry args={[0.05, 0.05, 1.0, 5]} />
-        <meshStandardMaterial color="#444" />
-      </mesh>
-      <mesh position={[0.28, 4.2, 0]}>
-        <planeGeometry args={[0.55, 0.35]} />
-        <meshBasicMaterial color="#bb0000" side={2} />
-      </mesh>
+      </group>
     </group>
   );
 }

@@ -1,0 +1,7 @@
+{
+  "alignmentWeight": 0.5,
+  "cohesionWeight": 0.5,
+  "separationWeight": 1.0,
+  "evasionWeight": 0.4,
+  "laneOffsetRange": 2.0
+}

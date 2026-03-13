@@ -1,0 +1,40 @@
+{
+  "maxLevel": 5,
+  "doctrines": {
+    "crown_tithe": {
+      "title": "Crown Tithe",
+      "description": "Begin each run with richer coffers from the royal levy.",
+      "baseCost": 100,
+      "effect": "startingGold",
+      "bonusPerLevel": 50
+    },
+    "faithward": {
+      "title": "Faithward",
+      "description": "The sanctum receives stronger blessings and steadier resolve.",
+      "baseCost": 150,
+      "effect": "startingHealth",
+      "bonusPerLevel": 0.25
+    },
+    "iron_vanguard": {
+      "title": "Iron Vanguard",
+      "description": "Frontline companies muster with heavier martial discipline.",
+      "baseCost": 200,
+      "effect": "meleeHpBonus",
+      "bonusPerLevel": 0.1
+    },
+    "tax_collection": {
+      "title": "Tax Collection",
+      "description": "Generate additional gold passively after each wave.",
+      "baseCost": 100,
+      "effect": "passiveGold",
+      "bonusPerLevel": 10
+    },
+    "masonry": {
+      "title": "Masonry",
+      "description": "Fortifications and barricades are cheaper to construct.",
+      "baseCost": 120,
+      "effect": "buildDiscount",
+      "bonusPerLevel": 0.05
+    }
+  }
+}

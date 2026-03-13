@@ -1,0 +1,18 @@
+{
+  "waveBudgetBase": 50,
+  "waveBudgetMultiplier": 1.15,
+  "waveBudgetQuadratic": 2,
+  "buildTimerBase": 30,
+  "buildTimerLogCoeff": 10,
+  "bossWaveInterval": 5,
+  "victoryWave": 20,
+  "spawnInterval": 1.0,
+  "affixStartWave": 6,
+  "affixChance": 0.2,
+  "earlyStartBonusRate": 2,
+  "waveCompletionBonusBase": 50,
+  "waveCompletionBonusPerWave": 10,
+  "interestRate": 0.05,
+  "grailDamageNormal": 1,
+  "grailDamageBoss": 5
+}

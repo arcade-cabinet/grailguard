@@ -1,0 +1,20 @@
+{
+  "meleeSearchRange": 8,
+  "rangedSearchRange": 25,
+  "wallPriorityRange": 5,
+  "poisonDamageRate": 0.2,
+  "poisonDecayRate": 2,
+  "freezeDecayRate": 1,
+  "slowDuration": 3,
+  "bossAoeRadius": 8,
+  "vampiricHealPercent": 0.5,
+  "armoredDamageReduction": 0.5,
+  "swiftSpeedMultiplier": 2,
+  "swiftCooldownMultiplier": 0.5,
+  "explosiveAoeDamage": 50,
+  "explosiveAoeRadius": 6,
+  "sellValuePercent": 0.5,
+  "regeneratingHpPerSec": 2,
+  "invulnerabilityDuration": 5,
+  "poisonAmount": 10
+}

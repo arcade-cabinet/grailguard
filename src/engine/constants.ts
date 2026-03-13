@@ -5,7 +5,13 @@
  * engine. Defines the full set of unit types, building types, factions, game
  * phases, spells, and enemy affixes, together with their numerical stats used
  * by the simulation in {@link GameEngine}.
+ *
+ * Building and unit data is sourced from JSON config files in `src/data/` and
+ * re-exported here with proper TypeScript types for compile-time safety.
  */
+
+import unitConfigJson from '../data/unitConfig.json';
+import buildingConfigJson from '../data/buildingConfig.json';
 
 /**
  * Which side of the conflict an entity belongs to.
@@ -127,225 +133,27 @@ export interface BuildingConfig {
   atkSpd?: number;
 }
 
+/** Converts a hex color string like "0x8b4513" to its numeric equivalent. */
+function parseHexColor(colorStr: string): number {
+  return Number.parseInt(colorStr.replace('0x', ''), 16);
+}
+
 /**
  * Master lookup of every building's configuration, keyed by {@link BuildingType}.
  * Used at build-time, upgrade-time, and during the defend-phase simulation loop.
+ *
+ * Sourced from `src/data/buildingConfig.json` and re-exported with typed overlays.
  */
-export const BUILDINGS: Record<BuildingType, BuildingConfig> = {
-  wall: {
-    cost: 0,
-    woodCost: 15,
-    unlockCost: 0,
-    isBuilding: false,
-    icon: '🚧',
-    name: 'Barricade',
-    role: 'Blocks the road to stall advances.',
-    stats: 'HP: 600 | DPS: 0',
-    unit: 'wall',
-    spawnTime: 99,
-    color: 0x8b4513,
-  },
-  hut: {
-    cost: 50,
-    woodCost: 20,
-    unlockCost: 0,
-    isBuilding: true,
-    icon: '⚔️',
-    name: 'Militia Hut',
-    role: 'Spawns cheap melee infantry.',
-    stats: '40 HP | 10 DMG | 3.5s Spwn',
-    unit: 'militia',
-    spawnTime: 3.5,
-    color: 0x3b82f6,
-  },
-  lumber: {
-    cost: 75,
-    woodCost: 0,
-    unlockCost: 50,
-    isBuilding: true,
-    icon: '🪓',
-    name: 'Lumber Camp',
-    role: 'Harvests wood over time.',
-    stats: '+10 Wood / 5s',
-    unit: null,
-    spawnTime: 5.0,
-    color: 0x654321,
-  },
-  range: {
-    cost: 100,
-    woodCost: 50,
-    unlockCost: 50,
-    isBuilding: true,
-    icon: '🏹',
-    name: 'Archery Range',
-    role: 'Spawns long-range archers.',
-    stats: '20 HP | 15 DMG | 4.5s Spwn',
-    unit: 'archer',
-    spawnTime: 4.5,
-    color: 0x22c55e,
-  },
-  temple: {
-    cost: 150,
-    woodCost: 50,
-    unlockCost: 150,
-    isBuilding: true,
-    icon: '✨',
-    name: 'Cleric Temple',
-    role: 'Spawns healers to mend allies.',
-    stats: '30 HP | 20 HEAL | 6.0s Spwn',
-    unit: 'cleric',
-    spawnTime: 6.0,
-    color: 0x14b8a6,
-  },
-  keep: {
-    cost: 200,
-    woodCost: 100,
-    unlockCost: 300,
-    isBuilding: true,
-    icon: '🛡️',
-    name: 'Knight Keep',
-    role: 'Spawns heavy tanks for the frontline.',
-    stats: '150 HP | 25 DMG | 8.0s Spwn',
-    unit: 'knight',
-    spawnTime: 8.0,
-    color: 0x9ca3af,
-  },
-  sentry: {
-    cost: 0,
-    woodCost: 100,
-    unlockCost: 100,
-    isBuilding: true,
-    isTurret: true,
-    icon: '🏹',
-    name: 'Sentry Post',
-    role: 'Fires fast arrows directly.',
-    stats: '15 DMG | 1.0s ATK | 20 RNG',
-    unit: null,
-    spawnTime: 0,
-    color: 0xaaaaaa,
-    range: 20,
-    damage: 15,
-    atkSpd: 1.0,
-  },
-  obelisk: {
-    cost: 150,
-    woodCost: 50,
-    unlockCost: 200,
-    isBuilding: true,
-    isTurret: true,
-    icon: '🔮',
-    name: 'Arcane Obelisk',
-    role: 'Fires heavy magic beams.',
-    stats: '40 DMG | 2.5s ATK | 25 RNG',
-    unit: null,
-    spawnTime: 0,
-    color: 0x9932cc,
-    range: 25,
-    damage: 40,
-    atkSpd: 2.5,
-  },
-  mine_ore: {
-    cost: 100,
-    woodCost: 50,
-    unlockCost: 100,
-    isBuilding: true,
-    icon: '⛏️',
-    name: 'Ore Mine',
-    role: 'Harvests iron ore.',
-    stats: '+1 Ore / 5s',
-    unit: null,
-    spawnTime: 5.0,
-    color: 0x475569,
-  },
-  mine_gem: {
-    cost: 200,
-    woodCost: 100,
-    unlockCost: 250,
-    isBuilding: true,
-    icon: '💎',
-    name: 'Gem Mine',
-    role: 'Extracts precious gems.',
-    stats: '+1 Gem / 10s',
-    unit: null,
-    spawnTime: 10.0,
-    color: 0x06b6d4,
-  },
-  track: {
-    cost: 5,
-    woodCost: 5,
-    unlockCost: 0,
-    isBuilding: false,
-    icon: '🛤️',
-    name: 'Minecart Track',
-    role: 'Transports mined resources to sinks.',
-    stats: 'Logistics',
-    unit: null,
-    spawnTime: 0,
-    color: 0x854d0e,
-  },
-  mint: {
-    cost: 150,
-    woodCost: 100,
-    oreCost: 10,
-    unlockCost: 200,
-    isBuilding: true,
-    icon: '🪙',
-    name: 'Royal Mint',
-    role: 'Converts Ore into Gold.',
-    stats: '1 Ore -> 15 Gold',
-    unit: null,
-    spawnTime: 0,
-    color: 0xeab308,
-  },
-  catapult: {
-    cost: 200,
-    woodCost: 150,
-    unlockCost: 300,
-    isBuilding: true,
-    isTurret: true,
-    icon: '🪨',
-    name: 'Catapult',
-    role: 'Fires explosive area-of-effect boulders.',
-    stats: '80 DMG | 4.0s ATK | 30 RNG',
-    unit: null,
-    spawnTime: 0,
-    color: 0x8b4513,
-    range: 30,
-    damage: 80,
-    atkSpd: 4.0,
-  },
-  sorcerer: {
-    cost: 150,
-    woodCost: 50,
-    gemCost: 5,
-    unlockCost: 250,
-    isBuilding: true,
-    isTurret: true,
-    icon: '🧙',
-    name: 'Sorcerer Tower',
-    role: 'Slows down enemy movement.',
-    stats: '10 DMG | 1.5s ATK | 20 RNG',
-    unit: null,
-    spawnTime: 0,
-    color: 0x3b82f6,
-    range: 20,
-    damage: 10,
-    atkSpd: 1.5,
-  },
-  vault: {
-    cost: 300,
-    woodCost: 200,
-    unlockCost: 400,
-    isBuilding: true,
-    icon: '🏦',
-    name: 'Gold Vault',
-    role: 'Generates passive gold over time.',
-    stats: '+10 Gold / 10s',
-    unit: null,
-    spawnTime: 10.0,
-    color: 0xfacc15,
-  },
-};
+export const BUILDINGS: Record<BuildingType, BuildingConfig> = Object.fromEntries(
+  Object.entries(buildingConfigJson.buildings).map(([key, raw]) => [
+    key,
+    {
+      ...raw,
+      color: parseHexColor(raw.color),
+      unit: raw.unit as UnitType | null,
+    } as BuildingConfig,
+  ]),
+) as Record<BuildingType, BuildingConfig>;
 
 /**
  * Base stat block for a unit archetype. Values here are the *unscaled*
@@ -384,114 +192,15 @@ export interface UnitConfig {
  * Ally entries (wall, militia, archer, cleric, knight) lack `cost`/`reward`;
  * enemy entries (goblin, orc, troll, boss) include them for the wave-budget
  * and gold-reward systems.
+ *
+ * Sourced from `src/data/unitConfig.json` and re-exported with typed overlays.
  */
-export const UNITS: Record<UnitType, UnitConfig> = {
-  wall: {
-    hp: 600,
-    speed: 0,
-    damage: 0,
-    range: 0,
-    atkSpd: 99,
-    isRanged: false,
-    isHealer: false,
-    color: 0x8b4513,
-    scale: 1.2,
-  },
-  militia: {
-    hp: 40,
-    speed: 6.0,
-    damage: 10,
-    range: 2.0,
-    atkSpd: 1.0,
-    isRanged: false,
-    isHealer: false,
-    color: 0x3b82f6,
-    scale: 0.8,
-  },
-  archer: {
-    hp: 20,
-    speed: 5.0,
-    damage: 15,
-    range: 15.0,
-    atkSpd: 1.5,
-    isRanged: true,
-    isHealer: false,
-    color: 0x22c55e,
-    scale: 0.75,
-  },
-  cleric: {
-    hp: 30,
-    speed: 4.5,
-    damage: -20,
-    range: 12.0,
-    atkSpd: 2.0,
-    isRanged: true,
-    isHealer: true,
-    color: 0x14b8a6,
-    scale: 0.8,
-  },
-  knight: {
-    hp: 150,
-    speed: 4.0,
-    damage: 25,
-    range: 2.5,
-    atkSpd: 1.5,
-    isRanged: false,
-    isHealer: false,
-    color: 0x9ca3af,
-    scale: 1.1,
-  },
-
-  goblin: {
-    hp: 30,
-    speed: 7.0,
-    damage: 5,
-    range: 2.0,
-    atkSpd: 0.8,
-    isRanged: false,
-    isHealer: false,
-    color: 0x4d7c0f,
-    scale: 0.7,
-    cost: 5,
-    reward: 2,
-  },
-  orc: {
-    hp: 80,
-    speed: 5.0,
-    damage: 15,
-    range: 2.5,
-    atkSpd: 1.5,
-    isRanged: false,
-    isHealer: false,
-    color: 0x7f1d1d,
-    scale: 1.0,
-    cost: 12,
-    reward: 5,
-  },
-  troll: {
-    hp: 250,
-    speed: 3.5,
-    damage: 30,
-    range: 3.5,
-    atkSpd: 2.0,
-    isRanged: false,
-    isHealer: false,
-    color: 0x1e1b4b,
-    scale: 1.4,
-    cost: 25,
-    reward: 10,
-  },
-  boss: {
-    hp: 1200,
-    speed: 2.5,
-    damage: 50,
-    range: 4.0,
-    atkSpd: 3.0,
-    isRanged: false,
-    isHealer: false,
-    color: 0x2d0a28,
-    scale: 2.2,
-    cost: 150,
-    reward: 50,
-  },
-};
+export const UNITS: Record<UnitType, UnitConfig> = Object.fromEntries(
+  Object.entries(unitConfigJson.units).map(([key, raw]) => [
+    key,
+    {
+      ...raw,
+      color: parseHexColor(raw.color),
+    } as UnitConfig,
+  ]),
+) as Record<UnitType, UnitConfig>;

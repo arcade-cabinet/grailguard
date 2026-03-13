@@ -1,0 +1,36 @@
+{
+  "relics": {
+    "venomous_fletching": {
+      "name": "Venomous Fletching",
+      "description": "Archers apply poison damage over time."
+    },
+    "martyrs_blood": {
+      "name": "Martyr's Blood",
+      "description": "Dying allies heal surrounding units."
+    },
+    "golden_age": {
+      "name": "Golden Age",
+      "description": "Earn 5% interest on unspent gold per wave."
+    },
+    "crystal_lens": {
+      "name": "Crystal Lens",
+      "description": "Obelisks deal +50% damage but fire 20% slower."
+    },
+    "miners_lantern": {
+      "name": "Miner's Lantern",
+      "description": "Resource carts move twice as fast."
+    },
+    "iron_tracks": {
+      "name": "Iron Tracks",
+      "description": "Minecart tracks cost no wood."
+    },
+    "blessed_pickaxe": {
+      "name": "Blessed Pickaxe",
+      "description": "Gem mines extract 2 gems at a time."
+    },
+    "war_horn": {
+      "name": "War Horn",
+      "description": "Allied units spawn with immediate attacks ready."
+    }
+  }
+}

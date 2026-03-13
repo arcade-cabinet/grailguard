@@ -541,7 +541,7 @@ class Building {
         if(STATE.phase !== 'defend') return;
         this.timer -= dt;
         if(this.timer <= 0) {
-            let u = new GameUnit(this.cfg.unit, 'ally', this.mesh.position);
+            new GameUnit(this.cfg.unit, 'ally', this.mesh.position);
             this.timer = this.cfg.spawnTime * Math.pow(0.8, this.levelSpawn-1);
             createParticles(this.mesh.position, 0xaaaaaa, 10);
         }

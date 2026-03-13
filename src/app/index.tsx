@@ -176,6 +176,16 @@ export default function MainMenuScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
+            onPress={() => {
+              soundManager.playUiClick();
+              router.push('/history' as never);
+            }}
+            className="rounded-2xl border border-[#8b6b45] bg-[#2d2118] px-8 py-4"
+          >
+            <Text className="text-xl font-bold text-[#e8d099]">History</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             onPress={() => router.push('/settings' as never)}
             className="rounded-2xl border border-[#8b6b45] bg-[#2d2118] px-8 py-4"
           >

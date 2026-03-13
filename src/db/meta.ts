@@ -29,7 +29,7 @@ import {
 } from './repos/runRepo';
 import { loadSettings, saveSettings } from './repos/settingsRepo';
 import { purchaseSpellUnlockTransaction, purchaseUnlockTransaction } from './repos/unlockRepo';
-import { activeRun, codexEntries, doctrineNodes, playerProfile, settings, unlocks } from './schema';
+import { activeRun, codexEntries, doctrineNodes, playerProfile, runHistory, settings, unlocks } from './schema';
 
 const DEFAULT_UNLOCKS: Record<BuildingType, boolean> = {
   wall: true,
@@ -278,6 +278,16 @@ export async function updateSettings(
  */
 export function useCodexEntries() {
   return useLiveQuery(db.select().from(codexEntries)).data;
+}
+
+/**
+ * Live-query hook returning all completed run history rows, sorted
+ * newest first by createdAt. Re-renders when a new run is recorded.
+ *
+ * @returns Array of run history rows.
+ */
+export function useRunHistory() {
+  return useLiveQuery(db.select().from(runHistory)).data;
 }
 
 /**

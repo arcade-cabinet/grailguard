@@ -22,6 +22,14 @@ const config = {
     '!src/**/__tests__/**',
     '!src/**/__mocks__/**',
   ],
+  coverageThreshold: {
+    global: {
+      branches: 35,
+      functions: 60,
+      lines: 60,
+      statements: 60,
+    },
+  },
 };
 
 module.exports = config;

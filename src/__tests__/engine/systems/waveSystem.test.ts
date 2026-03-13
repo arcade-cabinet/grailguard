@@ -212,7 +212,10 @@ describe('waveSystem', () => {
       const rng = createRng('budget-spend');
       const queue = allocateWaveBudget(10, 200, rng);
       const totalCost = queue.reduce((sum, e) => {
-        const costs: Record<string, number> = { goblin: 5, orc: 12, troll: 25, boss: 150 };
+        const costs: Record<string, number> = {
+          goblin: 5, orc: 12, troll: 25, boss: 150,
+          flying: 8, shieldBearer: 18, summoner: 20,
+        };
         return sum + (costs[e.type] ?? 0);
       }, 0);
       expect(totalCost).toBeLessThanOrEqual(200);

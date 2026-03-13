@@ -107,6 +107,48 @@
       "scale": 2.2,
       "cost": 150,
       "reward": 50
+    },
+    "flying": {
+      "hp": 20,
+      "speed": 8,
+      "damage": 8,
+      "range": 2.0,
+      "atkSpd": 1.0,
+      "isRanged": false,
+      "isHealer": false,
+      "color": "0x60a5fa",
+      "scale": 0.6,
+      "cost": 8,
+      "reward": 4,
+      "ignoresWalls": true
+    },
+    "shieldBearer": {
+      "hp": 100,
+      "speed": 4.0,
+      "damage": 12,
+      "range": 2.5,
+      "atkSpd": 1.8,
+      "isRanged": false,
+      "isHealer": false,
+      "color": "0x6b7280",
+      "scale": 1.1,
+      "cost": 18,
+      "reward": 7,
+      "frontalReduction": 0.75
+    },
+    "summoner": {
+      "hp": 60,
+      "speed": 3.0,
+      "damage": 5,
+      "range": 10.0,
+      "atkSpd": 2.5,
+      "isRanged": true,
+      "isHealer": false,
+      "color": "0x7c3aed",
+      "scale": 1.0,
+      "cost": 20,
+      "reward": 8,
+      "spawnsGoblinsEvery": 5
     }
   }
 }

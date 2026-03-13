@@ -17,7 +17,7 @@ import type { Rng } from './rng';
 export type DifficultyTier = 'pilgrim' | 'crusader' | 'inquisitor';
 
 /** Enemy types that participate in wave budget allocation (excludes boss). */
-const ENEMY_POOL: UnitType[] = ['troll', 'orc', 'goblin'];
+const ENEMY_POOL: UnitType[] = ['summoner', 'shieldBearer', 'flying', 'troll', 'orc', 'goblin'];
 
 /**
  * Returns the subset of enemy types unlocked for a given wave number,

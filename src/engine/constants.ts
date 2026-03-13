@@ -66,7 +66,10 @@ export type UnitType =
   | 'goblin'
   | 'orc'
   | 'troll'
-  | 'boss';
+  | 'boss'
+  | 'flying'
+  | 'shieldBearer'
+  | 'summoner';
 
 /**
  * All placeable structure types. Includes unit-spawning buildings (`hut`,

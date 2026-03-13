@@ -42,6 +42,9 @@ export const UNIT_MODEL_PATHS = {
   orc: require('../../../public/assets/models/orc.glb'),
   troll: require('../../../public/assets/models/troll.glb'),
   boss: require('../../../public/assets/models/boss.glb'),
+  flying: require('../../../public/assets/models/goblin.glb'),
+  shieldBearer: require('../../../public/assets/models/orc.glb'),
+  summoner: require('../../../public/assets/models/troll.glb'),
 } as const;
 
 const ALL_MODEL_PATHS = [

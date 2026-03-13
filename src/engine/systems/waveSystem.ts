@@ -10,6 +10,7 @@ import waveConfig from '../../data/waveConfig.json';
 import enemyProgression from '../../data/enemyProgression.json';
 import waveLabels from '../../data/waveLabels.json';
 import difficultyConfig from '../../data/difficultyConfig.json';
+import bossConfig from '../../data/bossConfig.json';
 import { UNITS, type UnitType, type EnemyAffix } from '../constants';
 import type { Rng } from './rng';
 
@@ -212,5 +213,44 @@ export function applyDifficultyModifiers(
     hp: Math.floor(stats.hp * multiplier),
     damage: Math.floor(stats.damage * multiplier),
     speed: Math.floor(stats.speed * multiplier),
+  };
+}
+
+/** Describes a boss variant returned by {@link getBossVariant}. */
+export interface BossVariant {
+  /** Boss identifier key (e.g. 'warlord', 'necromancer'). */
+  id: string;
+  /** The wave threshold at which this boss first appears. */
+  wave: number;
+  /** The special ability identifier for this boss. */
+  ability: string;
+  /** Full config entry for this boss variant. */
+  config: Record<string, unknown>;
+}
+
+/**
+ * Returns the boss variant for a given wave number based on bossConfig.json.
+ * Selects the highest-wave boss whose threshold is <= the given wave.
+ * Returns `undefined` for non-boss waves (not multiples of 5).
+ *
+ * @param wave - The current wave number.
+ * @returns The matching boss variant, or `undefined` if none matches.
+ */
+export function getBossVariant(wave: number): BossVariant | undefined {
+  if (wave % bossWaveInterval !== 0) return undefined;
+
+  const entries = Object.entries(bossConfig) as [string, Record<string, unknown>][];
+  const sorted = entries
+    .filter(([, cfg]) => wave >= (cfg.wave as number))
+    .sort((a, b) => (b[1].wave as number) - (a[1].wave as number));
+
+  if (sorted.length === 0) return undefined;
+
+  const [id, cfg] = sorted[0];
+  return {
+    id,
+    wave: cfg.wave as number,
+    ability: cfg.ability as string,
+    config: cfg,
   };
 }

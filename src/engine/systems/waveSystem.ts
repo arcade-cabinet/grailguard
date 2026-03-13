@@ -9,8 +9,12 @@
 import waveConfig from '../../data/waveConfig.json';
 import enemyProgression from '../../data/enemyProgression.json';
 import waveLabels from '../../data/waveLabels.json';
+import difficultyConfig from '../../data/difficultyConfig.json';
 import { UNITS, type UnitType, type EnemyAffix } from '../constants';
 import type { Rng } from './rng';
+
+/** Available difficulty tier names. */
+export type DifficultyTier = 'pilgrim' | 'crusader' | 'inquisitor';
 
 /** Enemy types that participate in wave budget allocation (excludes boss). */
 const ENEMY_POOL: UnitType[] = ['troll', 'orc', 'goblin'];
@@ -177,4 +181,36 @@ export function getWaveLabel(budget: number): string {
   }
   // Fallback (should not occur if config ends with null maxBudget)
   return waveLabels[waveLabels.length - 1].label;
+}
+
+/** Stats that can be modified by difficulty. */
+export interface DifficultyStats {
+  hp: number;
+  damage: number;
+  speed: number;
+}
+
+/**
+ * Applies difficulty-tier modifiers to enemy unit stats. Returns a new
+ * stats object without mutating the input.
+ *
+ * - pilgrim: 0.8x enemy stats
+ * - crusader: 1.0x enemy stats
+ * - inquisitor: 1.3x enemy stats
+ *
+ * @param stats - The base enemy stats (hp, damage, speed).
+ * @param difficulty - The active difficulty tier.
+ * @returns A new stats object with multiplied and floored values.
+ */
+export function applyDifficultyModifiers(
+  stats: DifficultyStats,
+  difficulty: DifficultyTier,
+): DifficultyStats {
+  const config = difficultyConfig[difficulty];
+  const multiplier = config.enemyStatMultiplier;
+  return {
+    hp: Math.floor(stats.hp * multiplier),
+    damage: Math.floor(stats.damage * multiplier),
+    speed: Math.floor(stats.speed * multiplier),
+  };
 }

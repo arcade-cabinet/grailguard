@@ -12,6 +12,7 @@ import {
   calculateWaveCompletionReward,
   allocateWaveBudget,
   getWaveLabel,
+  applyDifficultyModifiers,
 } from '../../../engine/systems/waveSystem';
 import { createRng } from '../../../engine/systems/rng';
 import type { UnitType, EnemyAffix } from '../../../engine/constants';
@@ -239,6 +240,48 @@ describe('waveSystem', () => {
 
     it('returns "War Host" for very large budgets', () => {
       expect(getWaveLabel(99999)).toBe('War Host');
+    });
+  });
+
+  describe('applyDifficultyModifiers', () => {
+    const baseStats = { hp: 100, damage: 50, speed: 5 };
+
+    it('pilgrim reduces enemy stats by 20%', () => {
+      const result = applyDifficultyModifiers(baseStats, 'pilgrim');
+      expect(result.hp).toBe(80);
+      expect(result.damage).toBe(40);
+      expect(result.speed).toBe(4);
+    });
+
+    it('crusader leaves enemy stats unchanged', () => {
+      const result = applyDifficultyModifiers(baseStats, 'crusader');
+      expect(result.hp).toBe(100);
+      expect(result.damage).toBe(50);
+      expect(result.speed).toBe(5);
+    });
+
+    it('inquisitor increases enemy stats by 30%', () => {
+      const result = applyDifficultyModifiers(baseStats, 'inquisitor');
+      expect(result.hp).toBe(130);
+      expect(result.damage).toBe(65);
+      expect(result.speed).toBe(6);
+    });
+
+    it('floors fractional results', () => {
+      const oddStats = { hp: 33, damage: 17, speed: 3 };
+      const result = applyDifficultyModifiers(oddStats, 'inquisitor');
+      // 33 * 1.3 = 42.9 => 42, 17 * 1.3 = 22.1 => 22, 3 * 1.3 = 3.9 => 3
+      expect(result.hp).toBe(42);
+      expect(result.damage).toBe(22);
+      expect(result.speed).toBe(3);
+    });
+
+    it('does not mutate the input stats object', () => {
+      const stats = { hp: 100, damage: 50, speed: 5 };
+      applyDifficultyModifiers(stats, 'pilgrim');
+      expect(stats.hp).toBe(100);
+      expect(stats.damage).toBe(50);
+      expect(stats.speed).toBe(5);
     });
   });
 });

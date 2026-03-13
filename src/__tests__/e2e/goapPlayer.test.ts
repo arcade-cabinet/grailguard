@@ -41,27 +41,34 @@ class SurviveGoal extends Goal<PlayerGovernor> {
 }
 
 class BuildDefensesGoal extends Goal<PlayerGovernor> {
+  private buildCount = 0;
+
   activate() {
     const session = getSession();
     if (!session || session.phase !== 'build') return;
 
+    const positions = [
+      { x: 15, z: 15 },
+      { x: -15, z: 15 },
+      { x: 15, z: -15 },
+      { x: -15, z: -15 },
+    ];
+    const pos = positions[this.buildCount % positions.length];
+    this.buildCount++;
+
     if (session.gold >= 75 && session.wood >= 100) {
-      const x = Math.round((Math.random() * 40 - 20) / 5) * 5;
-      const z = Math.round((Math.random() * 40 - 20) / 5) * 5;
       queueWorldCommand({
         type: 'build',
         buildingType: 'sentry',
-        position: { x, y: 1.5, z },
+        position: { x: pos.x, y: 1.5, z: pos.z },
       });
     }
 
     if (session.gold >= 75 && session.wood < 100) {
-      const x = Math.round((Math.random() * 40 - 20) / 5) * 5;
-      const z = Math.round((Math.random() * 40 - 20) / 5) * 5;
       queueWorldCommand({
         type: 'build',
         buildingType: 'lumber',
-        position: { x, y: 1.5, z },
+        position: { x: pos.x, y: 1.5, z: pos.z },
       });
     }
   }
@@ -123,11 +130,17 @@ class CastSpellEvaluator extends GoalEvaluator<PlayerGovernor> {
 }
 
 describe('YUKA Goal-Driven Player Governor E2E', () => {
+  let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
+
   beforeAll(() => {
-    jest.spyOn(console, 'log').mockImplementation(() => {});
+    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
   });
 
-  it('autonomously plays the game to at least wave 3 using YUKA Think/Goal', () => {
+  afterAll(() => {
+    consoleLogSpy.mockRestore();
+  });
+
+  it('autonomously plays the game to at least wave 2 using YUKA Think/Goal', () => {
     createRunWorld({
       preferredSpeed: 1,
       biome: 'kings-road',

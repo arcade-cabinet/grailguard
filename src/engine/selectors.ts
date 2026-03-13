@@ -6,10 +6,10 @@ export function getSelectedEntity(): Entity | null {
   const session = gameWorld.get(GameSession);
   if (!session || session.selectedEntityId < 0) return null;
 
-  for (const entity of gameWorld.query(Position)) {
-    if (entity.id() === session.selectedEntityId) {
-      return entity;
-    }
+  // Direct ID lookup is more efficient than iterating all entities
+  const entity = gameWorld.entity(session.selectedEntityId);
+  if (entity && entity.has(Position)) {
+    return entity;
   }
 
   return null;
@@ -21,7 +21,12 @@ export function getActivePlacement(): BuildingType | null {
   return session.activePlacement;
 }
 
-export function getPlacementPreview() {
+export function getPlacementPreview(): {
+  x: number;
+  y: number;
+  z: number;
+  valid: boolean;
+} | null {
   const session = gameWorld.get(GameSession);
   if (!session?.activePlacement) return null;
 

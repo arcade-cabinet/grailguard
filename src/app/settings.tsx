@@ -51,7 +51,8 @@ export default function SettingsScreen() {
           description="Continue the last active defense when returning to the battlefield."
           label="Auto Resume"
           onToggle={() => {
-            void updateSettings({ autoResume: !settings?.autoResume });
+            const currentValue = settings?.autoResume ?? true;
+            void updateSettings({ autoResume: !currentValue });
           }}
           value={settings?.autoResume ?? true}
         />
@@ -67,7 +68,8 @@ export default function SettingsScreen() {
           description="Master toggle for battlefield sound cues."
           label="Sound"
           onToggle={() => {
-            void updateSettings({ soundEnabled: !settings?.soundEnabled });
+            const currentValue = settings?.soundEnabled ?? true;
+            void updateSettings({ soundEnabled: !currentValue });
           }}
           value={settings?.soundEnabled ?? true}
         />
@@ -75,7 +77,8 @@ export default function SettingsScreen() {
           description="Master toggle for music themes."
           label="Music"
           onToggle={() => {
-            void updateSettings({ musicEnabled: !settings?.musicEnabled });
+            const currentValue = settings?.musicEnabled ?? true;
+            void updateSettings({ musicEnabled: !currentValue });
           }}
           value={settings?.musicEnabled ?? true}
         />

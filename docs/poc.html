@@ -77,6 +77,12 @@
         <p class="text-xl text-gray-400">Forging the Diorama & NavMesh...</p>
     </div>
 
+    <!-- GAME OVER SCREEN -->
+    <div id="game-over" class="overlay hidden">
+        <h1 class="text-5xl title-text text-red-500 shadow-black drop-shadow-lg mb-2">The Grail Has Fallen</h1>
+        <p class="text-2xl text-gray-300">You survived to wave <span id="final-wave" class="text-yellow-400 font-bold">1</span></p>
+    </div>
+
     <!-- MAIN UI LAYOUT -->
     <div id="app" class="hidden">
         
@@ -105,7 +111,7 @@
                 <!-- Wave Control -->
                 <div class="flex flex-col items-end gap-1">
                     <span class="text-[10px] md:text-xs uppercase font-bold tracking-widest text-[#5c4033]">Next Wave: <span id="ui-wave" class="text-blue-800 text-lg">1</span></span>
-                    <button id="btn-start-early" class="btn-medieval px-4 py-2 rounded shadow title-text text-sm md:text-md whitespace-nowrap animate-pulse">Call Wave Now (+Gold)</button>
+                    <button type="button" id="btn-start-early" class="btn-medieval px-4 py-2 rounded shadow title-text text-sm md:text-md whitespace-nowrap animate-pulse">Call Wave Now (+Gold)</button>
                 </div>
             </div>
         </header>
@@ -118,9 +124,9 @@
             <div id="upgrade-menu" class="hidden absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 parchment-inlay p-5 rounded-xl z-20 w-64 shadow-2xl">
                 <div class="flex justify-between items-center mb-4 border-b border-[#5c4033] pb-2">
                     <h3 id="upgrade-title" class="text-lg title-text font-bold text-[#3e2723]">Building</h3>
-                    <button id="btn-close-upgrade" class="text-[#5c4033] hover:text-red-700 text-2xl leading-none font-sans">&times;</button>
+                    <button type="button" id="btn-close-upgrade" class="text-[#5c4033] hover:text-red-700 text-2xl leading-none font-sans">&times;</button>
                 </div>
-                <button id="btn-sell" class="w-full bg-red-900 bg-opacity-80 border border-red-900 text-red-200 p-3 rounded font-bold text-sm hover:bg-red-800 transition title-text">
+                <button type="button" id="btn-sell" class="w-full bg-red-900 bg-opacity-80 border border-red-900 text-red-200 p-3 rounded font-bold text-sm hover:bg-red-800 transition title-text">
                     Scrap for <span id="sell-value" class="text-yellow-400">25</span>g
                 </button>
             </div>
@@ -714,10 +720,12 @@ function updateUI() {
 
 function addGold(amt) { STATE.gold += amt; updateUI(); }
 
+let cameraShakeState = { offsetX: 0, offsetY: 0 };
+
 function cameraShake() {
-    // Offset camera instantly
-    camera.position.x += (Math.random()-0.5)*10;
-    camera.position.y += (Math.random()-0.5)*10;
+    // Set controlled shake state with dampening
+    cameraShakeState.offsetX = (Math.random() - 0.5) * 10;
+    cameraShakeState.offsetY = (Math.random() - 0.5) * 10;
 }
 
 function takeDamage(amt) {
@@ -733,9 +741,18 @@ function animate() {
     if(STATE.gameOver) return;
 
     const dt = time.update().getDelta();
-    
+
+    // Apply and dampen camera shake
+    cameraShakeState.offsetX *= 0.9;
+    cameraShakeState.offsetY *= 0.9;
+
     // Auto-spring camera back to resting position seamlessly (Replaces OrbitControls)
-    camera.position.lerp(BASE_CAMERA_POS, 0.1);
+    const targetPos = new THREE.Vector3(
+        BASE_CAMERA_POS.x + cameraShakeState.offsetX,
+        BASE_CAMERA_POS.y + cameraShakeState.offsetY,
+        BASE_CAMERA_POS.z
+    );
+    camera.position.lerp(targetPos, 0.1);
 
     if (STATE.phase === 'build') {
         STATE.buildTimeLeft -= dt;

@@ -1,11 +1,13 @@
+const createMockFn = () => (typeof jest !== 'undefined' && jest.fn ? jest.fn() : () => {});
+
 export const soundManager = {
-  init: jest.fn(),
-  playAmbience: jest.fn(),
-  stopAmbience: jest.fn(),
-  playMusic: jest.fn(),
-  stopMusic: jest.fn(),
-  playUiClick: jest.fn(),
-  playBuild: jest.fn(),
-  playCombat: jest.fn(),
-  playGameOver: jest.fn(),
+  init: createMockFn(),
+  playAmbience: createMockFn(),
+  stopAmbience: createMockFn(),
+  playMusic: createMockFn(),
+  stopMusic: createMockFn(),
+  playUiClick: createMockFn(),
+  playBuild: createMockFn(),
+  playCombat: createMockFn(),
+  playGameOver: createMockFn(),
 };

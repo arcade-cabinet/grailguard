@@ -1,5 +1,5 @@
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { db } from './client';
 import { ensureSeedData } from './meta';
@@ -7,10 +7,13 @@ import { migrations } from './migrations';
 
 export function DatabaseProvider({ children }: { children: React.ReactNode }) {
   const { error, success } = useMigrations(db, migrations);
+  const [seedComplete, setSeedComplete] = useState(false);
 
   useEffect(() => {
     if (success) {
-      void ensureSeedData();
+      ensureSeedData()
+        .then(() => setSeedComplete(true))
+        .catch((err) => console.error('Seed data error:', err));
     }
   }, [success]);
 
@@ -23,7 +26,7 @@ export function DatabaseProvider({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!success) {
+  if (!success || !seedComplete) {
     return (
       <View className="flex-1 items-center justify-center bg-[#120b08]">
         <Text className="text-5xl font-bold text-[#d4af37]">Grailguard</Text>

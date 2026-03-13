@@ -1,4 +1,4 @@
-import { integer, primaryKey, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { index, integer, primaryKey, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import type { BuildingType } from '../engine/constants';
 
 export type UnlockDomain = 'building' | 'relic' | 'biome' | 'challenge' | 'spell';
@@ -57,27 +57,35 @@ export const contentState = sqliteTable('content_state', {
   updatedAt: integer('updated_at').notNull(),
 });
 
-export const activeRun = sqliteTable('active_run', {
-  id: text('id').primaryKey(),
-  snapshotVersion: integer('snapshot_version').notNull(),
-  snapshotJson: text('snapshot_json').notNull(),
-  phase: text('phase').notNull(),
-  wave: integer('wave').notNull(),
-  biome: text('biome').notNull(),
-  status: text('status').notNull(),
-  updatedAt: integer('updated_at').notNull(),
-});
+export const activeRun = sqliteTable(
+  'active_run',
+  {
+    id: text('id').primaryKey(),
+    snapshotVersion: integer('snapshot_version').notNull(),
+    snapshotJson: text('snapshot_json').notNull(),
+    phase: text('phase').notNull(),
+    wave: integer('wave').notNull(),
+    biome: text('biome').notNull(),
+    status: text('status').notNull(),
+    updatedAt: integer('updated_at').notNull(),
+  },
+  (table) => [index('idx_active_run_status').on(table.status)]
+);
 
-export const runHistory = sqliteTable('run_history', {
-  runId: text('run_id').primaryKey(),
-  waveReached: integer('wave_reached').notNull(),
-  coinsEarned: integer('coins_earned').notNull(),
-  durationMs: integer('duration_ms').notNull().default(0),
-  biome: text('biome').notNull().default('kings-road'),
-  difficulty: text('difficulty').notNull().default('pilgrim'),
-  result: text('result').notNull(),
-  createdAt: integer('created_at').notNull(),
-});
+export const runHistory = sqliteTable(
+  'run_history',
+  {
+    runId: text('run_id').primaryKey(),
+    waveReached: integer('wave_reached').notNull(),
+    coinsEarned: integer('coins_earned').notNull(),
+    durationMs: integer('duration_ms').notNull().default(0),
+    biome: text('biome').notNull().default('kings-road'),
+    difficulty: text('difficulty').notNull().default('pilgrim'),
+    result: text('result').notNull(),
+    createdAt: integer('created_at').notNull(),
+  },
+  (table) => [index('idx_run_history_created_at').on(table.createdAt)]
+);
 
 export type BuildingUnlockRow = {
   itemId: BuildingType;

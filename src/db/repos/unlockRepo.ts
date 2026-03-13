@@ -2,10 +2,7 @@ import { and, eq } from 'drizzle-orm';
 import { BUILDINGS, type BuildingType, type SpellType } from '../../engine/constants';
 import { db } from '../client';
 import { playerProfile, unlocks } from '../schema';
-
-function now() {
-  return Date.now();
-}
+import { now } from '../utils/time';
 
 const DEFAULT_BUILDING_UNLOCKS: Record<BuildingType, boolean> = {
   wall: true,
@@ -103,8 +100,18 @@ export async function purchaseUnlockTransaction(buildingType: BuildingType) {
   });
 }
 
+const SPELL_UNLOCK_COSTS: Record<SpellType, number> = {
+  smite: 0,
+  holy_nova: 200,
+  zealous_haste: 200,
+  earthquake: 300,
+  chrono_shift: 300,
+  meteor_strike: 400,
+  divine_shield: 400,
+};
+
 export async function purchaseSpellUnlockTransaction(spellId: SpellType) {
-  const cost = 200; // Flat cost per instruction
+  const cost = SPELL_UNLOCK_COSTS[spellId] ?? 200;
 
   return db.transaction(async (tx) => {
     const profile = await tx.select().from(playerProfile).where(eq(playerProfile.id, 1)).get();

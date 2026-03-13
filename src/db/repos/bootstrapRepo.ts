@@ -3,10 +3,7 @@ import { codexEntries, contentState, doctrineNodes } from '../schema';
 import { ensurePlayerProfile } from './profileRepo';
 import { ensureSettings } from './settingsRepo';
 import { ensureUnlocks } from './unlockRepo';
-
-function now() {
-  return Date.now();
-}
+import { now } from '../utils/time';
 
 const DEFAULT_CODEX = [
   ['enemy:goblin', 'enemy'],
@@ -25,12 +22,10 @@ const DEFAULT_DOCTRINES = [
 ] as const;
 
 export async function ensureSeedData() {
-  await ensurePlayerProfile();
-  await ensureSettings();
-  await ensureUnlocks();
+  await Promise.all([ensurePlayerProfile(), ensureSettings(), ensureUnlocks()]);
 
-  for (const [entryId, category] of DEFAULT_CODEX) {
-    await db
+  const codexInserts = DEFAULT_CODEX.map(([entryId, category]) =>
+    db
       .insert(codexEntries)
       .values({
         entryId,
@@ -38,21 +33,21 @@ export async function ensureSeedData() {
         discovered: false,
         discoveredAt: null,
       })
-      .onConflictDoNothing();
-  }
+      .onConflictDoNothing()
+  );
 
-  for (const nodeId of DEFAULT_DOCTRINES) {
-    await db
+  const doctrineInserts = DEFAULT_DOCTRINES.map((nodeId) =>
+    db
       .insert(doctrineNodes)
       .values({
         nodeId,
         unlocked: false,
         unlockedAt: null,
       })
-      .onConflictDoNothing();
-  }
+      .onConflictDoNothing()
+  );
 
-  await db
+  const contentInsert = db
     .insert(contentState)
     .values({
       id: 1,
@@ -61,4 +56,6 @@ export async function ensureSeedData() {
       updatedAt: now(),
     })
     .onConflictDoNothing();
+
+  await Promise.all([...codexInserts, ...doctrineInserts, contentInsert]);
 }

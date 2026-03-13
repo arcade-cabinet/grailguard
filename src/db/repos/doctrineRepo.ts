@@ -1,12 +1,12 @@
 import { eq } from 'drizzle-orm';
 import { db } from '../client';
 import { doctrineNodes, playerProfile } from '../schema';
+import { now } from '../utils/time';
 
-function now() {
-  return Date.now();
-}
-
-export async function purchaseDoctrineNode(input: { nodeId: string; cost: number }) {
+export async function purchaseDoctrineNode(input: {
+  nodeId: string;
+  cost: number;
+}): Promise<{ success: true } | { success: false; reason: string }> {
   return db.transaction(async (tx) => {
     const profile = await tx.select().from(playerProfile).where(eq(playerProfile.id, 1)).get();
     const node = await tx
@@ -15,8 +15,17 @@ export async function purchaseDoctrineNode(input: { nodeId: string; cost: number
       .where(eq(doctrineNodes.nodeId, input.nodeId))
       .get();
 
-    if (!profile || !node || node.level >= 5 || profile.coins < input.cost) {
-      return false;
+    if (!profile) {
+      return { success: false, reason: 'profile_not_found' };
+    }
+    if (!node) {
+      return { success: false, reason: 'node_not_found' };
+    }
+    if (node.level >= 5) {
+      return { success: false, reason: 'max_level_reached' };
+    }
+    if (profile.coins < input.cost) {
+      return { success: false, reason: 'insufficient_coins' };
     }
 
     await tx
@@ -36,6 +45,6 @@ export async function purchaseDoctrineNode(input: { nodeId: string; cost: number
       })
       .where(eq(doctrineNodes.nodeId, input.nodeId));
 
-    return true;
+    return { success: true };
   });
 }

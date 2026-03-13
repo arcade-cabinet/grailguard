@@ -36,10 +36,13 @@ const ALL_MODEL_PATHS = [
   require('../../../public/assets/models/rock.glb'),
 ];
 
-for (const path of ALL_MODEL_PATHS) {
-  useGLTF.preload(path as string);
+// Only preload in browser environment
+if (typeof window !== 'undefined') {
+  for (const path of ALL_MODEL_PATHS) {
+    useGLTF.preload(path as string);
+  }
 }
 
-export function preloadAllGameModels() {
+export function getAllModelPaths() {
   return ALL_MODEL_PATHS;
 }

@@ -164,8 +164,6 @@ expo-env.d.ts
 # @end expo-cli
 
 # Playwright
-/playwright-report/
-/blob-report/
 /playwright/.cache/
 /playwright/.auth/
 

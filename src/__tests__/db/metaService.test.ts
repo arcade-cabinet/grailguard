@@ -1,3 +1,5 @@
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+
 const awardCoinsMock = jest.fn();
 const updatePlayerProfileStatsMock = jest.fn();
 const recordRunHistoryMock = jest.fn();
@@ -66,11 +68,13 @@ describe('meta services', () => {
     });
 
     expect(awardCoinsMock).toHaveBeenCalledWith(70);
+    expect(awardCoinsMock).toHaveBeenCalledTimes(1);
     expect(updatePlayerProfileStatsMock).toHaveBeenCalledWith({
       highestWave: 7,
       lifetimeKillsDelta: 42,
       lifetimeRunsDelta: 1,
     });
+    expect(updatePlayerProfileStatsMock).toHaveBeenCalledTimes(1);
     expect(recordRunHistoryMock).toHaveBeenCalledWith({
       runId: 'run_123',
       waveReached: 7,
@@ -80,6 +84,8 @@ describe('meta services', () => {
       difficulty: 'pilgrim',
       result: 'defeat',
     });
+    expect(recordRunHistoryMock).toHaveBeenCalledTimes(1);
     expect(clearActiveRunMock).toHaveBeenCalledWith('run_123');
+    expect(clearActiveRunMock).toHaveBeenCalledTimes(1);
   });
 });

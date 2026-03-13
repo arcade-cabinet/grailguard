@@ -59,7 +59,16 @@ describe('GameEngine', () => {
     });
     hydrateRunWorld(snapshot);
 
-    stepRunWorld(0.05);
+    // Simulate until wave completion is detected
+    let attempts = 0;
+    while (attempts < 100) {
+      stepRunWorld(0.05);
+      const session = gameWorld.get(GameSession);
+      if (session?.wave > 1 && session?.phase === 'build') {
+        break;
+      }
+      attempts++;
+    }
 
     const session = gameWorld.get(GameSession);
     expect(session?.wave).toBeGreaterThan(1);

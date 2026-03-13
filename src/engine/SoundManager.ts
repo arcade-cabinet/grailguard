@@ -13,6 +13,13 @@ class AudioEngine {
 
   async init(soundEnabled: boolean, musicEnabled: boolean) {
     if (this.inited) {
+      // Stop active playback when re-initializing with changed flags
+      if (!soundEnabled && this.soundEnabled && this.ambienceStarted) {
+        this.stopAmbience();
+      }
+      if (!musicEnabled && this.musicEnabled) {
+        this.stopMusic();
+      }
       this.soundEnabled = soundEnabled;
       this.musicEnabled = musicEnabled;
       return;
@@ -74,8 +81,7 @@ class AudioEngine {
       return;
     }
 
-    Tone.Transport.stop();
-    this.melodyPart?.dispose();
+    this.stopMusic();
 
     if (phase === 'game_over') return;
 
@@ -135,6 +141,19 @@ class AudioEngine {
     this.stopMusic();
     this.stopAmbience();
     this.bgmSynth?.triggerAttackRelease(['C2', 'Eb2', 'G2'], '2m');
+  }
+
+  dispose() {
+    this.stopMusic();
+    this.stopAmbience();
+    this.ambienceSynth?.dispose();
+    this.bgmSynth?.dispose();
+    this.sfxSynth?.dispose();
+    this.ambienceSynth = null;
+    this.bgmSynth = null;
+    this.sfxSynth = null;
+    this.melodyPart = null;
+    this.inited = false;
   }
 }
 

@@ -22,8 +22,6 @@ export const migrations: {
   },
   migrations: {
     '0000_full_foundation': `
-      DROP TABLE IF EXISTS meta_progress;
-
       CREATE TABLE IF NOT EXISTS player_profile (
         id INTEGER PRIMARY KEY NOT NULL,
         coins INTEGER NOT NULL DEFAULT 0,

@@ -15,8 +15,7 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:coverage": "jest --coverage",
-    "test:e2e": "playwright test",
-    "test-ct": "playwright test -c playwright-ct.config.ts"
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@expo/metro-runtime": "^55.0.6",

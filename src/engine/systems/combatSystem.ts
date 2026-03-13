@@ -6,7 +6,8 @@
  */
 
 import combatConfig from '../../data/combatConfig.json';
-import type { UnitType, EnemyAffix, Faction } from '../constants';
+import siegeTargeting from '../../data/siegeTargeting.json';
+import type { UnitType, EnemyAffix, Faction, BuildingType } from '../constants';
 
 const {
   meleeSearchRange,
@@ -200,4 +201,74 @@ export function processBossAoe(
   }
 
   return results;
+}
+
+/** A positioned building for siege target selection. */
+export interface SiegeBuilding {
+  id: number;
+  type: BuildingType;
+  x: number;
+  z: number;
+}
+
+/**
+ * Selects the best siege target for an enemy type based on per-enemy-type
+ * building priorities from siegeTargeting.json. Enemies switch to siege
+ * when no enemy units are in range.
+ *
+ * Priority rules:
+ * - orc: hut, range
+ * - troll: range, temple, keep
+ * - boss: keep
+ * - goblin: nearest (any building)
+ *
+ * Falls back to nearest building if no priority buildings exist.
+ *
+ * @param enemyType - The enemy unit type.
+ * @param buildings - Array of positioned buildings.
+ * @param enemyPos - The enemy's current position.
+ * @returns The target building, or undefined if no buildings available.
+ */
+export function selectSiegeTarget(
+  enemyType: UnitType,
+  buildings: SiegeBuilding[],
+  enemyPos: { x: number; z: number },
+): SiegeBuilding | undefined {
+  if (buildings.length === 0) return undefined;
+
+  const config = siegeTargeting[enemyType as keyof typeof siegeTargeting];
+  const priorities: string[] = config?.priorities ?? ['nearest'];
+
+  // "nearest" means pick the closest building regardless of type
+  if (priorities[0] === 'nearest') {
+    return findNearest(buildings, enemyPos);
+  }
+
+  // Try each priority type in order, pick nearest of that type
+  for (const priority of priorities) {
+    const candidates = buildings.filter((b) => b.type === priority);
+    if (candidates.length > 0) {
+      return findNearest(candidates, enemyPos);
+    }
+  }
+
+  // Fallback: nearest building of any type
+  return findNearest(buildings, enemyPos);
+}
+
+/** Returns the nearest building to a position. */
+function findNearest(
+  buildings: SiegeBuilding[],
+  pos: { x: number; z: number },
+): SiegeBuilding | undefined {
+  let best: SiegeBuilding | undefined;
+  let bestDist = Infinity;
+  for (const b of buildings) {
+    const d = distance2D(pos, b);
+    if (d < bestDist) {
+      bestDist = d;
+      best = b;
+    }
+  }
+  return best;
 }

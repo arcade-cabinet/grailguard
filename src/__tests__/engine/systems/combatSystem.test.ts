@@ -10,6 +10,7 @@ import {
   calculateDamage,
   processStatusEffects,
   processBossAoe,
+  selectSiegeTarget,
   type CombatUnit,
   type CombatEntity,
 } from '../../../engine/systems/combatSystem';
@@ -259,6 +260,66 @@ describe('combatSystem', () => {
       const allies = [{ id: 1, x: 3, z: 0, invulnerable: 5 }];
       const results = processBossAoe(bossPos, 50, allies);
       expect(results).toHaveLength(0);
+    });
+  });
+
+  describe('selectSiegeTarget', () => {
+    const buildings = [
+      { id: 1, type: 'hut' as const, x: 10, z: 0 },
+      { id: 2, type: 'range' as const, x: 20, z: 0 },
+      { id: 3, type: 'temple' as const, x: 30, z: 0 },
+      { id: 4, type: 'keep' as const, x: 40, z: 0 },
+    ];
+
+    it('orc targets hut first (highest priority)', () => {
+      const target = selectSiegeTarget('orc', buildings, { x: 25, z: 0 });
+      expect(target?.id).toBe(1); // hut is first priority
+    });
+
+    it('orc targets range if no hut available', () => {
+      const noHut = buildings.filter((b) => b.type !== 'hut');
+      const target = selectSiegeTarget('orc', noHut, { x: 25, z: 0 });
+      expect(target?.id).toBe(2); // range is second priority
+    });
+
+    it('troll targets range first', () => {
+      const target = selectSiegeTarget('troll', buildings, { x: 25, z: 0 });
+      expect(target?.id).toBe(2); // range is first troll priority
+    });
+
+    it('troll falls back to temple then keep', () => {
+      const noRange = buildings.filter((b) => b.type !== 'range');
+      const target = selectSiegeTarget('troll', noRange, { x: 25, z: 0 });
+      expect(target?.id).toBe(3); // temple is second troll priority
+    });
+
+    it('boss targets keep', () => {
+      const target = selectSiegeTarget('boss', buildings, { x: 25, z: 0 });
+      expect(target?.id).toBe(4); // keep
+    });
+
+    it('goblin targets nearest building', () => {
+      // Goblin at x=35, nearest building is temple at x=30
+      const target = selectSiegeTarget('goblin', buildings, { x: 35, z: 0 });
+      expect(target?.id).toBe(3); // temple is nearest
+    });
+
+    it('goblin targets nearest among all types', () => {
+      // Goblin at x=9, nearest is hut at x=10
+      const target = selectSiegeTarget('goblin', buildings, { x: 9, z: 0 });
+      expect(target?.id).toBe(1); // hut is nearest
+    });
+
+    it('returns undefined when no buildings available', () => {
+      const target = selectSiegeTarget('orc', [], { x: 0, z: 0 });
+      expect(target).toBeUndefined();
+    });
+
+    it('falls back to nearest when no priority buildings exist', () => {
+      // Only lumber buildings, orc wants hut/range
+      const lumber = [{ id: 5, type: 'lumber' as const, x: 10, z: 0 }];
+      const target = selectSiegeTarget('orc', lumber, { x: 0, z: 0 });
+      expect(target?.id).toBe(5); // falls back to nearest
     });
   });
 });

@@ -34,6 +34,7 @@ import {
   useMetaProgress,
 } from '../db/meta';
 import { BUILDINGS, type BuildingType } from '../engine/constants';
+import { t } from '../i18n';
 import {
   AutosaveState,
   checkpointRun,
@@ -119,7 +120,7 @@ function FloatingTextLayer({ viewportSize }: { viewportSize: { width: number; he
 
 function LoadingOverlay({
   forceVisible = false,
-  label = 'Preparing reliquaries...',
+  label = t('game_loading_default'),
 }: {
   forceVisible?: boolean;
   label?: string;
@@ -159,8 +160,8 @@ function LoadingOverlay({
   return (
     <View className="absolute inset-0 items-center justify-center bg-[#0a0806]/95">
       <View className="h-14 w-14 rounded-full border-4 border-[#d4af37]/20 border-t-[#d4af37]" />
-      <Text className="mt-6 text-5xl font-bold text-[#d4af37]">Grailguard</Text>
-      <Text className="mt-2 text-lg text-[#d7c6af]">Blessing the battlefield...</Text>
+      <Text className="mt-6 text-5xl font-bold text-[#d4af37]">{t('app_title')}</Text>
+      <Text className="mt-2 text-lg text-[#d7c6af]">{t('game_loading_blessing')}</Text>
       <Text className="mt-3 text-sm font-semibold tracking-[2px] text-[#f7ebd0]">
         {progressLabel}
       </Text>
@@ -179,20 +180,20 @@ function EndOfRunModal() {
     <View className="absolute inset-0 items-center justify-center bg-[#0a0806]/95 px-6">
       <View className="w-full max-w-md rounded-[32px] border-2 border-[#8b3026] bg-[#2a100d] p-8 shadow-2xl">
         <Text className="text-center text-5xl font-bold text-[#f2d6c9]">
-          {session.announcement === 'Victory Achieved!' ? 'Victory' : 'The Grail Is Lost'}
+          {session.announcement === 'Victory Achieved!' ? t('game_end_victory') : t('game_end_defeat')}
         </Text>
 
         <View className="mt-8 gap-4">
           <View className="flex-row justify-between border-b border-[#5a371f] pb-2">
-            <Text className="text-xl text-[#dfbfaf]">Wave Reached</Text>
+            <Text className="text-xl text-[#dfbfaf]">{t('game_end_wave_reached')}</Text>
             <Text className="text-xl font-bold text-[#f7ebd0]">{session.wave}</Text>
           </View>
           <View className="flex-row justify-between border-b border-[#5a371f] pb-2">
-            <Text className="text-xl text-[#dfbfaf]">Total Kills</Text>
+            <Text className="text-xl text-[#dfbfaf]">{t('game_end_total_kills')}</Text>
             <Text className="text-xl font-bold text-[#f7ebd0]">{session.totalKills}</Text>
           </View>
           <View className="flex-row justify-between border-b border-[#5a371f] pb-2">
-            <Text className="text-xl text-[#dfbfaf]">Gold Earned</Text>
+            <Text className="text-xl text-[#dfbfaf]">{t('game_end_gold_earned')}</Text>
             <Text className="text-xl font-bold text-[#d4af37]">{session.earnedCoins} 🪙</Text>
           </View>
         </View>
@@ -210,7 +211,7 @@ function EndOfRunModal() {
           }`}
         >
           <Text className="text-center text-2xl font-bold text-[#f7ebd0]">
-            {isBanking ? 'Banking Spoils...' : 'Return to Court'}
+            {isBanking ? t('game_end_banking') : t('btn_return_to_court')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -326,7 +327,7 @@ export default function GameScreen() {
   }>();
   const { settings, unlocks } = useMetaProgress();
   const doctrineNodes = useDoctrineNodes();
-  const [bootLabel, setBootLabel] = useState('Preparing reliquaries...');
+  const [bootLabel, setBootLabel] = useState(t('game_loading_default'));
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const bootedRef = useRef(false);
   const finalizingRef = useRef<Promise<void> | null>(null);
@@ -343,7 +344,7 @@ export default function GameScreen() {
     let cancelled = false;
     const bootstrap = async () => {
       setBootLabel(
-        bootMode === 'resume' ? 'Restoring the campaign...' : 'Preparing reliquaries...',
+        bootMode === 'resume' ? t('game_loading_resume') : t('game_loading_default'),
       );
       const preferredSpeed = await loadPreferredSpeed();
       const savedRun = await loadActiveRunRecord();
@@ -566,10 +567,10 @@ function LiveGameView({
         {activePlacement ? (
           <View className="absolute bottom-40 left-4 right-4 rounded-2xl border border-[#d4af37] bg-[#1f140f]/90 px-4 py-3">
             <Text className="text-center text-sm font-semibold tracking-[2px] text-[#f7ebd0]">
-              Drag across the battlefield to place {BUILDINGS[activePlacement].name}
+              {t('game_placement_hint', { building: BUILDINGS[activePlacement].name })}
             </Text>
             <Text className="mt-1 text-center text-xs uppercase tracking-[2px] text-[#c9b18b]">
-              Walls on road • Spawners on grass • No overlaps
+              {t('game_placement_rules')}
             </Text>
           </View>
         ) : null}

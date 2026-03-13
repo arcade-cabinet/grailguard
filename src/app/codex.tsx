@@ -8,6 +8,7 @@
 import { useRouter } from 'expo-router';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useCodexEntries } from '../db/meta';
+import { t } from '../i18n';
 
 export default function CodexScreen() {
   const router = useRouter();
@@ -18,11 +19,11 @@ export default function CodexScreen() {
     <View className="flex-1 bg-[#140d09] px-5 pb-6 pt-14">
       <View className="rounded-[28px] border border-[#6b4a2f] bg-[#241711]/95 px-5 py-5">
         <Text className="text-xs font-bold uppercase tracking-[4px] text-[#b98b52]">
-          Court Archives
+          {t('codex_header')}
         </Text>
-        <Text className="mt-2 text-4xl font-bold text-[#f0dfbe]">Codex</Text>
+        <Text className="mt-2 text-4xl font-bold text-[#f0dfbe]">{t('codex_title')}</Text>
         <Text className="mt-2 text-sm text-[#d8c3a2]">
-          Discovered {discoveredCount} of {entries.length} entries.
+          {t('codex_discovered_format', { discovered: discoveredCount, total: entries.length })}
         </Text>
       </View>
 
@@ -39,14 +40,14 @@ export default function CodexScreen() {
                 entry.discovered ? 'text-[#3e2723]' : 'text-[#d7c6af]'
               }`}
             >
-              {entry.discovered ? entry.entryId.replace(':', ' • ') : 'Unknown Entry'}
+              {entry.discovered ? entry.entryId.replace(':', ' \u2022 ') : t('codex_unknown_entry')}
             </Text>
             <Text
               className={`mt-1 text-sm ${entry.discovered ? 'text-[#6e4e31]' : 'text-[#8e7b67]'}`}
             >
               {entry.discovered
-                ? `Category: ${entry.category}`
-                : 'Encounter this relic, foe, or realm to reveal its record.'}
+                ? t('codex_category_label', { category: entry.category })
+                : t('codex_locked_hint')}
             </Text>
           </View>
         ))}
@@ -56,7 +57,7 @@ export default function CodexScreen() {
         onPress={() => router.back()}
         className="self-center rounded-2xl border border-[#a88a44] bg-[#4a3b22] px-8 py-3"
       >
-        <Text className="text-lg font-bold text-[#f7ebd0]">Return to Court</Text>
+        <Text className="text-lg font-bold text-[#f7ebd0]">{t('btn_return_to_court')}</Text>
       </TouchableOpacity>
     </View>
   );

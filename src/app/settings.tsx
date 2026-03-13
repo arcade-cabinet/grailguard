@@ -8,6 +8,7 @@
 import { useRouter } from 'expo-router';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { updateSettings, useMetaProgress } from '../db/meta';
+import { t } from '../i18n';
 
 function SettingRow({
   description,
@@ -33,7 +34,7 @@ function SettingRow({
             value ? 'border-[#3f6b3d] bg-[#355b31]' : 'border-[#7b5a39] bg-[#4a311f]'
           }`}
         >
-          <Text className="font-bold text-[#f7ebd0]">{value ? 'On' : 'Off'}</Text>
+          <Text className="font-bold text-[#f7ebd0]">{value ? t('settings_on') : t('settings_off')}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -48,15 +49,15 @@ export default function SettingsScreen() {
     <View className="flex-1 bg-[#140d09] px-5 pb-6 pt-14">
       <View className="rounded-[28px] border border-[#6b4a2f] bg-[#241711]/95 px-5 py-5">
         <Text className="text-xs font-bold uppercase tracking-[4px] text-[#b98b52]">
-          Sanctum Preferences
+          {t('settings_header')}
         </Text>
-        <Text className="mt-2 text-4xl font-bold text-[#f0dfbe]">Settings</Text>
+        <Text className="mt-2 text-4xl font-bold text-[#f0dfbe]">{t('settings_title')}</Text>
       </View>
 
       <View className="mt-4 gap-3">
         <SettingRow
-          description="Continue the last active defense when returning to the battlefield."
-          label="Auto Resume"
+          description={t('settings_auto_resume_desc')}
+          label={t('settings_auto_resume_label')}
           onToggle={() => {
             const currentValue = settings?.autoResume ?? true;
             void updateSettings({ autoResume: !currentValue });
@@ -64,16 +65,16 @@ export default function SettingsScreen() {
           value={settings?.autoResume ?? true}
         />
         <SettingRow
-          description="Reduce particles and flashes for longer sessions and lower-end devices."
-          label="Reduced FX"
+          description={t('settings_reduced_fx_desc')}
+          label={t('settings_reduced_fx_label')}
           onToggle={() => {
             void updateSettings({ reducedFx: !settings?.reducedFx });
           }}
           value={settings?.reducedFx ?? false}
         />
         <SettingRow
-          description="Master toggle for battlefield sound cues."
-          label="Sound"
+          description={t('settings_sound_desc')}
+          label={t('settings_sound_label')}
           onToggle={() => {
             const currentValue = settings?.soundEnabled ?? true;
             void updateSettings({ soundEnabled: !currentValue });
@@ -81,8 +82,8 @@ export default function SettingsScreen() {
           value={settings?.soundEnabled ?? true}
         />
         <SettingRow
-          description="Master toggle for music themes."
-          label="Music"
+          description={t('settings_music_desc')}
+          label={t('settings_music_label')}
           onToggle={() => {
             const currentValue = settings?.musicEnabled ?? true;
             void updateSettings({ musicEnabled: !currentValue });
@@ -95,7 +96,7 @@ export default function SettingsScreen() {
         onPress={() => router.back()}
         className="mt-auto self-center rounded-2xl border border-[#a88a44] bg-[#4a3b22] px-8 py-3"
       >
-        <Text className="text-lg font-bold text-[#f7ebd0]">Return to Court</Text>
+        <Text className="text-lg font-bold text-[#f7ebd0]">{t('btn_return_to_court')}</Text>
       </TouchableOpacity>
     </View>
   );

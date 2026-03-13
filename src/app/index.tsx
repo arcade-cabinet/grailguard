@@ -18,6 +18,7 @@ import {
   useMetaProgress,
 } from '../db/meta';
 import { BUILDINGS, type BuildingType, type SpellType } from '../engine/constants';
+import { t } from '../i18n';
 import { soundManager } from '../engine/SoundManager';
 
 const BIOMES = [
@@ -92,16 +93,16 @@ export default function MainMenuScreen() {
 
       <View className="w-full max-w-4xl rounded-[28px] border border-[#6b4a2f] bg-[#241711]/95 px-6 py-8 shadow-2xl">
         <Text className="text-center text-xs font-semibold uppercase tracking-[5px] text-[#b98b52]">
-          Relic Defense Ledger
+          {t('app_subtitle')}
         </Text>
-        <Text className="mt-3 text-center text-6xl font-bold text-[#ead7b0]">Grailguard</Text>
+        <Text className="mt-3 text-center text-6xl font-bold text-[#ead7b0]">{t('app_title')}</Text>
         <Text className="mt-3 text-center text-base leading-6 text-[#d7c6af]">
-          Hold the King&apos;s Road, fortify the sanctum, and feed the royal war chest between runs.
+          {t('app_tagline')}
         </Text>
 
         <View className="mt-8 rounded-[24px] border border-[#7f5b37] bg-[#e9d8be] px-6 py-5">
           <Text className="text-center text-xs font-bold uppercase tracking-[4px] text-[#6e4e31]">
-            Treasury of the Realm
+            {t('treasury_title')}
           </Text>
           <Text className="mt-2 text-center text-5xl font-bold text-[#c38115]">{coins} 🪙</Text>
           <Text className="mt-1 text-center text-sm text-[#6e4e31]">
@@ -120,7 +121,7 @@ export default function MainMenuScreen() {
                 }}
                 className="rounded-2xl border border-[#b98b52] bg-[#5a371f] px-10 py-4"
               >
-                <Text className="text-2xl font-bold text-[#f6e6c7]">Embark</Text>
+                <Text className="text-2xl font-bold text-[#f6e6c7]">{t('btn_embark')}</Text>
               </TouchableOpacity>
             </Tooltip.Trigger>
             <Tooltip.Portal>
@@ -129,7 +130,7 @@ export default function MainMenuScreen() {
                 className="rounded-xl border border-[#6b4a2f] bg-[#2b1c14] px-3 py-2"
               >
                 <Text className="text-sm text-[#f6e6c7]">
-                  March to the sanctum and begin a new defense.
+                  {t('btn_embark_tooltip')}
                 </Text>
               </Tooltip.Content>
             </Tooltip.Portal>
@@ -143,7 +144,7 @@ export default function MainMenuScreen() {
               }}
               className="rounded-2xl border border-[#8b6b45] bg-[#3c2818] px-8 py-4"
             >
-              <Text className="text-xl font-bold text-[#e8d099]">Continue Run</Text>
+              <Text className="text-xl font-bold text-[#e8d099]">{t('btn_continue_run')}</Text>
             </TouchableOpacity>
           ) : null}
 
@@ -154,7 +155,7 @@ export default function MainMenuScreen() {
             }}
             className="rounded-2xl border border-[#8b6b45] bg-[#2d2118] px-8 py-4"
           >
-            <Text className="text-xl font-bold text-[#e8d099]">Royal Market</Text>
+            <Text className="text-xl font-bold text-[#e8d099]">{t('btn_royal_market')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -164,21 +165,21 @@ export default function MainMenuScreen() {
             }}
             className="rounded-2xl border border-[#8b6b45] bg-[#2d2118] px-8 py-4"
           >
-            <Text className="text-xl font-bold text-[#e8d099]">Codex</Text>
+            <Text className="text-xl font-bold text-[#e8d099]">{t('btn_codex')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => router.push('/doctrine' as never)}
             className="rounded-2xl border border-[#8b6b45] bg-[#2d2118] px-8 py-4"
           >
-            <Text className="text-xl font-bold text-[#e8d099]">Doctrine</Text>
+            <Text className="text-xl font-bold text-[#e8d099]">{t('btn_doctrine')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => router.push('/settings' as never)}
             className="rounded-2xl border border-[#8b6b45] bg-[#2d2118] px-8 py-4"
           >
-            <Text className="text-xl font-bold text-[#e8d099]">Settings</Text>
+            <Text className="text-xl font-bold text-[#e8d099]">{t('btn_settings')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -191,10 +192,10 @@ export default function MainMenuScreen() {
       >
         <View className="flex-1 items-center justify-center bg-[#0a0806]/90 px-4">
           <View className="w-full max-w-2xl rounded-[28px] border border-[#6b4a2f] bg-[#eadcc3] p-6">
-            <Text className="text-3xl font-bold text-[#3e2723]">Embark</Text>
-            <Text className="mt-2 text-sm text-[#6e4e31]">Choose your battlefield and trial.</Text>
+            <Text className="text-3xl font-bold text-[#3e2723]">{t('embark_title')}</Text>
+            <Text className="mt-2 text-sm text-[#6e4e31]">{t('embark_subtitle')}</Text>
 
-            <Text className="mt-6 text-xl font-bold text-[#3e2723]">Biome</Text>
+            <Text className="mt-6 text-xl font-bold text-[#3e2723]">{t('embark_biome')}</Text>
             <View className="mt-2 flex-row gap-3">
               {BIOMES.map((b) => (
                 <TouchableOpacity
@@ -208,7 +209,7 @@ export default function MainMenuScreen() {
               ))}
             </View>
 
-            <Text className="mt-6 text-xl font-bold text-[#3e2723]">Challenge</Text>
+            <Text className="mt-6 text-xl font-bold text-[#3e2723]">{t('embark_challenge')}</Text>
             <View className="mt-2 flex-row gap-3">
               {CHALLENGES.map((c) => (
                 <TouchableOpacity
@@ -224,7 +225,7 @@ export default function MainMenuScreen() {
 
             <View className="mt-6 flex-row gap-6">
               <View className="flex-1">
-                <Text className="text-xl font-bold text-[#3e2723]">Map Size</Text>
+                <Text className="text-xl font-bold text-[#3e2723]">{t('embark_map_size')}</Text>
                 <View className="mt-2 flex-row gap-3">
                   {MAP_SIZES.map((s) => (
                     <TouchableOpacity
@@ -238,18 +239,18 @@ export default function MainMenuScreen() {
                 </View>
               </View>
               <View className="flex-1">
-                <Text className="text-xl font-bold text-[#3e2723]">Seed (Optional)</Text>
+                <Text className="text-xl font-bold text-[#3e2723]">{t('embark_seed')}</Text>
                 <TextInput
                   value={seedInput}
                   onChangeText={setSeedInput}
-                  placeholder="Random if empty"
+                  placeholder={t('embark_seed_placeholder')}
                   placeholderTextColor="#8a7c6c"
                   className="mt-2 flex-1 rounded-xl border border-[#8a7c6c] bg-[#e1d0b7] px-4 py-3 font-bold text-[#3e2723]"
                 />
               </View>
             </View>
 
-            <Text className="mt-6 text-xl font-bold text-[#3e2723]">Spells (Select up to 2)</Text>
+            <Text className="mt-6 text-xl font-bold text-[#3e2723]">{t('embark_spells')}</Text>
             <View className="mt-2 flex-row flex-wrap gap-3">
               {(Object.keys(SPELLS) as SpellType[]).map((spellId) => {
                 if (!spellUnlocks[spellId]) return null;
@@ -274,7 +275,7 @@ export default function MainMenuScreen() {
                 onPress={() => setEmbarkOpen(false)}
                 className="rounded-xl border border-[#a88a44] bg-transparent px-6 py-3"
               >
-                <Text className="font-bold text-[#4a3b22]">Cancel</Text>
+                <Text className="font-bold text-[#4a3b22]">{t('btn_cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => {
@@ -288,7 +289,7 @@ export default function MainMenuScreen() {
                 }}
                 className="rounded-xl border border-[#a88a44] bg-[#4a3b22] px-8 py-3"
               >
-                <Text className="text-lg font-bold text-[#f7ebd0]">Start Run</Text>
+                <Text className="text-lg font-bold text-[#f7ebd0]">{t('btn_start_run')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -305,16 +306,16 @@ export default function MainMenuScreen() {
           <View className="max-h-[90%] w-full max-w-5xl rounded-[28px] border border-[#6b4a2f] bg-[#eadcc3] p-6">
             <View className="mb-6 flex-row items-center justify-between border-b border-[#6e4e31] pb-4">
               <View>
-                <Text className="text-3xl font-bold text-[#3e2723]">Royal Market</Text>
+                <Text className="text-3xl font-bold text-[#3e2723]">{t('market_title')}</Text>
                 <Text className="text-sm text-[#6e4e31]">
-                  Unlock new relic houses and battlefield rites.
+                  {t('market_subtitle')}
                 </Text>
               </View>
               <Text className="text-2xl font-bold text-[#c38115]">{coins} 🪙</Text>
             </View>
 
             <ScrollView contentContainerClassName="gap-4 pb-4">
-              <Text className="mt-2 text-2xl font-bold text-[#3e2723]">Structures</Text>
+              <Text className="mt-2 text-2xl font-bold text-[#3e2723]">{t('market_structures')}</Text>
               {marketItems.map(([type, building]) => {
                 const isUnlocked = unlocks[type];
                 const unlockCost = getUnlockCost(type);
@@ -337,7 +338,7 @@ export default function MainMenuScreen() {
 
                       {isUnlocked ? (
                         <View className="rounded-xl border border-[#8b6d3b] bg-[#dcc8aa] px-4 py-3">
-                          <Text className="font-bold text-[#5c4033]">Unlocked</Text>
+                          <Text className="font-bold text-[#5c4033]">{t('market_unlocked')}</Text>
                         </View>
                       ) : (
                         <TouchableOpacity
@@ -361,7 +362,7 @@ export default function MainMenuScreen() {
                 );
               })}
 
-              <Text className="mt-4 text-2xl font-bold text-[#3e2723]">Spells</Text>
+              <Text className="mt-4 text-2xl font-bold text-[#3e2723]">{t('market_spells')}</Text>
               {(Object.keys(SPELLS) as SpellType[]).map((type) => {
                 const isUnlocked = spellUnlocks[type];
                 const unlockCost = 200;
@@ -380,7 +381,7 @@ export default function MainMenuScreen() {
 
                       {isUnlocked ? (
                         <View className="rounded-xl border border-[#8b6d3b] bg-[#dcc8aa] px-4 py-3">
-                          <Text className="font-bold text-[#5c4033]">Unlocked</Text>
+                          <Text className="font-bold text-[#5c4033]">{t('market_unlocked')}</Text>
                         </View>
                       ) : (
                         <TouchableOpacity
@@ -412,7 +413,7 @@ export default function MainMenuScreen() {
               }}
               className="self-center rounded-xl border border-[#a88a44] bg-[#4a3b22] px-8 py-3 mt-4"
             >
-              <Text className="text-lg font-bold text-[#f7ebd0]">Return to Court</Text>
+              <Text className="text-lg font-bold text-[#f7ebd0]">{t('btn_return_to_court')}</Text>
             </TouchableOpacity>
           </View>
         </View>

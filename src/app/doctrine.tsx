@@ -9,6 +9,7 @@
 import { useRouter } from 'expo-router';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { purchaseDoctrineNode, useDoctrineNodes, useMetaProgress } from '../db/meta';
+import { t } from '../i18n';
 
 const DOCTRINES = [
   {
@@ -53,10 +54,10 @@ export default function DoctrineScreen() {
     <View className="flex-1 bg-[#140d09] px-5 pb-6 pt-14">
       <View className="rounded-[28px] border border-[#6b4a2f] bg-[#241711]/95 px-5 py-5">
         <Text className="text-xs font-bold uppercase tracking-[4px] text-[#b98b52]">
-          Permanent Blessings
+          {t('doctrine_header')}
         </Text>
-        <Text className="mt-2 text-4xl font-bold text-[#f0dfbe]">Doctrine Tree</Text>
-        <Text className="mt-2 text-sm text-[#d8c3a2]">Treasury available: {coins} 🪙</Text>
+        <Text className="mt-2 text-4xl font-bold text-[#f0dfbe]">{t('doctrine_title')}</Text>
+        <Text className="mt-2 text-sm text-[#d8c3a2]">{t('doctrine_treasury_label')} {coins} 🪙</Text>
       </View>
 
       <ScrollView className="mt-4" contentContainerClassName="gap-3 pb-4">
@@ -77,7 +78,7 @@ export default function DoctrineScreen() {
               <Text className="mt-1 text-sm text-[#6e4e31]">{node.description}</Text>
               <View className="mt-3 flex-row items-center justify-between">
                 <Text className="text-sm font-semibold text-[#75512d]">
-                  {isMaxed ? 'Max Level' : `${cost} 🪙`}
+                  {isMaxed ? t('doctrine_max_level') : `${cost} 🪙`}
                 </Text>
                 <TouchableOpacity
                   disabled={isMaxed || !canAfford}
@@ -93,7 +94,7 @@ export default function DoctrineScreen() {
                   }`}
                 >
                   <Text className="font-bold text-[#f7ebd0]">
-                    {isMaxed ? 'Maxed' : level > 0 ? 'Upgrade' : 'Consecrate'}
+                    {isMaxed ? t('doctrine_maxed') : level > 0 ? t('doctrine_upgrade') : t('doctrine_consecrate')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -106,7 +107,7 @@ export default function DoctrineScreen() {
         onPress={() => router.back()}
         className="self-center rounded-2xl border border-[#a88a44] bg-[#4a3b22] px-8 py-3"
       >
-        <Text className="text-lg font-bold text-[#f7ebd0]">Return to Court</Text>
+        <Text className="text-lg font-bold text-[#f7ebd0]">{t('btn_return_to_court')}</Text>
       </TouchableOpacity>
     </View>
   );

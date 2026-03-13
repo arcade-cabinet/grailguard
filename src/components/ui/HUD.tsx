@@ -15,6 +15,7 @@ import type { Entity } from 'koota';
 import { useQuery, useTrait } from 'koota/react';
 import { Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { BUILDINGS, type BuildingType } from '../../engine/constants';
+import { t } from '../../i18n';
 import {
   Building,
   GameSession,
@@ -130,9 +131,9 @@ function WallCard({ entity }: { entity: Entity }) {
 
   return (
     <View className="rounded-2xl border border-[#8a6a44] bg-[#f3e8d5] p-4">
-      <Text className="text-lg font-bold text-[#3e2723]">🚧 Barricade</Text>
+      <Text className="text-lg font-bold text-[#3e2723]">🚧 {t('hud_barricade')}</Text>
       <Text className="mt-1 text-sm text-[#6e4e31]">
-        Roadblock holding the line for your militia.
+        {t('hud_barricade_desc')}
       </Text>
       <Text className="mt-1 text-xs uppercase tracking-[2px] text-[#75512d]">
         HP {Math.ceil(unit.hp)} / {Math.ceil(unit.maxHp)}
@@ -234,10 +235,10 @@ export function HUD({
 
   const phaseLabel =
     session.phase === 'game_over'
-      ? 'Grail Lost'
+      ? t('hud_phase_game_over')
       : session.phase === 'build'
-        ? 'Build Phase'
-        : 'Battle Phase';
+        ? t('hud_phase_build')
+        : t('hud_phase_battle');
 
   return (
     <View className="absolute inset-0 justify-between px-4 pb-5 pt-12" pointerEvents="box-none">
@@ -276,7 +277,7 @@ export function HUD({
                 session.bannerTone === 'danger' ? 'text-[#f3b2b2]' : 'text-[#d9c089]'
               }`}
             >
-              {session.bannerTone === 'danger' ? 'Dire Omen' : 'Holy Decree'}
+              {session.bannerTone === 'danger' ? t('hud_banner_danger') : t('hud_banner_decree')}
             </Text>
             <Text
               className={`mt-1 text-center text-2xl font-bold ${
@@ -293,7 +294,7 @@ export function HUD({
         <View className="flex-row items-center justify-between gap-4">
           <View className="flex-1">
             <Text className="text-[11px] font-bold uppercase tracking-[4px] text-[#b98b52]">
-              Sanctum Condition
+              {t('hud_sanctum_condition')}
             </Text>
             <Text className="mt-1 text-3xl font-bold text-[#f5e8cc]">{phaseLabel}</Text>
           </View>
@@ -303,22 +304,22 @@ export function HUD({
               onPress={() => queueWorldCommand({ type: 'skipBuildPhase' })}
               className="rounded-xl border border-[#b03d2e] bg-[#7a1f17] px-4 py-2"
             >
-              <Text className="font-bold text-[#fff0ec]">Call Wave</Text>
+              <Text className="font-bold text-[#fff0ec]">{t('btn_call_wave')}</Text>
             </TouchableOpacity>
           ) : null}
 
           <View className="items-end">
             <Text className="text-[11px] font-bold uppercase tracking-[3px] text-[#b98b52]">
-              Wave
+              {t('hud_wave')}
             </Text>
             <Text className="text-4xl font-bold text-[#d4af37]">{session.wave}</Text>
           </View>
         </View>
 
         <View className="mt-5 flex-row gap-4">
-          <MedievalProgress label="Grail" value={session.health} max={20} tint="#dc2626" />
+          <MedievalProgress label={t('hud_grail')} value={session.health} max={20} tint="#dc2626" />
           <MedievalProgress
-            label={session.phase === 'build' ? 'Council Time' : 'Spells'}
+            label={session.phase === 'build' ? t('hud_council_time') : t('hud_spells')}
             value={
               session.phase === 'build'
                 ? session.buildTimeLeft
@@ -333,7 +334,7 @@ export function HUD({
         <View className="mt-4 flex-row items-center justify-between">
           <View>
             <Text className="text-lg font-semibold text-[#f4e6ca]">
-              Bank: {session.gold}g | {session.wood}w | {session.ore}o | {session.gem}💎 |{' '}
+              {t('hud_bank_label')} {session.gold}g | {session.wood}w | {session.ore}o | {session.gem}💎 |{' '}
               {Math.floor(session.faith)}f
             </Text>
             {waveState && (
@@ -362,7 +363,7 @@ export function HUD({
             <Popover.Root>
               <Popover.Trigger asChild>
                 <Toolbar.Button className="rounded-2xl border border-[#8f6a43] bg-[#4c321e] px-5 py-4">
-                  <Text className="text-lg font-bold text-[#f5e8cc]">Toychest</Text>
+                  <Text className="text-lg font-bold text-[#f5e8cc]">{t('hud_toychest')}</Text>
                 </Toolbar.Button>
               </Popover.Trigger>
               <Popover.Portal>
@@ -371,7 +372,7 @@ export function HUD({
                   sideOffset={12}
                   className="rounded-[24px] border border-[#8c6a43] bg-[#ead9bc] p-4"
                 >
-                  <Text className="mb-3 text-lg font-bold text-[#3e2723]">Relics of Defense</Text>
+                  <Text className="mb-3 text-lg font-bold text-[#3e2723]">{t('hud_relics_of_defense')}</Text>
                   <ScrollView className="max-h-80" contentContainerClassName="gap-3">
                     {(Object.keys(BUILDINGS) as BuildingType[])
                       .filter((type) => unlocked[type])
@@ -433,7 +434,7 @@ export function HUD({
                 <Popover.Trigger asChild>
                   <Toolbar.Button className="rounded-2xl border border-[#8f6a43] bg-[#4b2b1d] px-4 py-4">
                     <Text className="font-bold text-[#f5e8cc]">
-                      Garrison {buildingEntities.length + wallEntities.length}
+                      {t('hud_garrison')} {buildingEntities.length + wallEntities.length}
                     </Text>
                   </Toolbar.Button>
                 </Popover.Trigger>
@@ -443,11 +444,11 @@ export function HUD({
                     sideOffset={12}
                     className="rounded-[24px] border border-[#8c6a43] bg-[#ead9bc] p-4"
                   >
-                    <Text className="mb-3 text-lg font-bold text-[#3e2723]">Built Defenses</Text>
+                    <Text className="mb-3 text-lg font-bold text-[#3e2723]">{t('hud_built_defenses')}</Text>
                     <ScrollView className="max-h-96" contentContainerClassName="gap-3">
                       {buildingEntities.length === 0 && wallEntities.length === 0 ? (
                         <Text className="text-sm text-[#6e4e31]">
-                          No structures raised yet. Open the Toychest during build phase.
+                          {t('hud_no_structures')}
                         </Text>
                       ) : null}
                       {buildingEntities.map((entity) => (
@@ -466,17 +467,17 @@ export function HUD({
                 const cost = spell === 'meteor_strike' ? 35 : spell === 'divine_shield' ? 40 : 25;
                 const spellName =
                   spell === 'smite'
-                    ? 'Smite'
+                    ? t('spell_smite')
                     : spell === 'holy_nova'
-                      ? 'Holy Nova'
+                      ? t('spell_holy_nova')
                       : spell === 'zealous_haste'
-                        ? 'Haste'
+                        ? t('spell_haste')
                         : spell === 'earthquake'
-                          ? 'Quake'
+                          ? t('spell_quake')
                           : spell === 'meteor_strike'
-                            ? 'Meteor'
+                            ? t('spell_meteor')
                             : spell === 'divine_shield'
-                              ? 'Shield'
+                              ? t('spell_shield')
                               : spell;
                 return (
                   <Toolbar.Button
@@ -520,7 +521,7 @@ export function HUD({
                   className="rounded-2xl border border-[#8f6a43] bg-[#3a281d] px-4 py-4"
                 >
                   <Text className="font-bold text-[#f5e8cc]">
-                    {activePlacement ? `Placing ${BUILDINGS[activePlacement].name}` : 'Cancel Tool'}
+                    {activePlacement ? `Placing ${BUILDINGS[activePlacement].name}` : t('btn_cancel_tool')}
                   </Text>
                 </Toolbar.Button>
               )}
@@ -532,7 +533,7 @@ export function HUD({
                 }}
                 className="rounded-2xl border border-[#7d5d3f] bg-[#1e1410] px-4 py-4"
               >
-                <Text className="font-bold text-[#f5e8cc]">Leave</Text>
+                <Text className="font-bold text-[#f5e8cc]">{t('btn_leave')}</Text>
               </Toolbar.Button>
             </View>
           </View>
@@ -541,7 +542,7 @@ export function HUD({
         {selectedEntity?.isAlive() && !session.gameOver ? (
           <View className="rounded-[24px] border border-[#8b6a44] bg-[#ead9bc]/95 px-4 py-4">
             <View className="mb-3 flex-row items-center justify-between">
-              <Text className="text-lg font-bold text-[#3e2723]">Selected Defense</Text>
+              <Text className="text-lg font-bold text-[#3e2723]">{t('hud_selected_defense')}</Text>
               <TouchableOpacity
                 onPress={() => {
                   soundManager.playUiClick();
@@ -549,7 +550,7 @@ export function HUD({
                 }}
                 className="rounded-xl border border-[#8f6a43] bg-[#3a281d] px-3 py-2"
               >
-                <Text className="font-bold text-[#f5e8cc]">Close</Text>
+                <Text className="font-bold text-[#f5e8cc]">{t('btn_close')}</Text>
               </TouchableOpacity>
             </View>
 
@@ -565,9 +566,9 @@ export function HUD({
       <Modal visible={session.pendingRelicDraft} transparent animationType="fade">
         <View className="flex-1 items-center justify-center bg-[#0a0806]/90 px-4">
           <View className="w-full max-w-2xl rounded-[28px] border border-[#d4af37] bg-[#241711] p-6 shadow-2xl">
-            <Text className="text-center text-3xl font-bold text-[#f0dfbe]">Relic Draft</Text>
+            <Text className="text-center text-3xl font-bold text-[#f0dfbe]">{t('relic_draft_title')}</Text>
             <Text className="mt-2 text-center text-[#c7b08c]">
-              The Boss is defeated. Choose a blessing for the trials ahead.
+              {t('relic_draft_subtitle')}
             </Text>
             <View className="mt-8 flex-row flex-wrap justify-center gap-4">
               {[

@@ -27,7 +27,7 @@ import {
 } from '../../engine/GameEngine';
 import { soundManager } from '../../engine/SoundManager';
 
-function BuildingCard({ entity, treasury }: { entity: Entity; treasury: number }) {
+function BuildingCard({ entity, treasury, phase }: { entity: Entity; treasury: number; phase: string }) {
   const building = entity.get(Building);
   if (!building) return null;
 
@@ -37,7 +37,7 @@ function BuildingCard({ entity, treasury }: { entity: Entity; treasury: number }
 
   const canUpgradeSpawn = building.levelSpawn < 5 && treasury >= costs.spawn.gold;
   const canUpgradeStats = building.levelStats < 5 && treasury >= costs.stats.gold;
-  const canSell = true; // Always allow selling now
+  const isBuildPhase = phase === 'build';
 
   return (
     <View className="rounded-2xl border border-[#8a6a44] bg-[#f3e8d5] p-4">
@@ -110,17 +110,19 @@ function BuildingCard({ entity, treasury }: { entity: Entity; treasury: number }
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity
-        disabled={!canSell}
-        onPress={() => queueWorldCommand({ type: 'sellBuilding', entityId: entity.id() })}
-        className={`mt-2 rounded-xl border px-3 py-2 ${
-          canSell ? 'border-[#8b3026] bg-[#6d241c]' : 'border-[#b8ab97] bg-[#d7ccba]'
-        }`}
-      >
-        <Text className="text-center font-bold text-[#f7ebd0]">
-          Sell for {costs.sell}g {Math.floor((config.woodCost ?? 0) * 0.5)}w
-        </Text>
-      </TouchableOpacity>
+      {isBuildPhase && (
+        <TouchableOpacity
+          onPress={() => {
+            soundManager.playUiClick();
+            queueWorldCommand({ type: 'sellBuilding', entityId: entity.id() });
+          }}
+          className="mt-2 rounded-xl border px-3 py-2 border-[#8b3026] bg-[#6d241c]"
+        >
+          <Text className="text-center font-bold text-[#f7ebd0]">
+            Sell for {costs.sell}g {Math.floor((config.woodCost ?? 0) * 0.5)}w
+          </Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -452,7 +454,7 @@ export function HUD({
                         </Text>
                       ) : null}
                       {buildingEntities.map((entity) => (
-                        <BuildingCard key={entity.id()} entity={entity} treasury={session.gold} />
+                        <BuildingCard key={entity.id()} entity={entity} treasury={session.gold} phase={session.phase} />
                       ))}
                       {wallEntities.map((entity) => (
                         <WallCard key={entity.id()} entity={entity} />
@@ -555,7 +557,7 @@ export function HUD({
             </View>
 
             {selectedEntity.get(Building) ? (
-              <BuildingCard entity={selectedEntity} treasury={session.gold} />
+              <BuildingCard entity={selectedEntity} treasury={session.gold} phase={session.phase} />
             ) : selectedEntity.get(Unit)?.type === 'wall' ? (
               <WallCard entity={selectedEntity} />
             ) : null}

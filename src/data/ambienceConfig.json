@@ -1,0 +1,14 @@
+{
+  "kings-road": {
+    "noiseType": "pink",
+    "baseVolume": -20
+  },
+  "desert-wastes": {
+    "noiseType": "brown",
+    "baseVolume": -25
+  },
+  "frost-peaks": {
+    "noiseType": "white",
+    "baseVolume": -30
+  }
+}

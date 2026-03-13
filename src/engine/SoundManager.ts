@@ -1,5 +1,30 @@
+/**
+ * @module SoundManager
+ *
+ * Procedural audio engine for Grailguard built on top of Tone.js.
+ * Provides three audio layers:
+ *
+ * 1. **Ambience** -- continuous pink/brown noise that adapts to the active biome.
+ * 2. **BGM** -- a looping melodic phrase whose tempo and notes shift between
+ *    the build and defend phases.
+ * 3. **SFX** -- one-shot sounds for UI clicks, building placement, combat
+ *    hits, and game-over.
+ *
+ * All synthesis is done in-browser; no audio assets are required.
+ *
+ * Usage: import the pre-instantiated {@link soundManager} singleton rather
+ * than constructing `AudioEngine` directly.
+ */
+
 import * as Tone from 'tone';
 
+/**
+ * Manages all procedural audio for the game. Wraps Tone.js synthesizers for
+ * ambience, background music, and sound effects behind a high-level API
+ * consumed by the game engine and UI.
+ *
+ * Instantiated once as the module-level {@link soundManager} singleton.
+ */
 class AudioEngine {
   private inited = false;
   private ambienceSynth: Tone.NoiseSynth | null = null;
@@ -11,6 +36,17 @@ class AudioEngine {
 
   private ambienceStarted = false;
 
+  /**
+   * Initializes the Tone.js audio context and creates all synthesizer
+   * instances. Safe to call multiple times -- subsequent calls only update
+   * the enabled flags without re-creating synthesizers.
+   *
+   * Must be invoked from a user-gesture handler (e.g. a click) to satisfy
+   * browser autoplay policies.
+   *
+   * @param soundEnabled - Whether SFX and ambience should play.
+   * @param musicEnabled - Whether background music should play.
+   */
   async init(soundEnabled: boolean, musicEnabled: boolean) {
     if (this.inited) {
       // Stop active playback when re-initializing with changed flags
@@ -52,6 +88,12 @@ class AudioEngine {
     }).toDestination();
   }
 
+  /**
+   * Starts or adjusts the ambient noise loop based on the current biome.
+   * Uses pink noise for most biomes and brown noise for `'desert-wastes'`.
+   *
+   * @param biome - The active biome identifier (e.g. `'kings-road'`, `'desert-wastes'`).
+   */
   playAmbience(biome: string) {
     if (!this.soundEnabled) return;
     if (!this.ambienceStarted) {
@@ -68,6 +110,7 @@ class AudioEngine {
     }
   }
 
+  /** Stops the ambient noise loop with a release envelope. */
   stopAmbience() {
     if (this.ambienceStarted) {
       this.ambienceSynth?.triggerRelease();
@@ -75,6 +118,16 @@ class AudioEngine {
     }
   }
 
+  /**
+   * Switches the background music loop to match the current game phase.
+   * - `'build'`     -- calm arpeggio at 80 BPM (C-E-G-C4)
+   * - `'defend'`    -- driving minor pattern at 120 BPM
+   * - `'game_over'` -- stops playback entirely
+   *
+   * If music is disabled, any currently playing loop is stopped.
+   *
+   * @param phase - The game phase to score.
+   */
   playMusic(phase: 'build' | 'defend' | 'game_over') {
     if (!this.musicEnabled) {
       this.stopMusic();
@@ -113,22 +166,29 @@ class AudioEngine {
     Tone.Transport.start();
   }
 
+  /** Immediately stops background music and disposes the active Tone.Part. */
   stopMusic() {
     Tone.Transport.stop();
     this.melodyPart?.dispose();
     this.melodyPart = null;
   }
 
+  /** Plays a short high-pitched click for UI button presses. */
   playUiClick() {
     if (!this.soundEnabled || !this.inited) return;
     this.sfxSynth?.triggerAttackRelease('C5', '32n');
   }
 
+  /** Plays a mid-tone "thud" when a structure is placed. */
   playBuild() {
     if (!this.soundEnabled || !this.inited) return;
     this.sfxSynth?.triggerAttackRelease('G4', '16n');
   }
 
+  /**
+   * Plays a low-pitched combat hit sound. Randomly skips 70% of calls to
+   * avoid overwhelming the audio output during large battles.
+   */
   playCombat() {
     if (!this.soundEnabled || !this.inited) return;
     // Don't overwhelm, randomly skip
@@ -136,6 +196,10 @@ class AudioEngine {
     this.sfxSynth?.triggerAttackRelease('C3', '32n');
   }
 
+  /**
+   * Plays a dramatic minor chord and silences all other audio layers to
+   * signal the end of the game.
+   */
   playGameOver() {
     if (!this.soundEnabled || !this.inited) return;
     this.stopMusic();
@@ -157,4 +221,8 @@ class AudioEngine {
   }
 }
 
+/**
+ * Pre-instantiated singleton audio engine. All engine and UI code should
+ * import this rather than constructing a new `AudioEngine`.
+ */
 export const soundManager = new AudioEngine();

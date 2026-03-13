@@ -1,3 +1,10 @@
+/**
+ * @module settings
+ *
+ * Settings screen for Grailguard. Provides toggle rows for auto-resume,
+ * reduced FX, sound effects, and music. Persists changes via the meta-
+ * progression database.
+ */
 import { useRouter } from 'expo-router';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { updateSettings, useMetaProgress } from '../db/meta';

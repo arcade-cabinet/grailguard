@@ -1,3 +1,25 @@
+/**
+ * @module GameEngine
+ *
+ * Core simulation engine for the Grailguard tower-defense game. Built on
+ * the Koota ECS framework with Yuka-based AI steering for unit movement.
+ *
+ * This module owns:
+ * - **ECS trait definitions** (Position, Facing, Building, Unit, Projectile,
+ *   Particle, FloatingText, WorldEffect, ResourceCart, GameSession, WaveState,
+ *   AutosaveState, CodexId) that describe every entity in the world.
+ * - **World lifecycle** -- creating, resetting, serializing, hydrating, and
+ *   disposing the game world.
+ * - **Simulation loop** -- wave spawning, unit AI, projectile tracking,
+ *   building production, logistics carts, particle physics, and combat.
+ * - **Player commands** -- building placement/selling/upgrading, spell
+ *   casting, wave control, targeting, and game-speed toggling, all funnelled
+ *   through the {@link queueWorldCommand} dispatcher.
+ *
+ * The renderer (React Three Fiber) reads ECS data each frame but never
+ * mutates it; all mutations flow through the functions exported here.
+ */
+
 import { createWorld, type Entity, trait } from 'koota';
 import * as THREE from 'three';
 import {
@@ -12,7 +34,10 @@ import {
 import { generateRoadPoints } from './mapGenerator';
 import { soundManager } from './SoundManager';
 
+/** Yuka entity manager driving AI steering behaviors for all mobile units. */
 export const yukaManager = new EntityManager();
+
+/** Maps Koota entity IDs to their corresponding Yuka Vehicle instances. */
 export const vehiclesByEntityId = new Map<number, Vehicle>();
 
 import {
@@ -25,8 +50,17 @@ import {
   type UnitType,
 } from './constants';
 
+/** ECS trait storing an entity's world-space coordinates. */
 export const Position = trait({ x: 0, y: 0, z: 0 });
+
+/** ECS trait storing an entity's Y-axis rotation (yaw) in radians. */
 export const Facing = trait({ y: 0 });
+
+/**
+ * ECS trait for placed structures. Tracks the building type, upgrade levels
+ * for its two branches (spawn rate and stat power), production/cooldown
+ * timers, and turret targeting priority.
+ */
 export const Building = trait({
   type: 'hut' as BuildingType,
   levelSpawn: 1,
@@ -35,6 +69,11 @@ export const Building = trait({
   cooldown: 0,
   targeting: 'first' as 'first' | 'strongest' | 'weakest',
 });
+/**
+ * ECS trait for mobile combat entities (both allied and enemy). Contains the
+ * unit's current combat stats (post-scaling), status effect timers (poison,
+ * frozen, invulnerable, slowed), and pathfinding state.
+ */
 export const Unit = trait({
   type: 'militia' as UnitType,
   team: 'ally' as Faction,
@@ -56,12 +95,21 @@ export const Unit = trait({
   invulnerable: 0,
   slowed: 0,
 });
+/**
+ * ECS trait for short-lived damage/heal numbers that rise above an entity
+ * and fade out. Consumed by the renderer to draw billboard text sprites.
+ */
 export const FloatingText = trait({
   text: '',
   color: '#ffffff',
   life: 1,
   riseSpeed: 8,
 });
+/**
+ * ECS trait for physics-driven particle effects (explosions, build sparkles,
+ * death bursts). Each particle has a velocity vector and a lifetime that
+ * counts down to zero, at which point the entity is destroyed.
+ */
 export const Particle = trait({
   color: '#ffffff',
   life: 1,
@@ -70,6 +118,11 @@ export const Particle = trait({
   vy: 0,
   vz: 0,
 });
+/**
+ * ECS trait for large-scale visual effects anchored to a world position
+ * (e.g. smite ground rings, boss spawn shockwaves). The renderer uses
+ * `life / maxLife` to animate scale and opacity.
+ */
 export const WorldEffect = trait({
   kind: 'smite' as 'smite' | 'boss_spawn',
   color: '#ffffff',
@@ -77,6 +130,11 @@ export const WorldEffect = trait({
   maxLife: 1,
   radius: 4,
 });
+/**
+ * ECS trait for in-flight projectiles (arrows, magic bolts, catapult
+ * boulders, heal orbs). Tracks the target entity ID, damage payload,
+ * flight speed, and special flags for healing, poison, splash, and slow.
+ */
 export const Projectile = trait({
   targetId: 0 as number | string,
   damage: 0,
@@ -87,12 +145,28 @@ export const Projectile = trait({
   splashRadius: 0,
   isSlow: false,
 });
+/**
+ * ECS trait that tags an entity with a codex identifier. When the codex
+ * discovery system sees a new ID, it is added to the session's
+ * `discoveredCodex` array for the bestiary/compendium UI.
+ */
 export const CodexId = trait({ id: '' });
+/**
+ * ECS singleton trait that tracks the autosave checkpoint status. The
+ * persistence layer polls `dirty` to decide when to write a snapshot.
+ */
 export const AutosaveState = trait(() => ({
   dirty: false,
   reason: 'init',
   lastCheckpointAt: 0,
 }));
+/**
+ * ECS singleton trait holding all top-level game state for the active run:
+ * resources (gold, wood, ore, gem, faith), player health, wave number, game
+ * phase, biome, difficulty, doctrines, relics, active spells and their
+ * cooldowns, UI state (banner, camera shake, selection, placement preview),
+ * and elapsed time tracking.
+ */
 export const GameSession = trait(() => ({
   runId: '',
   seed: '',
@@ -136,6 +210,12 @@ export const GameSession = trait(() => ({
   roadPoints: [] as { x: number; y: number; z: number }[],
 }));
 
+/**
+ * ECS trait for minecart entities that transport harvested resources along
+ * track networks from extractors (lumber, ore mine, gem mine) to sinks
+ * (sanctuary or mint). The cart follows a pre-computed BFS path of track
+ * positions and delivers its payload on arrival.
+ */
 export const ResourceCart = trait(() => ({
   resource: 'wood' as 'wood' | 'ore' | 'gem',
   path: [] as { x: number; z: number }[],
@@ -143,19 +223,42 @@ export const ResourceCart = trait(() => ({
   targetId: 0,
 }));
 
+/**
+ * ECS singleton trait managing the enemy spawn queue for the current wave.
+ * During the defend phase, entries are popped off `spawnQueue` at intervals
+ * controlled by `spawnTimer`.
+ */
 export const WaveState = trait(() => ({
   spawnQueue: [] as { type: UnitType; affix?: EnemyAffix }[],
   spawnTimer: 0,
 }));
 
+/** The single Koota ECS world instance. All entities live here. */
 export const gameWorld = createWorld();
 
+/** Smooth Catmull-Rom curve fitted through the road waypoints. */
 export let roadSpline = new THREE.CatmullRomCurve3([new THREE.Vector3()]);
+
+/** 120-point uniform sampling of {@link roadSpline}, used for distance checks and pathfinding. */
 export let roadSamples: THREE.Vector3[] = [];
+
+/** World position of the sanctuary (final road waypoint, typically the origin). */
 export let sanctuaryPosition = new THREE.Vector3();
+
+/** World position of the enemy spawn point (first road waypoint). */
 export let spawnPosition = new THREE.Vector3();
+
+/** Yuka `Path` derived from the road spline, consumed by enemy FollowPathBehavior. */
 export const yukaRoadPath = new Path();
 
+/**
+ * Rebuilds the shared road geometry caches from an array of waypoints.
+ * Updates {@link roadSpline}, {@link roadSamples}, {@link sanctuaryPosition},
+ * {@link spawnPosition}, and the Yuka {@link yukaRoadPath}. Called during
+ * world creation and when hydrating a saved snapshot.
+ *
+ * @param points - Ordered waypoints from spawn to sanctuary.
+ */
 export function updateMapData(points: { x: number; y: number; z: number }[]) {
   const vectors = points.map((p) => new THREE.Vector3(p.x, p.y, p.z));
   roadSpline = new THREE.CatmullRomCurve3(vectors);
@@ -170,6 +273,12 @@ export function updateMapData(points: { x: number; y: number; z: number }[]) {
   }
 }
 
+/**
+ * Versioned snapshot of an active run's complete state, suitable for
+ * serialization to JSON for autosave / checkpoint persistence. Contains
+ * the session singleton, wave state, and full lists of buildings and units
+ * with their positions.
+ */
 export interface ActiveRunSnapshotV1 {
   version: 1;
   session: SessionState;
@@ -203,6 +312,12 @@ export interface ActiveRunSnapshotV1 {
   }>;
 }
 
+/**
+ * Discriminated union of every player-initiated mutation that can be applied
+ * to the game world. UI code constructs one of these variants and passes it
+ * to {@link queueWorldCommand}, which dispatches to the appropriate engine
+ * function. This decouples the view layer from direct engine calls.
+ */
 export type WorldCommand =
   | { type: 'build'; buildingType: BuildingType; position: { x: number; y: number; z: number } }
   | { type: 'upgrade'; entityId: number; branch: 'spawn' | 'stats' }
@@ -233,6 +348,12 @@ function createRunId() {
   return `run_${now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+/**
+ * Reads the current {@link GameSession} singleton from the world.
+ *
+ * @returns The session state object, or `undefined` if the world has not
+ *          been initialized.
+ */
 export function getSession() {
   return gameWorld.get(GameSession);
 }
@@ -1110,6 +1231,20 @@ function cleanupAlliedWaveUnits() {
   }
 }
 
+/**
+ * Initializes a brand-new game run. Resets the ECS world, generates a
+ * procedural road from the seed, applies doctrine bonuses to starting
+ * resources and health, and enters the first build phase.
+ *
+ * @param options - Optional overrides for the run configuration.
+ * @param options.preferredSpeed - Initial game speed multiplier (default 1).
+ * @param options.biome - Map biome identifier (default `'kings-road'`).
+ * @param options.difficulty - Difficulty tier (default `'pilgrim'`).
+ * @param options.doctrines - Pre-selected doctrine upgrades from the metagame.
+ * @param options.spells - Equipped spell IDs (default `['smite']`).
+ * @param options.seed - Deterministic seed string for road generation.
+ * @param options.mapSize - Side length of the square map (default 100).
+ */
 export function createRunWorld(options?: {
   preferredSpeed?: number;
   biome?: string;
@@ -1174,6 +1309,12 @@ export function createRunWorld(options?: {
   initialBuildPhase();
 }
 
+/**
+ * Convenience alias for {@link createRunWorld}. Tears down any existing run
+ * and starts a fresh one with the given options.
+ *
+ * @param options - Same options accepted by {@link createRunWorld}.
+ */
 export function resetGameWorld(options?: {
   preferredSpeed?: number;
   biome?: string;
@@ -1186,6 +1327,10 @@ export function resetGameWorld(options?: {
   createRunWorld(options);
 }
 
+/**
+ * Destroys all entities and resets the ECS world. Call this when the player
+ * leaves a run or the component unmounts to free resources.
+ */
 export function disposeRunWorld() {
   gameWorld.reset();
 }
@@ -1383,6 +1528,17 @@ function updateLogistics(dt: number) {
   }
 }
 
+/**
+ * Advances the entire simulation by `dt` seconds. Runs all subsystems in
+ * order: Yuka steering, wave/phase state, building production, logistics,
+ * unit AI and combat, projectile tracking, floating text, particles, world
+ * effects, and codex discovery.
+ *
+ * Typically called via {@link stepRunWorld} which applies game-speed scaling
+ * and a delta-time cap.
+ *
+ * @param dt - Elapsed time in seconds since the last update.
+ */
 export function updateGameWorld(dt: number) {
   const session = getSession();
   if (!session || session.gameOver) return;
@@ -1407,6 +1563,13 @@ export function updateGameWorld(dt: number) {
   }
 }
 
+/**
+ * Snaps a world position to the placement grid. Buildings are placed on a
+ * 5-unit grid at a fixed Y of 1.5.
+ *
+ * @param position - Raw world-space position (e.g. from a raycast hit).
+ * @returns Grid-aligned position suitable for building placement.
+ */
 export function snapPlacementPosition(position: { x: number; y: number; z: number }) {
   return {
     x: Math.round(position.x / 5) * 5,
@@ -1455,6 +1618,16 @@ function overlapsExistingStructure(type: BuildingType, position: { x: number; z:
   return false;
 }
 
+/**
+ * Checks whether a building of the given type can legally be placed at the
+ * specified grid position. Validates road proximity rules (walls must be on
+ * the road, buildings must be off it, tracks are unconstrained), overlap
+ * with existing structures or wall units, and game-over state.
+ *
+ * @param type - The building type to place.
+ * @param position - Grid-snapped XZ position.
+ * @returns `true` if placement is allowed.
+ */
 export function isPlacementValid(type: BuildingType, position: { x: number; z: number }) {
   const session = getSession();
   if (!session || session.gameOver) return false;
@@ -1467,6 +1640,17 @@ export function isPlacementValid(type: BuildingType, position: { x: number; z: n
   return roadDistance >= 7;
 }
 
+/**
+ * Attempts to place a building of the given type at the specified position.
+ * Deducts gold and wood costs (accounting for relic discounts), validates
+ * placement, spawns the appropriate ECS entity (a {@link Unit} for walls,
+ * a {@link Building} for everything else), and triggers build audio/VFX.
+ *
+ * @param type - The building type to construct.
+ * @param position - World-space position (will be grid-snapped internally).
+ * @returns `true` if the building was successfully placed, `false` if
+ *          placement was invalid or the player lacks resources.
+ */
 export function buildStructure(type: BuildingType, position: { x: number; y: number; z: number }) {
   const session = getSession();
   if (!session || session.gameOver) return false;
@@ -1597,6 +1781,14 @@ export function sellWall(entity: Entity) {
   return true;
 }
 
+/**
+ * Returns the gold costs for upgrading a building's spawn-rate and stat
+ * branches, plus its sell-back value (50% of total invested gold).
+ *
+ * @param entity - A Koota entity that has the {@link Building} trait.
+ * @returns An object with `spawn`, `stats`, and `sell` costs, or `null`
+ *          if the entity is not a building.
+ */
 export function getBuildingUpgradeCosts(entity: Entity) {
   const building = entity.get(Building);
   if (!building) return null;
@@ -1966,6 +2158,20 @@ function getEntityById(entityId: number) {
   return null;
 }
 
+/**
+ * Serializes the current game world into an {@link ActiveRunSnapshotV1}
+ * plain object suitable for JSON persistence. Captures the session
+ * singleton, wave state, and every building/unit entity with its position.
+ *
+ * @returns A version-1 snapshot of the active run.
+ * @throws If the world has not been initialized (no session or wave state).
+ *
+ * @example
+ * ```ts
+ * const snap = serializeRunWorld();
+ * localStorage.setItem('autosave', JSON.stringify(snap));
+ * ```
+ */
 export function serializeRunWorld(): ActiveRunSnapshotV1 {
   const session = getSession();
   const waveState = getWaveState();
@@ -2026,6 +2232,15 @@ export function serializeRunWorld(): ActiveRunSnapshotV1 {
   };
 }
 
+/**
+ * Restores a game world from a previously serialized snapshot. Resets the
+ * ECS world, re-applies session and wave state, rebuilds the road geometry,
+ * and re-spawns all building and unit entities including their Yuka steering
+ * vehicles.
+ *
+ * @param snapshot - A version-1 snapshot (e.g. from {@link serializeRunWorld}).
+ * @throws If the snapshot version is not `1`.
+ */
 export function hydrateRunWorld(snapshot: ActiveRunSnapshotV1) {
   if (snapshot.version !== 1) {
     throw new Error(`Unsupported run snapshot version: ${snapshot.version}`);
@@ -2144,6 +2359,14 @@ export function finalizeRun(result: 'defeat' | 'abandoned') {
   };
 }
 
+/**
+ * Top-level frame tick intended to be called from the render loop. Applies
+ * the player's game-speed multiplier (1x / 1.5x / 2x) and clamps the
+ * effective delta to 100 ms to prevent physics explosions after tab
+ * backgrounding.
+ *
+ * @param dt - Raw wall-clock delta in seconds since the last frame.
+ */
 export function stepRunWorld(dt: number) {
   const speed = getSession()?.gameSpeed ?? 1;
   updateGameWorld(Math.min(dt, 0.1) * speed);
@@ -2159,6 +2382,16 @@ export function draftRelic(relicId: string) {
   return true;
 }
 
+/**
+ * Central command dispatcher. The UI layer calls this with a
+ * {@link WorldCommand} discriminated union, and this function routes to the
+ * appropriate engine mutation (build, upgrade, sell, spell cast, wave
+ * control, selection, etc.).
+ *
+ * @param command - The player-initiated command to execute.
+ * @returns `true` if the command was successfully applied, `false` otherwise
+ *          (e.g. insufficient resources, invalid target).
+ */
 export function queueWorldCommand(command: WorldCommand) {
   switch (command.type) {
     case 'build':

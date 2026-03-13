@@ -1,3 +1,13 @@
+/**
+ * @module unlockRepo
+ *
+ * Transactional purchase logic for building and spell unlocks.
+ * Each purchase atomically verifies the player has sufficient coins,
+ * deducts the cost, and flips the `unlocked` flag -- all within a
+ * single SQLite transaction to prevent double-spend.
+ *
+ * Also seeds the default unlock rows on first launch via {@link ensureUnlocks}.
+ */
 import { and, eq } from 'drizzle-orm';
 import { BUILDINGS, type BuildingType, type SpellType } from '../../engine/constants';
 import { db } from '../client';
@@ -64,6 +74,15 @@ export async function ensureUnlocks() {
   }
 }
 
+/**
+ * Atomically purchases a building unlock: checks coin balance, deducts the
+ * cost defined in `BUILDINGS`, and sets `unlocked = true`.
+ *
+ * @param buildingType - The building to unlock.
+ * @returns `true` if the transaction committed successfully.
+ *          `false` if the profile is missing, the building is already
+ *          unlocked, or the player has insufficient coins.
+ */
 export async function purchaseUnlockTransaction(buildingType: BuildingType) {
   const cost = BUILDINGS[buildingType].unlockCost;
   if (cost <= 0) return true;
@@ -110,6 +129,15 @@ const SPELL_UNLOCK_COSTS: Record<SpellType, number> = {
   divine_shield: 400,
 };
 
+/**
+ * Atomically purchases a spell unlock: checks coin balance, deducts
+ * the cost from {@link SPELL_UNLOCK_COSTS}, and sets `unlocked = true`.
+ *
+ * @param spellId - The spell to unlock.
+ * @returns `true` if the transaction committed successfully.
+ *          `false` if the profile is missing, the spell is already
+ *          unlocked, or the player has insufficient coins.
+ */
 export async function purchaseSpellUnlockTransaction(spellId: SpellType) {
   const cost = SPELL_UNLOCK_COSTS[spellId] ?? 200;
 

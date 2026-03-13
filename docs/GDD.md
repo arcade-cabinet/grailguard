@@ -1,4 +1,16 @@
-# Grailguard - Game Design Document
+---
+title: "Game Design Document (Legacy)"
+domain: game-design
+audience: all-agents
+reads-before: []
+last-updated: 2026-03-13
+status: legacy
+summary: "LEGACY -- Original GDD. Superseded by docs/game-design/combat.md and buildings.md"
+---
+
+# Grailguard - Game Design Document (Legacy)
+
+> **Note:** This is the original GDD kept for historical reference. The authoritative game design docs are now in `docs/game-design/`.
 
 ## Vision & Aesthetic
 

@@ -1,3 +1,10 @@
+/**
+ * @module codex
+ *
+ * Codex screen that displays all discoverable entries (buildings, units,
+ * biomes) the player has encountered across runs. Undiscovered entries
+ * appear as locked placeholders. Discovery count is shown at the top.
+ */
 import { useRouter } from 'expo-router';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useCodexEntries } from '../db/meta';

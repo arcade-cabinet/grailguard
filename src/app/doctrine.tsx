@@ -1,3 +1,11 @@
+/**
+ * @module doctrine
+ *
+ * Doctrine skill-tree screen for meta-progression. Each doctrine node is a
+ * permanent blessing (up to level 5) purchased with coins earned across runs.
+ * Nodes affect starting gold, faith bonuses, unit stats, passive income,
+ * and construction costs.
+ */
 import { useRouter } from 'expo-router';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { purchaseDoctrineNode, useDoctrineNodes, useMetaProgress } from '../db/meta';

@@ -1,4 +1,16 @@
-# Grailguard Technical Architecture
+---
+title: "Technical Architecture (Legacy)"
+domain: architecture
+audience: all-agents
+reads-before: []
+last-updated: 2026-03-13
+status: legacy
+summary: "LEGACY -- Original architecture doc. Superseded by docs/architecture/engine.md, persistence.md, rendering.md"
+---
+
+# Grailguard Technical Architecture (Legacy)
+
+> **Note:** This is the original architecture doc kept for reference. The authoritative architecture docs are now in `docs/architecture/`.
 
 Grailguard uses a strict split:
 

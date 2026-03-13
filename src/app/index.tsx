@@ -1,3 +1,12 @@
+/**
+ * @module index
+ *
+ * Main menu screen for Grailguard. Presents the title card, treasury
+ * balance, and navigation to Embark (new run), Continue Run, Royal Market
+ * (meta-progression unlocks), Codex, Doctrine, and Settings. Includes
+ * modals for the Embark flow (biome, challenge, map size, seed, and spell
+ * selection) and the Royal Market (building and spell purchases).
+ */
 import * as Tooltip from '@rn-primitives/tooltip';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';

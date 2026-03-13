@@ -1,31 +1,112 @@
-# AI Agent Instructions for Grailguard
+# AGENTS.md -- Grailguard Multi-Agent Guide
 
-When contributing to this repository, you MUST adhere to the following rules to ensure cross-platform compatibility and maximum performance in the React Native / Expo WebGL environment.
+**Purpose:** Guide any AI agent (Claude Code, Cursor, Cline, Windsurf, Gemini, or custom) to effectively contribute to Grailguard. This is the entry point -- read this first, then follow pointers below.
 
-## 1. Zero DOM Manipulation
+## Quick Start for Agents
 
-This is a React Native app. You cannot use web-specific DOM APIs.
-- NEVER use `document.createElement`, `document.getElementById`, or `window.addEventListener`.
-- NEVER append `<div>` elements for HUDs, floating text, or health bars.
-- NEVER use HTML Drag and Drop APIs. Use React Native's `PanResponder` or `@react-three/fiber` raycasting for 3D interactions.
+1. **Read this file** -- project identity, hard rules, architecture summary
+2. **Read `docs/memory-bank/activeContext.md`** -- current work focus and recent changes
+3. **Read `docs/memory-bank/progress.md`** -- what's built, what's left
+4. **Navigate to domain docs via `docs/AGENTS.md`** -- find the right doc for your task
 
-## 2. React Native Reusables (UI)
+## Project Identity
 
-All 2D User Interface elements (the Toychest, the Top Bezel, Main Menu) must be built using React Native `View`, `Text`, and `TouchableOpacity`. Use Tailwind classes (via NativeWind) for styling.
+**Grailguard** is a 2.5D auto-battler tower defense game. Players defend a Holy Grail by placing spawner buildings and turrets along a procedurally generated winding road. Features Factorio-style resource logistics with minecart tracks.
 
-## 3. High-Performance WebGL (React Three Fiber)
+- **Stack:** Expo SDK 55 + React Three Fiber + Koota ECS + Yuka AI + expo-sqlite/Drizzle
+- **Targets:** Web, iOS, Android from a single codebase
+- **Goal:** 60 FPS on mobile, zero DOM manipulation
 
-- **Do not use `useState` for rapid updates.** If a property changes every frame (like position, rotation, or scale), it must be mutated imperatively inside a `useFrame` hook using a `useRef` to the mesh.
-- **Use InstancedMesh for repetition.** The MapGrid, Scenery, and any high-volume particle effects must use `THREE.InstancedMesh`.
-- **Preload Assets.** Use `useGLTF.preload()` for all 3D models before rendering to prevent stuttering.
+## Architecture Summary
 
-## 4. Architecture Enforcement
+```
+Rendering (R3F + React Native UI)    <-- projection layer, never owns state
+    |
+Simulation (Koota ECS + Yuka AI)     <-- runtime authority for all live game data
+    |
+Persistence (SQLite + Drizzle ORM)   <-- durable state (profile, unlocks, saves)
+```
 
-Do not bundle game logic into React components.
-- The simulation logic and combat mathematics belong in `/src/engine`.
-- Durable state and meta-progression belong in `/src/db` through Expo SQLite + Drizzle repositories.
-- Live run state belongs in the Koota ECS world, not in Zustand or ad hoc React state.
-- 3D Visuals belong in `/src/components/3d`.
-- 2D Overlays belong in `/src/components/ui`.
+- **UI dispatches commands** via `queueWorldCommand()`, never mutates ECS directly
+- **ECS traits** own all runtime state (session, buildings, units, particles, etc.)
+- **DB repos** handle all persistence (profile, settings, unlocks, active run snapshots)
+- **React components** read ECS traits and render; per-frame updates use `useFrame` + refs
 
-Follow these rules rigidly. The overarching goal is a locked 60 FPS on iOS, Android, and Web without causing memory leaks or bridge congestion.
+## Hard Rules (Non-Negotiable)
+
+1. **Zero DOM manipulation.** No `document.*`, no `window.*`, no HTML elements.
+2. **No React state for per-frame data.** Use `useFrame` + `useRef` for position/rotation.
+3. **Engine logic in `src/engine/`.** Never put simulation code in React components.
+4. **DB access via `src/db/`.** Never query SQLite directly from UI.
+5. **No Zustand.** ECS is the runtime authority.
+6. **pnpm only.** Never npm or yarn.
+7. **Biome only.** Never ESLint or Prettier.
+8. **Preload all GLBs** via `useGLTF.preload()` before gameplay.
+9. **Use InstancedMesh** for high-volume repeated geometry.
+
+## Documentation System
+
+```
+AGENTS.md (this file)            -- Entry point, project rules
+    |
+    v
+docs/AGENTS.md                   -- Documentation navigation guide
+    |
+    ├── docs/memory-bank/        -- Persistent project context (Cline Memory Bank)
+    │   ├── AGENTS.md            -- Memory bank read/write protocols
+    │   ├── projectbrief.md      -- Foundation, vision, scope
+    │   ├── productContext.md    -- Why, audience, UX goals
+    │   ├── systemPatterns.md    -- Architecture, data flow, patterns
+    │   ├── techContext.md       -- Tech stack, structure, commands
+    │   ├── activeContext.md     -- Current focus, recent changes
+    │   └── progress.md          -- What works, what's left
+    │
+    ├── docs/architecture/       -- Technical deep dives
+    │   ├── engine.md            -- ECS, simulation systems, game loop
+    │   ├── persistence.md       -- SQLite, Drizzle, snapshots
+    │   └── rendering.md         -- R3F scene, meshes, camera
+    │
+    ├── docs/game-design/        -- Game mechanics
+    │   ├── combat.md            -- Units, stats, affixes, wave pacing
+    │   ├── buildings.md         -- Buildings, economy, logistics
+    │   └── spells-relics-doctrines.md
+    │
+    └── docs/guides/             -- Developer guides
+        └── getting-started.md   -- Setup, commands, conventions
+```
+
+## Memory Bank Protocol
+
+Every agent's context resets between sessions. The Memory Bank is the only persistent link.
+
+**On session start (MANDATORY):**
+1. Read `docs/memory-bank/activeContext.md` and `progress.md`
+2. Read `docs/memory-bank/systemPatterns.md` and `techContext.md` for architecture
+3. Read domain-specific docs via `docs/AGENTS.md` navigation guide
+
+**On session end (MANDATORY):**
+1. Update `activeContext.md` with accomplishments and next steps
+2. Update `progress.md` if implementation status changed
+3. Update other memory bank files only if architecture or scope changed
+
+## Source Code Map
+
+```
+src/
+├── app/                # Screen components (index, game, codex, doctrine, settings)
+├── components/
+│   ├── 3d/             # R3F scene (Arena, entity meshes, model paths)
+│   └── ui/             # React Native HUD overlay
+├── engine/
+│   ├── GameEngine.ts   # Koota ECS world + simulation systems (~2200 LOC)
+│   ├── constants.ts    # Types + data dictionaries (buildings, units)
+│   ├── mapGenerator.ts # Seeded procedural road generation
+│   ├── selectors.ts    # ECS query helpers for UI
+│   └── SoundManager.ts # Tone.js procedural audio
+├── db/
+│   ├── schema.ts       # Drizzle table definitions (8 tables)
+│   ├── meta.ts         # Service facade (hooks + async ops)
+│   ├── repos/          # Per-domain repository functions
+│   └── migrations.ts   # Schema migration runner
+└── __tests__/          # Jest test suites
+```

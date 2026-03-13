@@ -1,9 +1,21 @@
+/**
+ * @module ResourceCartMesh
+ *
+ * Renders a resource cart entity as a bouncing colored cube.
+ */
 import { useFrame } from '@react-three/fiber/native';
 import type { Entity } from 'koota';
 import { useRef } from 'react';
 import type * as THREE from 'three';
 import { Position, ResourceCart } from '../../../engine/GameEngine';
 
+/**
+ * Renders a resource cart entity as a small box that bounces while it
+ * travels along the road. The box color indicates the resource type:
+ * brown for wood, slate for ore, and cyan for gems.
+ *
+ * @param props.entity - The Koota entity carrying `ResourceCart` and `Position` traits.
+ */
 export function ResourceCartMesh({ entity }: { entity: Entity }) {
   const meshRef = useRef<THREE.Mesh>(null);
 

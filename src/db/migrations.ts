@@ -1,3 +1,17 @@
+/**
+ * @module migrations
+ *
+ * Inline schema migration definitions consumed by the Drizzle expo-sqlite
+ * migrator in {@link ./DatabaseProvider.tsx}.
+ *
+ * Each entry in `journal.entries` maps an index and tag to a raw SQL string
+ * in the `migrations` record.  The migrator applies entries sequentially and
+ * tracks which have already been executed.
+ *
+ * Migration 0000 (`full_foundation`) creates all eight tables from scratch.
+ * Migration 0001 (`multi_tier`) adds the `level` column to `doctrine_nodes`
+ * for multi-tier skill upgrades.
+ */
 export const migrations: {
   journal: {
     entries: { idx: number; when: number; tag: string; breakpoints: boolean }[];

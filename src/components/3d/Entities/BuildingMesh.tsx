@@ -1,3 +1,8 @@
+/**
+ * @module BuildingMesh
+ *
+ * Renders a single building entity as a 3D mesh inside the Arena scene.
+ */
 import { Clone, useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import type { Entity } from 'koota';
@@ -7,6 +12,15 @@ import { BUILDINGS } from '../../../engine/constants';
 import { Building, Position } from '../../../engine/GameEngine';
 import { BUILDING_MODEL_PATHS } from '../modelPaths';
 
+/**
+ * Renders a building entity using its associated GLB model. Displays a
+ * camera-facing spawn/rate progress bar above the building and a golden
+ * selection ring when selected. The model is scaled per building type and
+ * updated each frame to track entity position.
+ *
+ * @param props.entity - The Koota entity that carries `Building` and `Position` traits.
+ * @param props.selected - Whether to show the golden selection ring around the building.
+ */
 export function BuildingMesh({ entity, selected = false }: { entity: Entity; selected?: boolean }) {
   const groupRef = useRef<THREE.Group>(null);
   const progressGroupRef = useRef<THREE.Group>(null);

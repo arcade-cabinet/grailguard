@@ -1,3 +1,12 @@
+/**
+ * @module game
+ *
+ * Game screen for Grailguard. Bootstraps or resumes an ECS game world,
+ * renders the R3F Canvas with the Arena scene, overlays the HUD and
+ * floating-text layer, and manages run persistence (autosave on phase
+ * transitions, periodic snapshots during defend phase, and save-on-background).
+ * Handles touch/pan gestures for building placement and entity selection.
+ */
 import { useProgress } from '@react-three/drei';
 import { Canvas } from '@react-three/fiber/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';

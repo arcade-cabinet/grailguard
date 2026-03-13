@@ -1,3 +1,12 @@
+/**
+ * @module Arena
+ *
+ * Root React Three Fiber scene for the Grailguard game. Assembles the full 3D
+ * battlefield: terrain, road, environment scatter (trees/rocks), lighting,
+ * camera rig, and all entity meshes (buildings, units, projectiles, particles,
+ * resource carts, and world effects). Also exposes helper functions for
+ * projecting between screen coordinates and the ground plane.
+ */
 import { Clone, useGLTF } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import type { Entity } from 'koota';
@@ -31,6 +40,15 @@ const placementPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const placementRaycaster = new THREE.Raycaster();
 const placementPointer = new THREE.Vector2();
 
+/**
+ * Projects a normalized-device-coordinate screen point onto the y=0 ground
+ * plane using the active R3F camera.
+ *
+ * @param x - NDC x coordinate (-1 to 1, left to right).
+ * @param y - NDC y coordinate (-1 to 1, bottom to top).
+ * @returns The world-space intersection point, or `null` if no camera is
+ *   active or the ray does not intersect the ground plane.
+ */
 export function projectScreenPointToGround(x: number, y: number) {
   if (!activeCamera) return null;
   placementPointer.set(x, y);
@@ -42,6 +60,15 @@ export function projectScreenPointToGround(x: number, y: number) {
   return hit;
 }
 
+/**
+ * Projects a world-space position to pixel coordinates in the viewport using
+ * the active R3F camera.
+ *
+ * @param worldPosition - The 3D world position to project.
+ * @param viewport - The current viewport dimensions in pixels.
+ * @returns An object with `x`/`y` pixel coordinates and a `visible` flag, or
+ *   `null` if no camera is active.
+ */
 export function projectWorldPointToScreen(
   worldPosition: { x: number; y: number; z: number },
   viewport: { width: number; height: number },
@@ -260,6 +287,20 @@ function PlacementGhost({
   );
 }
 
+/**
+ * Top-level R3F scene component that renders the entire Grailguard battlefield.
+ *
+ * Composes environment lighting, terrain, the road spline, scattered
+ * decorations, and all game-entity meshes (buildings, units, projectiles,
+ * resource carts, particles, world effects). Also drives the per-frame game
+ * loop, camera rig, and the semi-transparent placement ghost shown while the
+ * player is positioning a new building.
+ *
+ * @param props.placementPreview - Current building placement ghost position and
+ *   validity, or `null` when not placing.
+ * @param props.selectedEntity - The currently selected entity (highlighted with
+ *   a golden ring), or `null`.
+ */
 export function Arena({
   placementPreview,
   selectedEntity,

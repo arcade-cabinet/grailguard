@@ -1,6 +1,25 @@
+/**
+ * @module mapGenerator
+ *
+ * Procedural road generation for Grailguard maps. Given a string seed and a
+ * map size, produces a winding path of {@link THREE.Vector3} waypoints that
+ * starts near one edge of the map and terminates at the sanctuary at the
+ * origin (0, 0, 0). The road is used both for enemy pathfinding and for
+ * building placement validation.
+ *
+ * Deterministic: the same seed always produces the same road layout.
+ */
+
 import * as THREE from 'three';
 
-// Simple mulberry32 PRNG
+/**
+ * Creates a seeded pseudo-random number generator using the Mulberry32
+ * algorithm. Returns a closure that produces a new float in [0, 1) on each
+ * call, advancing internal state deterministically.
+ *
+ * @param seed - 32-bit integer seed value.
+ * @returns A stateful function that returns the next pseudo-random number.
+ */
 function mulberry32(seed: number) {
   let currentSeed = seed;
   return () => {
@@ -12,6 +31,14 @@ function mulberry32(seed: number) {
   };
 }
 
+/**
+ * Converts an arbitrary string into a 32-bit integer hash using a
+ * shift-and-add variant (DJB2-like). Used to derive a numeric PRNG seed
+ * from a human-readable seed string.
+ *
+ * @param str - The string to hash.
+ * @returns A 32-bit signed integer hash.
+ */
 function hashString(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -22,6 +49,24 @@ function hashString(str: string): number {
   return hash;
 }
 
+/**
+ * Generates the sequence of road waypoints for a game map. The road begins
+ * near the edge of the map (the enemy spawn point) and winds through 4--6
+ * randomly offset midpoints before ending at the sanctuary at the origin.
+ *
+ * The Y coordinate of every point is fixed at 0.5 (slightly above ground
+ * level) so the road mesh sits cleanly on the terrain.
+ *
+ * @param seedStr - Seed string used to deterministically generate the road.
+ * @param mapSize - Side length of the square map in world units.
+ * @returns An ordered array of waypoints from spawn to sanctuary.
+ *
+ * @example
+ * ```ts
+ * const road = generateRoadPoints('my-seed', 100);
+ * // road[0] is the spawn position, road[road.length - 1] is (0, 0.5, 0)
+ * ```
+ */
 export function generateRoadPoints(seedStr: string, mapSize: number): THREE.Vector3[] {
   const seed = hashString(seedStr);
   const rand = mulberry32(seed);

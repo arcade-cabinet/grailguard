@@ -1,3 +1,11 @@
+/**
+ * @module bootstrapRepo
+ *
+ * First-launch seed logic.  Ensures that the player profile, settings,
+ * building/spell unlocks, codex entries, doctrine nodes, and content-state
+ * rows all exist with sensible defaults.  Every insert uses
+ * `onConflictDoNothing` so the function is idempotent.
+ */
 import { db } from '../client';
 import { codexEntries, contentState, doctrineNodes } from '../schema';
 import { ensurePlayerProfile } from './profileRepo';
@@ -21,6 +29,14 @@ const DEFAULT_DOCTRINES = [
   'masonry',
 ] as const;
 
+/**
+ * Idempotently inserts all default rows required for a new installation:
+ * player profile, settings, building/spell unlocks, starter codex entries,
+ * starter doctrine nodes, and content-state metadata.
+ *
+ * Called automatically by {@link ../DatabaseProvider.tsx} after migrations
+ * complete.
+ */
 export async function ensureSeedData() {
   await Promise.all([ensurePlayerProfile(), ensureSettings(), ensureUnlocks()]);
 

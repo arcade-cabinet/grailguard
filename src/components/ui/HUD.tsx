@@ -1,3 +1,12 @@
+/**
+ * @module HUD
+ *
+ * In-game heads-up display overlay for Grailguard. Renders the top status
+ * panel (phase label, wave counter, grail health, resources), the bottom
+ * toolbar (building placement, garrison list, spells, game-speed toggle),
+ * the selected-entity detail card, and the relic-draft modal shown after
+ * defeating a boss.
+ */
 import * as Popover from '@rn-primitives/popover';
 import * as Progress from '@rn-primitives/progress';
 import * as Toolbar from '@rn-primitives/toolbar';
@@ -179,6 +188,26 @@ function MedievalProgress({
   );
 }
 
+/**
+ * Primary in-game HUD component. Renders the full overlay on top of the 3D
+ * canvas, including:
+ * - Top panel: phase label, wave number, grail health bar, resource totals,
+ *   build timer / spell cooldown bar, and a "Call Wave" button during build
+ *   phase.
+ * - Bottom toolbar: building placement popover ("Toychest"), garrison list,
+ *   active spell buttons, game-speed toggle, and exit button.
+ * - Selected entity detail card with upgrade/sell actions.
+ * - Boss-defeat relic draft modal.
+ * - Screen flash and announcement banner overlays.
+ *
+ * @param props.activePlacement - The building type currently being placed, or `null`.
+ * @param props.onExit - Callback to leave the game and return to the main menu.
+ * @param props.onCancelPlacement - Callback to cancel the current placement mode.
+ * @param props.onClearSelection - Callback to deselect the currently selected entity.
+ * @param props.onSelectPlacement - Callback invoked when the player picks a building to place.
+ * @param props.selectedEntity - The currently selected entity, or `null`.
+ * @param props.unlocked - Record indicating which building types the player has unlocked.
+ */
 export function HUD({
   activePlacement,
   onExit,

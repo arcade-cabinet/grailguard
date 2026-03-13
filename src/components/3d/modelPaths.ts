@@ -1,5 +1,18 @@
+/**
+ * @module modelPaths
+ *
+ * Central registry of GLB asset paths for all building and unit types.
+ * Paths are resolved via Metro's `require()` so they work with Expo's
+ * asset system. All models are eagerly preloaded at module evaluation time
+ * using `useGLTF.preload`.
+ */
 import { useGLTF } from '@react-three/drei';
 
+/**
+ * Map from `BuildingType` keys to their resolved GLB asset paths.
+ * Some building types share the same underlying model (e.g. `sentry`,
+ * `obelisk`, and `catapult` all use `tower.glb`).
+ */
 export const BUILDING_MODEL_PATHS = {
   wall: require('../../../public/assets/models/wall.glb'),
   hut: require('../../../public/assets/models/hut.glb'),
@@ -18,6 +31,7 @@ export const BUILDING_MODEL_PATHS = {
   vault: require('../../../public/assets/models/temple.glb'),
 } as const;
 
+/** Map from `UnitType` keys to their resolved GLB asset paths. */
 export const UNIT_MODEL_PATHS = {
   wall: require('../../../public/assets/models/wall.glb'),
   militia: require('../../../public/assets/models/militia.glb'),
@@ -43,6 +57,13 @@ if (typeof window !== 'undefined') {
   }
 }
 
+/**
+ * Returns the full list of deduplicated model asset paths. Useful for
+ * triggering preloads inside a React component tree (e.g. inside a
+ * `useEffect`). The actual `useGLTF.preload` calls happen at module
+ * evaluation time above, so calling this function is largely a no-op
+ * that surfaces the path list to callers.
+ */
 export function getAllModelPaths() {
   return ALL_MODEL_PATHS;
 }

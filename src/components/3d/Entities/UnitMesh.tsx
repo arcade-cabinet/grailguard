@@ -1,3 +1,8 @@
+/**
+ * @module UnitMesh
+ *
+ * Renders a single unit entity (friend or foe) as an animated 3D mesh.
+ */
 import { Clone, useAnimations, useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import type { Entity } from 'koota';
@@ -6,6 +11,16 @@ import * as THREE from 'three';
 import { Facing, Position, Unit } from '../../../engine/GameEngine';
 import { UNIT_MODEL_PATHS } from '../modelPaths';
 
+/**
+ * Renders a unit entity with its GLB model, driving idle/walk/attack
+ * animation transitions based on velocity and cooldown state. Shows a
+ * camera-facing HP bar that changes color with health ratio and a golden
+ * selection ring when selected. Units bob vertically while moving to add
+ * liveliness. Scale is determined by unit type.
+ *
+ * @param props.entity - The Koota entity carrying `Unit`, `Position`, and `Facing` traits.
+ * @param props.selected - Whether to show the golden selection ring around the unit.
+ */
 export function UnitMesh({ entity, selected = false }: { entity: Entity; selected?: boolean }) {
   const groupRef = useRef<THREE.Group>(null);
   const hpBarGroupRef = useRef<THREE.Group>(null);

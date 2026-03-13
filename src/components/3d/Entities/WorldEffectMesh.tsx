@@ -1,9 +1,23 @@
+/**
+ * @module WorldEffectMesh
+ *
+ * Renders a transient world effect (spell impact, boss spawn, etc.) as an
+ * expanding ring and rising pillar.
+ */
 import { useFrame } from '@react-three/fiber';
 import type { Entity } from 'koota';
 import { useRef } from 'react';
 import type * as THREE from 'three';
 import { Position, WorldEffect } from '../../../engine/GameEngine';
 
+/**
+ * Renders a world effect entity as two animated meshes: an expanding ground
+ * ring and a rising cylindrical pillar, both fading out as the effect's
+ * `life` decays. Boss-spawn effects use a larger pillar scale. Color is
+ * determined by the `WorldEffect.color` trait.
+ *
+ * @param props.entity - The Koota entity carrying `WorldEffect` and `Position` traits.
+ */
 export function WorldEffectMesh({ entity }: { entity: Entity }) {
   const ringRef = useRef<THREE.Mesh>(null);
   const pillarRef = useRef<THREE.Mesh>(null);

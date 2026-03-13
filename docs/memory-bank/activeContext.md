@@ -29,7 +29,13 @@ The branch represents a ground-up rebuild from the original prototype:
 9. **Relic Draft** -- Every 5 waves, choose from 3 random relics for run-specific bonuses
 10. **Algorithmic Terrain** -- Seeded procedural road generation via Catmull-Rom splines
 11. **Sound Engine** -- Tone.js procedural audio (ambience, BGM, SFX per phase)
-12. **Documentation Overhaul** -- Memory bank, JSDoc, reorganized doc structure
+12. **Comprehensive Documentation Overhaul** -- 18 docs organized into 4 domain directories
+13. **JSDoc Coverage** -- Added to all 31 source files (~137 blocks)
+14. **Three-tier Agent Pointer Chain** -- CLAUDE.md -> AGENTS.md -> docs/
+15. **Cline-style Memory Bank** -- 6 core files for persistent project context
+16. **POC Material Audit** -- All POC materials (poc.html, GDD.md, ARCHITECTURE.md, Gemini-Conversation.md) audited, value extracted, and purged
+17. **CodeRabbit Fixes** -- Fixed 5 broken auto-fix references
+18. **PR Review Resolution** -- All 99/100 PR review threads resolved
 
 ## Active Decisions
 

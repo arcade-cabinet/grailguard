@@ -53,7 +53,7 @@ Maps building/unit types to GLB file paths under `public/assets/models/`. All mo
 ## Performance Rules
 
 1. **Never use `useState` for per-frame data.** Position, rotation, scale must be mutated via `useRef` inside `useFrame`.
-2. **Use InstancedMesh** for particles, scenery, and any repeated geometry with >10 instances.
+2. **Use InstancedMesh** for particles, scenery, and any repeated geometry with >10 instances. Below that threshold, individual meshes are more efficient due to draw-call vs instance-data transfer tradeoff.
 3. **Preload all GLBs** before the game screen mounts.
 4. **Cap transient effects** -- limit particle count, floating text lifetime.
 5. **No DOM overlays** -- all 2D UI uses React Native View/Text/TouchableOpacity.
@@ -62,8 +62,20 @@ Maps building/unit types to GLB file paths under `public/assets/models/`. All mo
 
 - Orthographic projection (no perspective distortion)
 - Fixed tilt angle (~45 degrees) for isometric diorama feel
+- Base position: (0, 100, 70) -- approximately 35° elevation angle
 - Zoom range: 22 (close) to 80 (far)
 - Camera shake driven by `session.cameraShake` (decays exponentially)
+- Camera shake: random offset ±5 units, exponential damping 0.9x per frame, lerp smoothing factor 0.1
+
+### Particle & VFX System
+
+Particles are spawned as 0.3-unit cubes with `MeshBasicMaterial` (unlit). Physics:
+- Velocity: random ±7.5 units/sec (XZ), 5-20 units/sec upward (Y)
+- Gravity: 30 units/s² downward
+- Lifetime: ~1 second, scale decays linearly to 0
+- Particle counts vary by event (e.g. combat hit ~5, death ~20, boss death ~50)
+
+Floating damage/heal numbers rise at 5 units/sec for 1 second with opacity fade.
 
 ## Raycasting
 

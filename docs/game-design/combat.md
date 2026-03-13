@@ -10,6 +10,16 @@ summary: "Unit types, stats, combat mechanics, affixes, and pacing formulas"
 
 # Combat & Units
 
+## Design Philosophy
+
+Grailguard's combat pacing is built on three principles from the original design:
+
+1. **Anti-Randomness.** Strategy games built on `Math.random()` devolve into unpredictable mush. All pacing uses mathematically rigorous formulas so players can plan defenses against readable, deterministic threats.
+
+2. **Polynomial Difficulty Scaling.** The wave budget uses polynomial/exponential growth (`B(W) = floor(50 * 1.15^W + 2W²)`) rather than logarithmic, because logarithmic curves flatten out and make late-game trivially easy. The polynomial curve ensures the player is eventually overwhelmed, creating natural run endings.
+
+3. **Logarithmic Prep Time.** The build timer uses `T(W) = 30 + 10 * ln(W)` because logarithmic growth is ideal here -- prep time increases slightly in late-game waves but never stretches to infinity.
+
 ## Unit Types
 
 ### Allied Units (spawned by buildings)
@@ -59,6 +69,14 @@ Enemy stats scale per wave: `multiplier = 1 + wave * 0.15`.
 **Wave completion:** When all enemies are dead and spawn queue is empty. Allied wave units are cleaned up, gold bonus awarded: `50 + wave * 10 + interest`.
 
 **Victory:** Surviving wave 20 awards `wave * 25` coins.
+
+### Wave Mechanics Detail
+
+- **Spawn interval:** 1.0 second between each enemy spawn
+- **Boss priority:** Boss spawns first in the queue (when `wave % 5 === 0`)
+- **Wave completion bonus:** `50 + wave * 10` gold
+- **Early wave start:** Remaining build time converts to gold at 2g per second
+- **Grail damage:** 1 damage per enemy reaching sanctuary, 5 damage from boss
 
 ## Combat Mechanics
 

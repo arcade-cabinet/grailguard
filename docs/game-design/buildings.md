@@ -77,6 +77,21 @@ Track placement rules:
 - Can be placed anywhere (no road distance restriction)
 - Can overlap resource buildings and mints
 
+## Placement Rules
+
+All buildings snap to a **5-unit grid**. No overlapping is allowed except for resource buildings (mine_ore, mine_gem, lumber, mint) which can overlap with tracks.
+
+| Building Category | Road Distance | Notes |
+|-------------------|:--------------|-------|
+| Walls (Barricade) | `roadDistance <= 4` | Must be near road to block it |
+| Spawners | `roadDistance >= 7` | Away from road so units march in |
+| Turrets | `roadDistance >= 7` | Away from road, uses ranged attacks |
+| Tracks | No restriction | Can be placed anywhere |
+| Resource Buildings | No restriction | Can overlap with tracks |
+
+- **Sell value:** 50% of original building cost (gold and wood refunded)
+- **Kill zone strategy:** Road curves create natural "kill zones" -- placing turrets on the inside of U-turns maximizes coverage since enemies spend more time in range
+
 ## Upgrades
 
 Buildings have two upgrade branches, each with max level 5:
@@ -98,5 +113,5 @@ Buildings are unlocked permanently by spending "Coin of the Realm" in the Market
 ## Planned Work
 
 - [ ] Visual upgrade indicators on building meshes
-- [ ] Building sell/refund formula
+- [x] Building sell/refund formula (50% of cost, documented in Placement Rules)
 - [ ] Additional resource sink buildings

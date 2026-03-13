@@ -12,7 +12,7 @@ summary: "Why Grailguard exists, target audience, UX goals, and session design"
 
 ## Why This Exists
 
-Grailguard originated as a single-file HTML/Three.js prototype (see `docs/poc.html`) brainstormed via Gemini AI. The project explores what happens when you combine:
+Grailguard originated as a single-file HTML/Three.js prototype brainstormed via Gemini AI. The project explores what happens when you combine:
 
 - **Auto-battler** unit spawning (not direct unit control)
 - **Tower defense** placement strategy (road vs grass placement rules)
@@ -33,6 +33,17 @@ The result is a deeper TD where economy management matters as much as combat pla
 - **Readable at a glance** -- orthographic diorama camera, no perspective distortion
 - **Progressive complexity** -- start with 2 buildings (wall + hut), unlock 13 more via meta-progression
 - **Satisfying economy loop** -- watch minecarts shuttle resources along your track network
+
+### Toychest Interaction
+The bottom bezel is a horizontally scrollable "Toychest" panel. During build phase:
+- Tap a building icon to enter placement mode
+- Press-and-hold (or hover on web) reveals a parchment tooltip with name, role, DPS, and spawn rate
+- Unaffordable buildings display at 50% opacity with grayscale filter
+- Drag across the arena to see a placement ghost (green = valid, red = invalid)
+- Placement snaps to a 5-unit grid
+
+### Naming History
+The project was originally conceived under the working title "King's Road" (referring to the enemy path). It was renamed to "Grailguard" to emphasize the defensive objective. References to "King's Road" in the codebase refer to the enemy path/road, not the project name.
 
 ## Session Flow
 

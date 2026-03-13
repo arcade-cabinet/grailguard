@@ -45,6 +45,13 @@ Called each frame by `updateGameWorld(dt)` in this order:
 9. **World Effects** -- Lifetime countdown
 10. **Codex Discovery** -- Scan for new entity types to record
 
+### AI & Pathfinding
+
+- Enemy units use Yuka `FollowPathBehavior` along the road spline with offset distance 1.5
+- Allied units use reversed road path to intercept enemies
+- All non-wall units have `SeparationBehavior` (weight 2.0) for collision avoidance
+- Units follow continuous coordinate movement, NOT grid-snapping
+
 ## Command Queue
 
 UI dispatches commands via `queueWorldCommand()`. Processed once per frame by `processCommands()`:
@@ -78,8 +85,27 @@ hydrateRunWorld(snapshot)  -- Restore ECS world from saved snapshot
 disposeRunWorld()          -- Reset ECS world on unmount
 ```
 
+## Architectural Decisions
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| Runtime authority | Koota ECS | Zustand was considered but rejected -- ECS provides trait-based queries and avoids React state churn for 60+ entities updating per frame |
+| AI framework | Yuka | Provides `FollowPathBehavior` and `SeparationBehavior` out of the box; GOAP (Goal-Oriented Action Planning) considered for future complex unit AI |
+| State bridge | Command queue | UI cannot mutate ECS directly; `queueWorldCommand()` prevents React-bridge congestion (60 FPS * N entities would overwhelm the RN bridge) |
+| Save format | JSON snapshot | Full ECS state serialized as single JSON blob rather than decomposed SQL rows -- simpler, versioned, and avoids schema coupling |
+
 ## Planned Work
 
 - [ ] Decompose `GameEngine.ts` into subsystem modules (combat, logistics, wave, etc.)
 - [ ] Replace `Math.random()` calls with seeded PRNG for deterministic replay
 - [ ] Add reduced-FX path (skip particles/floating text when setting enabled)
+- [ ] GOAP (Goal-Oriented Action Planning) for advanced unit AI -- clerics dynamically plan heal routes, knights prioritize boss targets
+- [ ] Seeded PRNG for deterministic replay (enables competitive replays, debugging, bug reproduction)
+
+## Testing Expectations
+
+The repo must maintain automated checks for:
+- Multi-wave engine progression
+- Save/hydrate parity (serialize → deserialize → re-serialize must produce identical output)
+- Reward finalization exactly once (no double-banking)
+- Long-run entity cleanup (no memory leaks over 50+ waves)

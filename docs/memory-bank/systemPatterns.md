@@ -79,6 +79,15 @@ Active runs serialize the ECS world to a JSON snapshot (`ActiveRunSnapshotV1`) s
 - **Preload all GLBs** via `useGLTF.preload()` before gameplay.
 - **React Native primitives only** for 2D UI -- no DOM APIs.
 
+### Why ECS Over Zustand
+Zustand was initially considered for runtime state (as discussed in the original Gemini brainstorming). It was rejected because storing unit positions in React `useState` sends updates across the React Native bridge 60 times per second per entity. With 50+ units, the bridge would be saturated. Koota ECS keeps all per-frame data outside React entirely, only crossing the bridge for UI-relevant reads via `useTrait`.
+
+### Why Polynomial Wave Scaling
+Logarithmic difficulty curves flatten out, making late-game trivially easy. The wave budget formula `B(W) = floor(50 * 1.15^W + 2W²)` combines exponential and quadratic growth to ensure the player is eventually overwhelmed, creating natural run endings.
+
+### Why JSON Snapshot Over SQL Decomposition
+Active run persistence uses a single JSON blob (`ActiveRunSnapshotV1`) rather than decomposing ECS entities into SQL rows. This avoids tight coupling between the ECS trait schema and the database schema, simplifies versioning, and makes save/load a single atomic operation.
+
 ## Data Flow
 
 ```

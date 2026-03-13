@@ -11,9 +11,10 @@ import {
   processStatusEffects,
   processBossAoe,
   selectSiegeTarget,
-  type CombatUnit,
-  type CombatEntity,
+  rollDrop,
 } from '../../../engine/systems/combatSystem';
+import type { CombatUnit, CombatEntity } from '../../../engine/systems/combatSystem';
+import { createRng } from '../../../engine/systems/rng';
 
 function makeEntity(
   overrides: Partial<CombatUnit> & { x?: number; z?: number },
@@ -320,6 +321,69 @@ describe('combatSystem', () => {
       const lumber = [{ id: 5, type: 'lumber' as const, x: 10, z: 0 }];
       const target = selectSiegeTarget('orc', lumber, { x: 0, z: 0 });
       expect(target?.id).toBe(5); // falls back to nearest
+    });
+  });
+
+  describe('rollDrop', () => {
+    it('returns null most of the time (low drop chance)', () => {
+      // With many rolls, most should be null
+      let nullCount = 0;
+      for (let i = 0; i < 100; i++) {
+        const rng = createRng(`drop-null-${i}`);
+        if (rollDrop(rng, []) === null) nullCount++;
+      }
+      // Combined chance is 0.05 + 0.03 = 0.08, so ~92% should be null
+      expect(nullCount).toBeGreaterThan(80);
+    });
+
+    it('can return "potion" as a drop', () => {
+      let foundPotion = false;
+      for (let i = 0; i < 500; i++) {
+        const rng = createRng(`drop-potion-${i}`);
+        if (rollDrop(rng, []) === 'potion') {
+          foundPotion = true;
+          break;
+        }
+      }
+      expect(foundPotion).toBe(true);
+    });
+
+    it('can return "star" as a drop', () => {
+      let foundStar = false;
+      for (let i = 0; i < 500; i++) {
+        const rng = createRng(`drop-star-${i}`);
+        if (rollDrop(rng, []) === 'star') {
+          foundStar = true;
+          break;
+        }
+      }
+      expect(foundStar).toBe(true);
+    });
+
+    it('golden_age relic doubles drop chances', () => {
+      let dropsWithRelic = 0;
+      let dropsWithout = 0;
+      const trials = 2000;
+
+      for (let i = 0; i < trials; i++) {
+        const rng1 = createRng(`relic-test-${i}`);
+        const rng2 = createRng(`relic-test-${i}`);
+        if (rollDrop(rng1, ['golden_age']) !== null) dropsWithRelic++;
+        if (rollDrop(rng2, []) !== null) dropsWithout++;
+      }
+
+      // With relic, effective rate is ~0.16 vs ~0.08 without
+      // dropsWithRelic should be roughly 2x dropsWithout
+      expect(dropsWithRelic).toBeGreaterThan(dropsWithout * 1.5);
+    });
+
+    it('is deterministic with same RNG seed', () => {
+      const results: (string | null)[] = [];
+      for (let run = 0; run < 2; run++) {
+        const rng = createRng('deterministic-drop');
+        results.push(rollDrop(rng, []));
+      }
+      expect(results[0]).toBe(results[1]);
     });
   });
 });

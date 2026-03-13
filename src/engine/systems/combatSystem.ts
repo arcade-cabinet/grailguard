@@ -7,7 +7,9 @@
 
 import combatConfig from '../../data/combatConfig.json';
 import siegeTargeting from '../../data/siegeTargeting.json';
+import dropConfig from '../../data/dropConfig.json';
 import type { UnitType, EnemyAffix, Faction, BuildingType } from '../constants';
+import type { Rng } from './rng';
 
 const {
   meleeSearchRange,
@@ -271,4 +273,30 @@ function findNearest(
     }
   }
   return best;
+}
+
+/** Drop type identifiers from dropConfig.json. */
+export type DropType = keyof typeof dropConfig;
+
+/**
+ * Rolls for a rare item drop when an enemy is killed. Uses a seeded PRNG
+ * for determinism. The "golden_age" relic doubles all drop chances.
+ *
+ * @param rng - A seeded PRNG instance.
+ * @param relics - Array of active relic IDs.
+ * @returns The drop type string, or null if nothing dropped.
+ */
+export function rollDrop(rng: Rng, relics: string[]): DropType | null {
+  const multiplier = relics.includes('golden_age') ? 2 : 1;
+  const roll = rng.next();
+
+  let cumulative = 0;
+  for (const [dropType, config] of Object.entries(dropConfig)) {
+    cumulative += (config as { chance: number }).chance * multiplier;
+    if (roll < cumulative) {
+      return dropType as DropType;
+    }
+  }
+
+  return null;
 }

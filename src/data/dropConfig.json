@@ -1,0 +1,4 @@
+{
+  "potion": { "chance": 0.05, "healPercent": 0.5 },
+  "star": { "chance": 0.03, "goldAmount": 10 }
+}

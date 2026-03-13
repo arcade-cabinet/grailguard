@@ -11,6 +11,7 @@ import {
   isWaveComplete,
   calculateWaveCompletionReward,
   allocateWaveBudget,
+  getWaveLabel,
 } from '../../../engine/systems/waveSystem';
 import { createRng } from '../../../engine/systems/rng';
 import type { UnitType, EnemyAffix } from '../../../engine/constants';
@@ -216,6 +217,28 @@ describe('waveSystem', () => {
       expect(totalCost).toBeLessThanOrEqual(200);
       // leftover should be less than cheapest available unit (goblin=5)
       expect(200 - totalCost).toBeLessThan(5);
+    });
+  });
+
+  describe('getWaveLabel', () => {
+    it('returns "Scout Party" for budget <= 100', () => {
+      expect(getWaveLabel(50)).toBe('Scout Party');
+      expect(getWaveLabel(100)).toBe('Scout Party');
+    });
+
+    it('returns "Raiding Force" for budget 101-300', () => {
+      expect(getWaveLabel(101)).toBe('Raiding Force');
+      expect(getWaveLabel(200)).toBe('Raiding Force');
+      expect(getWaveLabel(300)).toBe('Raiding Force');
+    });
+
+    it('returns "War Host" for budget > 300', () => {
+      expect(getWaveLabel(301)).toBe('War Host');
+      expect(getWaveLabel(1000)).toBe('War Host');
+    });
+
+    it('returns "War Host" for very large budgets', () => {
+      expect(getWaveLabel(99999)).toBe('War Host');
     });
   });
 });

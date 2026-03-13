@@ -8,6 +8,7 @@
 
 import waveConfig from '../../data/waveConfig.json';
 import enemyProgression from '../../data/enemyProgression.json';
+import waveLabels from '../../data/waveLabels.json';
 import { UNITS, type UnitType, type EnemyAffix } from '../constants';
 import type { Rng } from './rng';
 
@@ -159,4 +160,21 @@ export function calculateWaveCompletionReward(
   const goldReward = waveCompletionBonusBase + waveCompletionBonusPerWave * wave;
   const interest = hasGoldenAge ? Math.floor(currentGold * interestRate) : 0;
   return { goldReward, interest };
+}
+
+/**
+ * Returns a descriptive label for a wave based on its budget, using
+ * threshold-to-label mappings from waveLabels.json.
+ *
+ * @param budget - The wave's total budget.
+ * @returns A human-readable wave label (e.g. "Scout Party", "War Host").
+ */
+export function getWaveLabel(budget: number): string {
+  for (const entry of waveLabels) {
+    if (entry.maxBudget === null || budget <= entry.maxBudget) {
+      return entry.label;
+    }
+  }
+  // Fallback (should not occur if config ends with null maxBudget)
+  return waveLabels[waveLabels.length - 1].label;
 }

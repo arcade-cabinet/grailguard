@@ -18,7 +18,7 @@ import {
   projectScreenPointToGround,
   projectWorldPointToScreen,
 } from '../components/3d/Arena';
-import { preloadAllGameModels } from '../components/3d/modelPaths';
+import { getAllModelPaths } from '../components/3d/modelPaths';
 import { HUD } from '../components/ui/HUD';
 import {
   abandonActiveRun,
@@ -129,7 +129,7 @@ function LoadingOverlay({
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
-    preloadAllGameModels();
+    getAllModelPaths();
   }, []);
 
   useEffect(() => {

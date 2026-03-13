@@ -1340,7 +1340,6 @@ function codexDiscoverySystem() {
   if (!session) return;
 
   let changed = false;
-  let changed = false;
   let newDiscovered = session.discoveredCodex;
   for (const entity of gameWorld.query(CodexId)) {
     const codex = entity.get(CodexId);

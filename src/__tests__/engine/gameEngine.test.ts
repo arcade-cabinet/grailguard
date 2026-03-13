@@ -64,7 +64,7 @@ describe('GameEngine', () => {
     while (attempts < 100) {
       stepRunWorld(0.05);
       const session = gameWorld.get(GameSession);
-      if (session?.wave > 1 && session?.phase === 'build') {
+      if (session?.wave !== undefined && session.wave > 1 && session?.phase === 'build') {
         break;
       }
       attempts++;

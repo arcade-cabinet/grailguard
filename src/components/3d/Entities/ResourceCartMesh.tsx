@@ -1,7 +1,7 @@
 import { useFrame } from '@react-three/fiber/native';
 import type { Entity } from 'koota';
 import { useRef } from 'react';
-import * as THREE from 'three';
+import type * as THREE from 'three';
 import { Position, ResourceCart } from '../../../engine/GameEngine';
 
 export function ResourceCartMesh({ entity }: { entity: Entity }) {

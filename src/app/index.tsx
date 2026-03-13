@@ -2,12 +2,17 @@ import * as Tooltip from '@rn-primitives/tooltip';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { getUnlockCost, purchaseBuildingUnlock, purchaseSpellUnlock, useMetaProgress } from '../db/meta';
+import {
+  getUnlockCost,
+  purchaseBuildingUnlock,
+  purchaseSpellUnlock,
+  useMetaProgress,
+} from '../db/meta';
 import { BUILDINGS, type BuildingType, type SpellType } from '../engine/constants';
 import { soundManager } from '../engine/SoundManager';
 
 const BIOMES = [
-  { id: 'kings-road', name: 'King\'s Road', desc: 'Lush grass and dirt roads.' },
+  { id: 'kings-road', name: "King's Road", desc: 'Lush grass and dirt roads.' },
   { id: 'dark-forest', name: 'Dark Forest', desc: 'Dense, oppressive woods.' },
   { id: 'desert-wastes', name: 'Desert Wastes', desc: 'Barren and dry.' },
 ];
@@ -26,11 +31,19 @@ const MAP_SIZES = [
 const SPELLS: Record<SpellType, { name: string; desc: string; icon: string }> = {
   smite: { name: 'Smite', desc: 'Call down holy fire to damage enemies.', icon: '⚡' },
   holy_nova: { name: 'Holy Nova', desc: 'A burst of energy that heals nearby allies.', icon: '✨' },
-  zealous_haste: { name: 'Zealous Haste', desc: 'Double attack speed of allies for a short time.', icon: '🏃' },
+  zealous_haste: {
+    name: 'Zealous Haste',
+    desc: 'Double attack speed of allies for a short time.',
+    icon: '🏃',
+  },
   earthquake: { name: 'Earthquake', desc: 'Stun all enemies temporarily.', icon: '🌋' },
   chrono_shift: { name: 'Chrono Shift', desc: 'Freezes all enemies for 4 seconds.', icon: '❄️' },
   meteor_strike: { name: 'Meteor Strike', desc: 'Devastating area-of-effect damage.', icon: '☄️' },
-  divine_shield: { name: 'Divine Shield', desc: 'Makes all allies invulnerable for a short time.', icon: '🛡️' },
+  divine_shield: {
+    name: 'Divine Shield',
+    desc: 'Makes all allies invulnerable for a short time.',
+    icon: '🛡️',
+  },
 };
 
 export default function MainMenuScreen() {
@@ -52,7 +65,7 @@ export default function MainMenuScreen() {
   const toggleSpell = (spellId: string) => {
     if (selectedSpells.includes(spellId)) {
       if (selectedSpells.length > 1) {
-        setSelectedSpells(selectedSpells.filter(s => s !== spellId));
+        setSelectedSpells(selectedSpells.filter((s) => s !== spellId));
       }
     } else {
       if (selectedSpells.length < 2) {
@@ -92,7 +105,10 @@ export default function MainMenuScreen() {
           <Tooltip.Root>
             <Tooltip.Trigger asChild>
               <TouchableOpacity
-                onPress={() => { soundManager.playUiClick(); setEmbarkOpen(true); }}
+                onPress={() => {
+                  soundManager.playUiClick();
+                  setEmbarkOpen(true);
+                }}
                 className="rounded-2xl border border-[#b98b52] bg-[#5a371f] px-10 py-4"
               >
                 <Text className="text-2xl font-bold text-[#f6e6c7]">Embark</Text>
@@ -112,7 +128,10 @@ export default function MainMenuScreen() {
 
           {hasActiveRun ? (
             <TouchableOpacity
-              onPress={() => { soundManager.playUiClick(); router.push('/game?mode=resume'); }}
+              onPress={() => {
+                soundManager.playUiClick();
+                router.push('/game?mode=resume');
+              }}
               className="rounded-2xl border border-[#8b6b45] bg-[#3c2818] px-8 py-4"
             >
               <Text className="text-xl font-bold text-[#e8d099]">Continue Run</Text>
@@ -120,14 +139,20 @@ export default function MainMenuScreen() {
           ) : null}
 
           <TouchableOpacity
-            onPress={() => { soundManager.playUiClick(); setMarketOpen(true); }}
+            onPress={() => {
+              soundManager.playUiClick();
+              setMarketOpen(true);
+            }}
             className="rounded-2xl border border-[#8b6b45] bg-[#2d2118] px-8 py-4"
           >
             <Text className="text-xl font-bold text-[#e8d099]">Royal Market</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => { soundManager.playUiClick(); router.push('/codex' as never); }}
+            onPress={() => {
+              soundManager.playUiClick();
+              router.push('/codex' as never);
+            }}
             className="rounded-2xl border border-[#8b6b45] bg-[#2d2118] px-8 py-4"
           >
             <Text className="text-xl font-bold text-[#e8d099]">Codex</Text>
@@ -162,7 +187,7 @@ export default function MainMenuScreen() {
 
             <Text className="mt-6 text-xl font-bold text-[#3e2723]">Biome</Text>
             <View className="mt-2 flex-row gap-3">
-              {BIOMES.map(b => (
+              {BIOMES.map((b) => (
                 <TouchableOpacity
                   key={b.id}
                   onPress={() => setSelectedBiome(b.id)}
@@ -176,7 +201,7 @@ export default function MainMenuScreen() {
 
             <Text className="mt-6 text-xl font-bold text-[#3e2723]">Challenge</Text>
             <View className="mt-2 flex-row gap-3">
-              {CHALLENGES.map(c => (
+              {CHALLENGES.map((c) => (
                 <TouchableOpacity
                   key={c.id}
                   onPress={() => setSelectedChallenge(c.id)}
@@ -192,7 +217,7 @@ export default function MainMenuScreen() {
               <View className="flex-1">
                 <Text className="text-xl font-bold text-[#3e2723]">Map Size</Text>
                 <View className="mt-2 flex-row gap-3">
-                  {MAP_SIZES.map(s => (
+                  {MAP_SIZES.map((s) => (
                     <TouchableOpacity
                       key={s.id}
                       onPress={() => setSelectedSize(s.id)}
@@ -217,7 +242,7 @@ export default function MainMenuScreen() {
 
             <Text className="mt-6 text-xl font-bold text-[#3e2723]">Spells (Select up to 2)</Text>
             <View className="mt-2 flex-row flex-wrap gap-3">
-              {(Object.keys(SPELLS) as SpellType[]).map(spellId => {
+              {(Object.keys(SPELLS) as SpellType[]).map((spellId) => {
                 if (!spellUnlocks[spellId]) return null;
                 const spell = SPELLS[spellId];
                 const isSelected = selectedSpells.includes(spellId);
@@ -227,7 +252,9 @@ export default function MainMenuScreen() {
                     onPress={() => toggleSpell(spellId)}
                     className={`rounded-xl border p-3 ${isSelected ? 'border-[#8b6b45] bg-[#cda97e]' : 'border-[#8a7c6c] bg-[#e1d0b7]'}`}
                   >
-                    <Text className="font-bold text-[#3e2723]">{spell.icon} {spell.name}</Text>
+                    <Text className="font-bold text-[#3e2723]">
+                      {spell.icon} {spell.name}
+                    </Text>
                   </TouchableOpacity>
                 );
               })}
@@ -243,8 +270,12 @@ export default function MainMenuScreen() {
               <TouchableOpacity
                 onPress={() => {
                   setEmbarkOpen(false);
-                  const seedParam = seedInput.trim() ? `&seed=${encodeURIComponent(seedInput.trim())}` : '';
-                  router.push(`/game?mode=fresh&biome=${selectedBiome}&challenge=${selectedChallenge}&spells=${selectedSpells.join(',')}&mapSize=${selectedSize}${seedParam}`);
+                  const seedParam = seedInput.trim()
+                    ? `&seed=${encodeURIComponent(seedInput.trim())}`
+                    : '';
+                  router.push(
+                    `/game?mode=fresh&biome=${selectedBiome}&challenge=${selectedChallenge}&spells=${selectedSpells.join(',')}&mapSize=${selectedSize}${seedParam}`,
+                  );
                 }}
                 className="rounded-xl border border-[#a88a44] bg-[#4a3b22] px-8 py-3"
               >
@@ -335,9 +366,7 @@ export default function MainMenuScreen() {
                         <Text className="text-2xl font-bold text-[#3e2723]">
                           {spell.icon} {spell.name}
                         </Text>
-                        <Text className="mt-1 text-sm leading-5 text-[#6e4e31]">
-                          {spell.desc}
-                        </Text>
+                        <Text className="mt-1 text-sm leading-5 text-[#6e4e31]">{spell.desc}</Text>
                       </View>
 
                       {isUnlocked ? (
@@ -368,7 +397,10 @@ export default function MainMenuScreen() {
             </ScrollView>
 
             <TouchableOpacity
-              onPress={() => { soundManager.playUiClick(); setMarketOpen(false); }}
+              onPress={() => {
+                soundManager.playUiClick();
+                setMarketOpen(false);
+              }}
               className="self-center rounded-xl border border-[#a88a44] bg-[#4a3b22] px-8 py-3 mt-4"
             >
               <Text className="text-lg font-bold text-[#f7ebd0]">Return to Court</Text>

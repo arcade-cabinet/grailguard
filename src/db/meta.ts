@@ -2,8 +2,8 @@ import { eq } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { BUILDINGS, type BuildingType, type SpellType } from '../engine/constants';
 import { db } from './client';
-import { discoverCodexEntry as discoverCodexEntryRepo } from './repos/codexRepo';
 import { ensureSeedData as ensureBootstrapSeedData } from './repos/bootstrapRepo';
+import { discoverCodexEntry as discoverCodexEntryRepo } from './repos/codexRepo';
 import { purchaseDoctrineNode as purchaseDoctrineNodeRepo } from './repos/doctrineRepo';
 import { awardCoins, loadPlayerProfile, updatePlayerProfileStats } from './repos/profileRepo';
 import {
@@ -15,7 +15,7 @@ import {
   saveActiveRun,
 } from './repos/runRepo';
 import { loadSettings, saveSettings } from './repos/settingsRepo';
-import { purchaseUnlockTransaction, purchaseSpellUnlockTransaction } from './repos/unlockRepo';
+import { purchaseSpellUnlockTransaction, purchaseUnlockTransaction } from './repos/unlockRepo';
 import { activeRun, codexEntries, doctrineNodes, playerProfile, settings, unlocks } from './schema';
 
 const DEFAULT_UNLOCKS: Record<BuildingType, boolean> = {

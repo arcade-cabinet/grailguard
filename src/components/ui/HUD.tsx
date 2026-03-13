@@ -17,13 +17,7 @@ import {
 } from '../../engine/GameEngine';
 import { soundManager } from '../../engine/SoundManager';
 
-function BuildingCard({
-  entity,
-  treasury,
-}: {
-  entity: Entity;
-  treasury: number;
-}) {
+function BuildingCard({ entity, treasury }: { entity: Entity; treasury: number }) {
   const building = entity.get(Building);
   if (!building) return null;
 
@@ -60,7 +54,13 @@ function BuildingCard({
           {['first', 'strongest', 'weakest'].map((t) => (
             <TouchableOpacity
               key={t}
-              onPress={() => queueWorldCommand({ type: 'setTargeting', entityId: entity.id() as number, targeting: t as any })}
+              onPress={() =>
+                queueWorldCommand({
+                  type: 'setTargeting',
+                  entityId: entity.id() as number,
+                  targeting: t as 'first' | 'strongest' | 'weakest',
+                })
+              }
               className={`flex-1 rounded border p-2 ${building.targeting === t ? 'border-[#3b82f6] bg-[#1e3a8a]' : 'border-[#8f6a43] bg-[#3a281d]'}`}
             >
               <Text className="text-center text-xs font-bold text-[#f5e8cc] uppercase">{t}</Text>
@@ -80,7 +80,9 @@ function BuildingCard({
             canUpgradeSpawn ? 'border-[#3f6b3d] bg-[#355b31]' : 'border-[#b8ab97] bg-[#d7ccba]'
           }`}
         >
-          <Text className="text-center font-bold text-[#f7ebd0]">{config.isTurret ? 'Rate' : 'Spawn'} {costs.spawn}g</Text>
+          <Text className="text-center font-bold text-[#f7ebd0]">
+            {config.isTurret ? 'Rate' : 'Spawn'} {costs.spawn}g
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
           disabled={!canUpgradeStats}
@@ -92,7 +94,9 @@ function BuildingCard({
             canUpgradeStats ? 'border-[#35627d] bg-[#22455c]' : 'border-[#b8ab97] bg-[#d7ccba]'
           }`}
         >
-          <Text className="text-center font-bold text-[#f7ebd0]">{config.isTurret ? 'Dmg' : 'Stats'} {costs.stats}g</Text>
+          <Text className="text-center font-bold text-[#f7ebd0]">
+            {config.isTurret ? 'Dmg' : 'Stats'} {costs.stats}g
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -103,7 +107,9 @@ function BuildingCard({
           canSell ? 'border-[#8b3026] bg-[#6d241c]' : 'border-[#b8ab97] bg-[#d7ccba]'
         }`}
       >
-        <Text className="text-center font-bold text-[#f7ebd0]">Sell for {costs.sell}g {Math.floor((config.woodCost ?? 0) * 0.5)}w</Text>
+        <Text className="text-center font-bold text-[#f7ebd0]">
+          Sell for {costs.sell}g {Math.floor((config.woodCost ?? 0) * 0.5)}w
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -126,7 +132,9 @@ function WallCard({ entity }: { entity: Entity }) {
         onPress={() => queueWorldCommand({ type: 'sellWall', entityId: entity.id() })}
         className={`mt-3 rounded-xl border px-3 py-2 border-[#8b3026] bg-[#6d241c]`}
       >
-        <Text className="text-center font-bold text-[#f7ebd0]">Scrap for {Math.floor((BUILDINGS.wall.woodCost ?? 0) * 0.5)}w</Text>
+        <Text className="text-center font-bold text-[#f7ebd0]">
+          Scrap for {Math.floor((BUILDINGS.wall.woodCost ?? 0) * 0.5)}w
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -282,7 +290,11 @@ export function HUD({
           <MedievalProgress label="Grail" value={session.health} max={20} tint="#dc2626" />
           <MedievalProgress
             label={session.phase === 'build' ? 'Council Time' : 'Spells'}
-            value={session.phase === 'build' ? session.buildTimeLeft : Math.max(...Object.values(session.spellCooldowns), 0)}
+            value={
+              session.phase === 'build'
+                ? session.buildTimeLeft
+                : Math.max(...Object.values(session.spellCooldowns), 0)
+            }
             max={session.phase === 'build' ? 60 : 15}
             tint={session.phase === 'build' ? '#d4af37' : '#3b82f6'}
             suffix={session.phase === 'build' ? 's' : 's'}
@@ -292,16 +304,22 @@ export function HUD({
         <View className="mt-4 flex-row items-center justify-between">
           <View>
             <Text className="text-lg font-semibold text-[#f4e6ca]">
-              Bank: {session.gold}g | {session.wood}w | {session.ore}o | {session.gem}💎 | {Math.floor(session.faith)}f
+              Bank: {session.gold}g | {session.wood}w | {session.ore}o | {session.gem}💎 |{' '}
+              {Math.floor(session.faith)}f
             </Text>
             {waveState && (
               <Text className="text-xs font-bold text-[#8b5a2b]">
                 {Object.entries(
-                  waveState.spawnQueue.reduce((acc, curr) => {
-                    acc[curr.type] = (acc[curr.type] || 0) + 1;
-                    return acc;
-                  }, {} as Record<string, number>)
-                ).map(([type, count]) => `${type} x${count}`).join(' • ')}
+                  waveState.spawnQueue.reduce(
+                    (acc, curr) => {
+                      acc[curr.type] = (acc[curr.type] || 0) + 1;
+                      return acc;
+                    },
+                    {} as Record<string, number>,
+                  ),
+                )
+                  .map(([type, count]) => `${type} x${count}`)
+                  .join(' • ')}
               </Text>
             )}
           </View>
@@ -333,13 +351,17 @@ export function HUD({
                         const woodCost = building.woodCost ?? 0;
                         const oreCost = building.oreCost ?? 0;
                         const affordable =
-                          session.gold >= building.cost && session.wood >= woodCost && session.ore >= oreCost;
+                          session.gold >= building.cost &&
+                          session.wood >= woodCost &&
+                          session.ore >= oreCost;
 
                         const costLabel = [
                           building.cost > 0 ? `${building.cost}g` : null,
                           woodCost > 0 ? `${woodCost}w` : null,
                           oreCost > 0 ? `${oreCost}o` : null,
-                        ].filter(Boolean).join(' ');
+                        ]
+                          .filter(Boolean)
+                          .join(' ');
 
                         return (
                           <Tooltip.Root key={type}>
@@ -400,11 +422,7 @@ export function HUD({
                         </Text>
                       ) : null}
                       {buildingEntities.map((entity) => (
-                        <BuildingCard
-                          key={entity.id()}
-                          entity={entity}
-                          treasury={session.gold}
-                        />
+                        <BuildingCard key={entity.id()} entity={entity} treasury={session.gold} />
                       ))}
                       {wallEntities.map((entity) => (
                         <WallCard key={entity.id()} entity={entity} />
@@ -417,14 +435,35 @@ export function HUD({
               {session.activeSpells.map((spell) => {
                 const cd = session.spellCooldowns[spell] ?? 0;
                 const cost = spell === 'meteor_strike' ? 35 : spell === 'divine_shield' ? 40 : 25;
-                const spellName = spell === 'smite' ? 'Smite' : spell === 'holy_nova' ? 'Holy Nova' : spell === 'zealous_haste' ? 'Haste' : spell === 'earthquake' ? 'Quake' : spell === 'meteor_strike' ? 'Meteor' : spell === 'divine_shield' ? 'Shield' : spell;
+                const spellName =
+                  spell === 'smite'
+                    ? 'Smite'
+                    : spell === 'holy_nova'
+                      ? 'Holy Nova'
+                      : spell === 'zealous_haste'
+                        ? 'Haste'
+                        : spell === 'earthquake'
+                          ? 'Quake'
+                          : spell === 'meteor_strike'
+                            ? 'Meteor'
+                            : spell === 'divine_shield'
+                              ? 'Shield'
+                              : spell;
                 return (
                   <Toolbar.Button
                     key={spell}
-                    disabled={cd > 0 || session.phase === 'build' || session.gameOver || session.faith < cost}
-                    onPress={() => queueWorldCommand({ type: 'castSpell', spellId: spell } as any)}
+                    disabled={
+                      cd > 0 ||
+                      session.phase === 'build' ||
+                      session.gameOver ||
+                      session.faith < cost
+                    }
+                    onPress={() => queueWorldCommand({ type: 'castSpell', spellId: spell })}
                     className={`rounded-2xl border px-4 py-4 ${
-                      cd === 0 && session.phase === 'defend' && !session.gameOver && session.faith >= cost
+                      cd === 0 &&
+                      session.phase === 'defend' &&
+                      !session.gameOver &&
+                      session.faith >= cost
                         ? 'border-[#3b82f6] bg-[#1e3a8a]'
                         : 'border-[#475569] bg-[#334155]'
                     }`}
@@ -445,7 +484,10 @@ export function HUD({
 
               {session.phase === 'build' && (
                 <Toolbar.Button
-                  onPress={() => { soundManager.playUiClick(); onCancelPlacement(); }}
+                  onPress={() => {
+                    soundManager.playUiClick();
+                    onCancelPlacement();
+                  }}
                   className="rounded-2xl border border-[#8f6a43] bg-[#3a281d] px-4 py-4"
                 >
                   <Text className="font-bold text-[#f5e8cc]">
@@ -455,7 +497,10 @@ export function HUD({
               )}
 
               <Toolbar.Button
-                onPress={() => { soundManager.playUiClick(); onExit(); }}
+                onPress={() => {
+                  soundManager.playUiClick();
+                  onExit();
+                }}
                 className="rounded-2xl border border-[#7d5d3f] bg-[#1e1410] px-4 py-4"
               >
                 <Text className="font-bold text-[#f5e8cc]">Leave</Text>
@@ -464,14 +509,15 @@ export function HUD({
           </View>
         </Toolbar.Root>
 
-
-
         {selectedEntity?.isAlive() && !session.gameOver ? (
           <View className="rounded-[24px] border border-[#8b6a44] bg-[#ead9bc]/95 px-4 py-4">
             <View className="mb-3 flex-row items-center justify-between">
               <Text className="text-lg font-bold text-[#3e2723]">Selected Defense</Text>
               <TouchableOpacity
-                onPress={() => { soundManager.playUiClick(); onClearSelection(); }}
+                onPress={() => {
+                  soundManager.playUiClick();
+                  onClearSelection();
+                }}
                 className="rounded-xl border border-[#8f6a43] bg-[#3a281d] px-3 py-2"
               >
                 <Text className="font-bold text-[#f5e8cc]">Close</Text>
@@ -488,7 +534,7 @@ export function HUD({
       </View>
 
       <Modal visible={session.pendingRelicDraft} transparent animationType="fade">
-          <View className="flex-1 items-center justify-center bg-[#0a0806]/90 px-4">
+        <View className="flex-1 items-center justify-center bg-[#0a0806]/90 px-4">
           <View className="w-full max-w-2xl rounded-[28px] border border-[#d4af37] bg-[#241711] p-6 shadow-2xl">
             <Text className="text-center text-3xl font-bold text-[#f0dfbe]">Relic Draft</Text>
             <Text className="mt-2 text-center text-[#c7b08c]">
@@ -496,14 +542,42 @@ export function HUD({
             </Text>
             <View className="mt-8 flex-row flex-wrap justify-center gap-4">
               {[
-                { id: 'venomous_fletching', name: 'Venomous Fletching', desc: 'Archers apply poison damage over time.' },
-                { id: 'martyrs_blood', name: "Martyr's Blood", desc: 'Dying allies heal surrounding units.' },
-                { id: 'golden_age', name: 'Golden Age', desc: 'Earn 5% interest on unspent gold per wave.' },
-                { id: 'crystal_lens', name: 'Crystal Lens', desc: 'Obelisks deal +50% damage but fire 20% slower.' },
-                { id: 'miners_lantern', name: "Miner's Lantern", desc: 'Resource carts move twice as fast.' },
+                {
+                  id: 'venomous_fletching',
+                  name: 'Venomous Fletching',
+                  desc: 'Archers apply poison damage over time.',
+                },
+                {
+                  id: 'martyrs_blood',
+                  name: "Martyr's Blood",
+                  desc: 'Dying allies heal surrounding units.',
+                },
+                {
+                  id: 'golden_age',
+                  name: 'Golden Age',
+                  desc: 'Earn 5% interest on unspent gold per wave.',
+                },
+                {
+                  id: 'crystal_lens',
+                  name: 'Crystal Lens',
+                  desc: 'Obelisks deal +50% damage but fire 20% slower.',
+                },
+                {
+                  id: 'miners_lantern',
+                  name: "Miner's Lantern",
+                  desc: 'Resource carts move twice as fast.',
+                },
                 { id: 'iron_tracks', name: 'Iron Tracks', desc: 'Minecart tracks cost no wood.' },
-                { id: 'blessed_pickaxe', name: 'Blessed Pickaxe', desc: 'Gem mines extract 2 gems at a time.' },
-                { id: 'war_horn', name: 'War Horn', desc: 'Allied units spawn with immediate attacks ready.' },
+                {
+                  id: 'blessed_pickaxe',
+                  name: 'Blessed Pickaxe',
+                  desc: 'Gem mines extract 2 gems at a time.',
+                },
+                {
+                  id: 'war_horn',
+                  name: 'War Horn',
+                  desc: 'Allied units spawn with immediate attacks ready.',
+                },
               ].map((relic) => (
                 <TouchableOpacity
                   key={relic.id}
@@ -516,8 +590,8 @@ export function HUD({
               ))}
             </View>
           </View>
-          </View>
-          </Modal>
-          </View>
-          );
-          }
+        </View>
+      </Modal>
+    </View>
+  );
+}

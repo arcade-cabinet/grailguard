@@ -1,7 +1,7 @@
-import { Clone, useGLTF, useAnimations } from '@react-three/drei';
+import { Clone, useAnimations, useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import type { Entity } from 'koota';
-import { useRef, useEffect } from 'react';
+import { useRef } from 'react';
 import * as THREE from 'three';
 import { Facing, Position, Unit } from '../../../engine/GameEngine';
 import { UNIT_MODEL_PATHS } from '../modelPaths';
@@ -32,7 +32,7 @@ export function UnitMesh({ entity, selected = false }: { entity: Entity; selecte
       const dx = currentPosition.x - previousPositionRef.current.x;
       const dz = currentPosition.z - previousPositionRef.current.z;
       const velocity = Math.hypot(dx, dz) / Math.max(0.001, delta);
-      
+
       if (currentUnit.cooldown > currentUnit.atkSpd * 0.8) {
         nextAnimation = 'attack';
       } else if (velocity > 0.1) {

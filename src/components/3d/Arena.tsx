@@ -2,7 +2,7 @@ import { Clone, useGLTF } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import type { Entity } from 'koota';
 import { useQuery, useTrait } from 'koota/react';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import * as THREE from 'three';
 import {
   Building,
@@ -11,21 +11,20 @@ import {
   gameWorld,
   Particle,
   Position,
+  Projectile,
+  ResourceCart,
   roadSpline,
   stepRunWorld,
   Unit,
   WorldEffect,
-  ResourceCart,
 } from '../../engine/GameEngine';
+import { soundManager } from '../../engine/SoundManager';
 import { BuildingMesh } from './Entities/BuildingMesh';
 import { ParticleMesh } from './Entities/ParticleMesh';
+import { ProjectileMesh } from './Entities/ProjectileMesh';
+import { ResourceCartMesh } from './Entities/ResourceCartMesh';
 import { UnitMesh } from './Entities/UnitMesh';
 import { WorldEffectMesh } from './Entities/WorldEffectMesh';
-import { ResourceCartMesh } from './Entities/ResourceCartMesh';
-
-import { soundManager } from '../../engine/SoundManager';
-import { ProjectileMesh } from './Entities/ProjectileMesh';
-import { Projectile } from '../../engine/GameEngine';
 
 let activeCamera: THREE.Camera | null = null;
 const placementPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
@@ -110,7 +109,7 @@ function CameraRig() {
       const aspect = size.width / size.height;
       let viewSize = mapSize * 1.2;
       if (aspect < 1) viewSize = (mapSize * 1.2) / aspect; // Scale to fit width on vertical screens
-      
+
       const ortho = camera as THREE.OrthographicCamera;
       ortho.left = (-viewSize * aspect) / 2;
       ortho.right = (viewSize * aspect) / 2;
@@ -143,7 +142,7 @@ function EnvironmentScatter() {
   const instances = useMemo(() => {
     let seed = session?.runId ? parseInt(session.runId.substring(0, 8), 16) : 12345;
     const mapSize = session?.mapSize ?? 100;
-    if (isNaN(seed)) seed = 12345;
+    if (Number.isNaN(seed)) seed = 12345;
     const random = () => {
       seed = (seed * 16807) % 2147483647;
       return (seed - 1) / 2147483646;
@@ -155,7 +154,7 @@ function EnvironmentScatter() {
     for (let i = 0; i < numItems; i++) {
       const x = (random() - 0.5) * mapSize;
       const z = (random() - 0.5) * mapSize;
-      
+
       const point = new THREE.Vector3(x, 0, z);
       let minDistance = Infinity;
       for (let t = 0; t <= 1; t += 0.05) {
@@ -182,8 +181,17 @@ function EnvironmentScatter() {
   return (
     <>
       {instances.map((item) => (
-        <group key={item.id} position={item.position as [number, number, number]} rotation={item.rotation as [number, number, number]} scale={item.scale}>
-          <Clone object={item.type === 'tree' ? treeModel.scene : rockModel.scene} castShadow receiveShadow />
+        <group
+          key={item.id}
+          position={item.position as [number, number, number]}
+          rotation={item.rotation as [number, number, number]}
+          scale={item.scale}
+        >
+          <Clone
+            object={item.type === 'tree' ? treeModel.scene : rockModel.scene}
+            castShadow
+            receiveShadow
+          />
         </group>
       ))}
     </>
@@ -192,7 +200,12 @@ function EnvironmentScatter() {
 
 function Terrain() {
   const session = useTrait(gameWorld, GameSession);
-  const color = session?.biome === 'dark-forest' ? '#2f4f4f' : session?.biome === 'desert-wastes' ? '#d2b48c' : '#4a8f46';
+  const color =
+    session?.biome === 'dark-forest'
+      ? '#2f4f4f'
+      : session?.biome === 'desert-wastes'
+        ? '#d2b48c'
+        : '#4a8f46';
   const mapSize = session?.mapSize ?? 100;
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
@@ -204,7 +217,12 @@ function Terrain() {
 
 function Road() {
   const session = useTrait(gameWorld, GameSession);
-  const color = session?.biome === 'dark-forest' ? '#5c4033' : session?.biome === 'desert-wastes' ? '#d2a679' : '#8b5a2b';
+  const color =
+    session?.biome === 'dark-forest'
+      ? '#5c4033'
+      : session?.biome === 'desert-wastes'
+        ? '#d2a679'
+        : '#8b5a2b';
   const [tubeGeo, setTubeGeo] = useState<THREE.TubeGeometry | null>(null);
 
   useEffect(() => {
@@ -216,7 +234,7 @@ function Road() {
     setTubeGeo(geometry);
 
     return () => geometry.dispose();
-  }, [session?.runId]);
+  }, [session?.runId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!tubeGeo) return null;
 
@@ -261,7 +279,7 @@ export function Arena({
     if (session) {
       soundManager.playMusic(session.phase);
     }
-  }, [session?.phase]);
+  }, [session?.phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <>

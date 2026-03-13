@@ -1,6 +1,13 @@
 export type Faction = 'ally' | 'enemy';
 export type GamePhase = 'build' | 'defend' | 'game_over';
-export type SpellType = 'smite' | 'holy_nova' | 'zealous_haste' | 'earthquake' | 'chrono_shift' | 'meteor_strike' | 'divine_shield';
+export type SpellType =
+  | 'smite'
+  | 'holy_nova'
+  | 'zealous_haste'
+  | 'earthquake'
+  | 'chrono_shift'
+  | 'meteor_strike'
+  | 'divine_shield';
 export type EnemyAffix = 'armored' | 'swift' | 'regenerating' | 'ranged' | 'vampiric' | 'explosive';
 export type UnitType =
   | 'wall'

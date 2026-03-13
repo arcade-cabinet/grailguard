@@ -1,19 +1,28 @@
 import { createWorld, type Entity, trait } from 'koota';
 import * as THREE from 'three';
-import { EntityManager, Vehicle, Path, FollowPathBehavior, SeparationBehavior, SeekBehavior, Vector3 as YukaVector3 } from 'yuka';
-import { soundManager } from './SoundManager';
+import {
+  EntityManager,
+  FollowPathBehavior,
+  Path,
+  SeekBehavior,
+  SeparationBehavior,
+  Vehicle,
+  Vector3 as YukaVector3,
+} from 'yuka';
 import { generateRoadPoints } from './mapGenerator';
+import { soundManager } from './SoundManager';
 
 export const yukaManager = new EntityManager();
 export const vehiclesByEntityId = new Map<number, Vehicle>();
+
 import {
   BUILDINGS,
   type BuildingType,
+  type EnemyAffix,
   type Faction,
   type GamePhase,
   UNITS,
   type UnitType,
-  type EnemyAffix,
 } from './constants';
 
 export const Position = trait({ x: 0, y: 0, z: 0 });
@@ -124,7 +133,7 @@ export const GameSession = trait(() => ({
   placementY: 0,
   placementZ: 0,
   placementValid: false,
-  roadPoints: [] as {x: number, y: number, z: number}[],
+  roadPoints: [] as { x: number; y: number; z: number }[],
 }));
 
 export const ResourceCart = trait(() => ({
@@ -145,18 +154,20 @@ export let roadSpline = new THREE.CatmullRomCurve3([new THREE.Vector3()]);
 export let roadSamples: THREE.Vector3[] = [];
 export let sanctuaryPosition = new THREE.Vector3();
 export let spawnPosition = new THREE.Vector3();
-export let yukaRoadPath = new Path();
+export const yukaRoadPath = new Path();
 
-export function updateMapData(points: {x: number, y: number, z: number}[]) {
-  const vectors = points.map(p => new THREE.Vector3(p.x, p.y, p.z));
+export function updateMapData(points: { x: number; y: number; z: number }[]) {
+  const vectors = points.map((p) => new THREE.Vector3(p.x, p.y, p.z));
   roadSpline = new THREE.CatmullRomCurve3(vectors);
   roadSamples = roadSpline.getPoints(120);
   sanctuaryPosition = vectors[vectors.length - 1].clone();
   spawnPosition = vectors[0].clone();
-  
+
   yukaRoadPath.clear();
   const subPoints = roadSpline.getPoints(50);
-  subPoints.forEach(p => yukaRoadPath.add(new YukaVector3(p.x, 0, p.z)));
+  for (const p of subPoints) {
+    yukaRoadPath.add(new YukaVector3(p.x, 0, p.z));
+  }
 }
 
 export interface ActiveRunSnapshotV1 {
@@ -335,7 +346,7 @@ function buildWaveQueue(wave: number) {
     for (const type of pool) {
       const cost = UNITS[type].cost ?? 0;
       if (budget >= cost) {
-        let affix: EnemyAffix | undefined = undefined;
+        let affix: EnemyAffix | undefined;
         if (wave >= 6 && Math.random() < 0.2) {
           affix = possibleAffixes[Math.floor(Math.random() * possibleAffixes.length)];
         }
@@ -381,10 +392,11 @@ function spawnScaledUnit(
   if (!session) return undefined;
 
   const multiplier = (team === 'enemy' ? 1 + session.wave * 0.15 : 1) * statMultiplier;
-  const ironVanguard = session.doctrines.find(d => d.nodeId === 'iron_vanguard');
-  const hpMultiplier = ironVanguard && team === 'ally' && !config.isRanged && !config.isHealer 
-    ? 1 + (0.10 * ironVanguard.level) 
-    : 1;
+  const ironVanguard = session.doctrines.find((d) => d.nodeId === 'iron_vanguard');
+  const hpMultiplier =
+    ironVanguard && team === 'ally' && !config.isRanged && !config.isHealer
+      ? 1 + 0.1 * ironVanguard.level
+      : 1;
 
   const entity = gameWorld.spawn(
     Unit({
@@ -399,7 +411,7 @@ function spawnScaledUnit(
       reward: config.reward ?? 0,
       isRanged: affix === 'ranged' ? true : config.isRanged,
       isHealer: config.isHealer,
-      cooldown: (team === 'ally' && session.relics?.includes('war_horn')) ? 0 : (config.atkSpd || 0),
+      cooldown: team === 'ally' && session.relics?.includes('war_horn') ? 0 : config.atkSpd || 0,
       timeAlive: 0,
       pathIndex:
         team === 'enemy' ? 0 : clamp(nearestRoadIndex(position), 1, roadSamples.length - 1),
@@ -415,16 +427,16 @@ function spawnScaledUnit(
     const vehicle = new Vehicle();
     vehicle.position.set(position.x, 0, position.z);
     vehicle.maxSpeed = affix === 'swift' ? config.speed * 2 : config.speed;
-    
+
     const followBehavior = new FollowPathBehavior(yukaRoadPath);
     followBehavior.active = team === 'enemy';
     vehicle.steering.add(followBehavior);
-    
+
     if (team === 'ally') {
       vehicle.steering.add(new SeparationBehavior());
       vehicle.steering.add(new SeekBehavior(new YukaVector3()));
     }
-    
+
     yukaManager.add(vehicle);
     vehiclesByEntityId.set(entity.id() as number, vehicle);
   }
@@ -646,7 +658,8 @@ function executeAttack(attacker: Entity, target: Entity) {
   const isHeal = attackerUnit.isHealer || attackerUnit.damage < 0;
   const isMagic = isHeal || attackerUnit.type === 'cleric';
   const session = getSession();
-  const isPoison = attackerUnit.type === 'archer' && session?.relics?.includes('venomous_fletching');
+  const isPoison =
+    attackerUnit.type === 'archer' && session?.relics?.includes('venomous_fletching');
 
   if (attackerUnit.isRanged) {
     gameWorld.spawn(
@@ -655,10 +668,10 @@ function executeAttack(attacker: Entity, target: Entity) {
         targetId: target.id() as number,
         damage: attackerUnit.damage,
         speed: 15,
-        color: isHeal ? '#34d399' : (isPoison ? '#10b981' : '#e2e8f0'),
+        color: isHeal ? '#34d399' : isPoison ? '#10b981' : '#e2e8f0',
         isHeal,
         isPoison: isPoison ?? false,
-      })
+      }),
     );
     return;
   }
@@ -672,9 +685,12 @@ function executeAttack(attacker: Entity, target: Entity) {
     return;
   }
 
-  const damage = (defender.affix === 'armored' && !isMagic) ? Math.max(1, Math.floor(attackerUnit.damage * 0.5)) : attackerUnit.damage;
+  const damage =
+    defender.affix === 'armored' && !isMagic
+      ? Math.max(1, Math.floor(attackerUnit.damage * 0.5))
+      : attackerUnit.damage;
   applyDeltaToUnit(target, damage, '#fde047', '-');
-  
+
   if (attackerUnit.affix === 'vampiric') {
     applyDeltaToUnit(attacker, -Math.floor(damage * 0.5), '#4ade80');
   }
@@ -736,7 +752,7 @@ function updateUnits(dt: number) {
       if (!targetPosition) continue;
 
       const distance = distance2D(position, targetPosition);
-      
+
       if (distance <= unit.range) {
         facing.y = Math.atan2(targetPosition.x - position.x, targetPosition.z - position.z);
         if (unit.cooldown <= 0) {
@@ -746,15 +762,17 @@ function updateUnits(dt: number) {
         if (vehicle) vehicle.velocity.set(0, 0, 0);
       } else {
         if (vehicle) {
-          let seek = vehicle.steering.behaviors.find(b => b instanceof SeekBehavior) as SeekBehavior | undefined;
+          let seek = vehicle.steering.behaviors.find((b) => b instanceof SeekBehavior) as
+            | SeekBehavior
+            | undefined;
           if (!seek) {
-             seek = new SeekBehavior();
-             vehicle.steering.add(seek);
+            seek = new SeekBehavior();
+            vehicle.steering.add(seek);
           }
           seek.target.set(targetPosition.x, 0, targetPosition.z);
           seek.active = true;
-          
-          const follow = vehicle.steering.behaviors.find(b => b instanceof FollowPathBehavior);
+
+          const follow = vehicle.steering.behaviors.find((b) => b instanceof FollowPathBehavior);
           if (follow) follow.active = false;
         }
       }
@@ -764,12 +782,12 @@ function updateUnits(dt: number) {
     if (vehicle) {
       if (unit.team === 'ally') {
         vehicle.velocity.set(0, 0, 0);
-        const seek = vehicle.steering.behaviors.find(b => b instanceof SeekBehavior);
+        const seek = vehicle.steering.behaviors.find((b) => b instanceof SeekBehavior);
         if (seek) seek.active = false;
       } else if (unit.team === 'enemy') {
-        const follow = vehicle.steering.behaviors.find(b => b instanceof FollowPathBehavior);
+        const follow = vehicle.steering.behaviors.find((b) => b instanceof FollowPathBehavior);
         if (follow) follow.active = true;
-        const seek = vehicle.steering.behaviors.find(b => b instanceof SeekBehavior);
+        const seek = vehicle.steering.behaviors.find((b) => b instanceof SeekBehavior);
         if (seek) seek.active = false;
 
         if (distance2D(position, sanctuaryPosition) < 6) {
@@ -798,17 +816,22 @@ function updateBuildings(dt: number) {
     if (!building || !position) continue;
 
     const config = BUILDINGS[building.type];
-    
-    if (building.type === 'lumber' || building.type === 'mine_ore' || building.type === 'mine_gem') {
+
+    if (
+      building.type === 'lumber' ||
+      building.type === 'mine_ore' ||
+      building.type === 'mine_gem'
+    ) {
       building.timer -= dt;
       if (building.timer <= 0) {
-        const resType = building.type === 'lumber' ? 'wood' : building.type === 'mine_ore' ? 'ore' : 'gem';
+        const resType =
+          building.type === 'lumber' ? 'wood' : building.type === 'mine_ore' ? 'ore' : 'gem';
         const path = findLogisticsPath(position, resType);
-        
+
         if (path) {
           gameWorld.spawn(
             ResourceCart({ resource: resType, path, pathIndex: 0, targetId: 0 }),
-            Position({ x: position.x, y: position.y + 1, z: position.z })
+            Position({ x: position.x, y: position.y + 1, z: position.z }),
           );
         } else {
           spawnFloatingText(position, 'No Track!', '#ef4444', 5);
@@ -860,7 +883,8 @@ function updateBuildings(dt: number) {
         }
 
         if (bestTarget) {
-          const hasCrystalLens = session.relics?.includes('crystal_lens') && building.type === 'obelisk';
+          const hasCrystalLens =
+            session.relics?.includes('crystal_lens') && building.type === 'obelisk';
           const damageMult = hasCrystalLens ? 1.5 : 1;
           const cdMult = hasCrystalLens ? 1.2 : 1;
 
@@ -868,16 +892,23 @@ function updateBuildings(dt: number) {
             Position({ x: position.x, y: position.y + 2, z: position.z }),
             Projectile({
               targetId: bestTarget.id() as number,
-              damage: (config.damage ?? 0) * (1.1 ** (building.levelStats - 1)) * damageMult,
+              damage: (config.damage ?? 0) * 1.1 ** (building.levelStats - 1) * damageMult,
               speed: building.type === 'catapult' ? 15 : 25,
-              color: config.color === 0xaaaaaa ? '#e2e8f0' : building.type === 'sorcerer' ? '#3b82f6' : building.type === 'catapult' ? '#8b4513' : '#a855f7',
+              color:
+                config.color === 0xaaaaaa
+                  ? '#e2e8f0'
+                  : building.type === 'sorcerer'
+                    ? '#3b82f6'
+                    : building.type === 'catapult'
+                      ? '#8b4513'
+                      : '#a855f7',
               isHeal: false,
               isPoison: false,
               splashRadius: building.type === 'catapult' ? 5 : 0,
               isSlow: building.type === 'sorcerer',
-            })
+            }),
           );
-          building.cooldown = ((config.atkSpd ?? 1) / (1.1 ** (building.levelStats - 1))) * cdMult;
+          building.cooldown = ((config.atkSpd ?? 1) / 1.1 ** (building.levelStats - 1)) * cdMult;
           soundManager.playCombat();
         }
       }
@@ -939,7 +970,13 @@ function updateWaveState(dt: number) {
   const nextSpawnTimer = waveState.spawnTimer - dt;
   if (nextSpawnTimer <= 0 && waveState.spawnQueue.length > 0) {
     const [next, ...rest] = waveState.spawnQueue;
-    spawnScaledUnit(next.type, 'enemy', { x: spawnPosition.x, y: 0.5, z: spawnPosition.z }, 1, next.affix);
+    spawnScaledUnit(
+      next.type,
+      'enemy',
+      { x: spawnPosition.x, y: 0.5, z: spawnPosition.z },
+      1,
+      next.affix,
+    );
     if (next.type === 'boss') {
       triggerBanner('Boss Approaches', 'danger', 2.8, 0.22, '#ef4444');
       spawnWorldEffect(
@@ -967,30 +1004,30 @@ function updateWaveState(dt: number) {
 
   if (waveState.spawnQueue.length === 0 && !enemiesAlive) {
     cleanupAlliedWaveUnits();
-    
+
     let interest = 0;
     if (session.relics?.includes('golden_age')) {
       interest = Math.floor(session.gold * 0.05);
     }
-    
+
     const nextWave = session.wave + 1;
     if (nextWave > 20) {
-      setSession({ 
-        phase: 'game_over', 
-        announcement: 'Victory Achieved!', 
-        gameOver: true, 
-        earnedCoins: session.wave * 25 
+      setSession({
+        phase: 'game_over',
+        announcement: 'Victory Achieved!',
+        gameOver: true,
+        earnedCoins: session.wave * 25,
       });
       soundManager.playGameOver();
       return;
     }
 
-    setSession({ 
-      gold: session.gold + 50 + session.wave * 10 + interest, 
+    setSession({
+      gold: session.gold + 50 + session.wave * 10 + interest,
       wave: nextWave,
       pendingRelicDraft: session.wave % 5 === 0,
     });
-    
+
     markRunDirty('wave_complete');
     initialBuildPhase();
   }
@@ -1069,7 +1106,7 @@ function cleanupAlliedWaveUnits() {
   }
 
   for (const entity of toDestroy) {
-    entity.destroy();
+    destroyUnit(entity, false);
   }
 }
 
@@ -1088,8 +1125,8 @@ export function createRunWorld(options?: {
   const doctrines = options?.doctrines ?? [];
   const activeSpells = options?.spells ?? ['smite'];
 
-  const crownTithe = doctrines.find(d => d.nodeId === 'crown_tithe');
-  const faithward = doctrines.find(d => d.nodeId === 'faithward');
+  const crownTithe = doctrines.find((d) => d.nodeId === 'crown_tithe');
+  const faithward = doctrines.find((d) => d.nodeId === 'faithward');
 
   const startGold = 300 + (crownTithe ? 50 * crownTithe.level : 0);
   const startHealth = 20 + (faithward ? Math.floor(20 * 0.25 * faithward.level) : 0);
@@ -1103,7 +1140,7 @@ export function createRunWorld(options?: {
   const seed = options?.seed || runId;
   const mapSize = options?.mapSize || 100;
   const roadVectors = generateRoadPoints(seed, mapSize);
-  const rawRoadPoints = roadVectors.map(v => ({ x: v.x, y: v.y, z: v.z }));
+  const rawRoadPoints = roadVectors.map((v) => ({ x: v.x, y: v.y, z: v.z }));
   updateMapData(rawRoadPoints);
 
   setSession({
@@ -1122,7 +1159,8 @@ export function createRunWorld(options?: {
     gem: 0,
     faith: 100,
     health: startHealth,
-    totalKills: 0,    elapsedMs: 0,
+    totalKills: 0,
+    elapsedMs: 0,
     selectedEntityId: -1,
     activePlacement: '',
     placementValid: false,
@@ -1157,16 +1195,17 @@ function codexDiscoverySystem() {
   if (!session) return;
 
   let changed = false;
+  const newDiscovered = [...session.discoveredCodex];
   for (const entity of gameWorld.query(CodexId)) {
     const codex = entity.get(CodexId);
-    if (codex && !session.discoveredCodex.includes(codex.id)) {
-      session.discoveredCodex.push(codex.id);
+    if (codex && !newDiscovered.includes(codex.id)) {
+      newDiscovered.push(codex.id);
       changed = true;
     }
   }
 
   if (changed) {
-    setSession({ discoveredCodex: [...session.discoveredCodex] });
+    setSession({ discoveredCodex: newDiscovered });
   }
 }
 
@@ -1176,9 +1215,10 @@ function updateProjectiles(dt: number) {
     const pos = entity.get(Position);
     if (!proj || !pos) continue;
 
-    const targetIdNum = typeof proj.targetId === 'string' ? parseInt(proj.targetId, 10) : proj.targetId;
+    const targetIdNum =
+      typeof proj.targetId === 'string' ? parseInt(proj.targetId, 10) : proj.targetId;
     const target = getEntityById(targetIdNum);
-    
+
     if (!target) {
       entity.destroy();
       continue;
@@ -1198,7 +1238,12 @@ function updateProjectiles(dt: number) {
           for (const e of gameWorld.query(Unit, Position)) {
             const u = e.get(Unit);
             const p = e.get(Position);
-            if (u && p && u.team === targetUnit.team && distance2D(targetPos, p) <= (proj.splashRadius ?? 0)) {
+            if (
+              u &&
+              p &&
+              u.team === targetUnit.team &&
+              distance2D(targetPos, p) <= (proj.splashRadius ?? 0)
+            ) {
               applyDeltaToUnit(e, proj.damage, proj.color, proj.isHeal ? '' : '-');
             }
           }
@@ -1226,20 +1271,31 @@ function updateProjectiles(dt: number) {
   }
 }
 
-function findLogisticsPath(startPos: {x: number, z: number}, resourceType: string): {x: number, z: number}[] | null {
+function findLogisticsPath(
+  startPos: { x: number; z: number },
+  resourceType: string,
+): { x: number; z: number }[] | null {
   const trackNodes = Array.from(gameWorld.query(Building, Position))
-    .filter(e => e.get(Building)?.type === 'track')
-    .map(e => ({ x: e.get(Position)!.x, z: e.get(Position)!.z }));
+    .filter((e) => e.get(Building)?.type === 'track')
+    .map((e) => {
+      const p = e.get(Position);
+      return { x: p?.x ?? 0, z: p?.z ?? 0 };
+    });
 
-  const sinks: {x: number, z: number}[] = [{ x: Math.round(sanctuaryPosition.x/5)*5, z: Math.round(sanctuaryPosition.z/5)*5 }];
+  const sinks: { x: number; z: number }[] = [
+    { x: Math.round(sanctuaryPosition.x / 5) * 5, z: Math.round(sanctuaryPosition.z / 5) * 5 },
+  ];
   if (resourceType === 'ore') {
     const mints = Array.from(gameWorld.query(Building, Position))
-      .filter(e => e.get(Building)?.type === 'mint')
-      .map(e => ({ x: e.get(Position)!.x, z: e.get(Position)!.z }));
+      .filter((e) => e.get(Building)?.type === 'mint')
+      .map((e) => {
+        const p = e.get(Position);
+        return { x: p?.x ?? 0, z: p?.z ?? 0 };
+      });
     sinks.push(...mints);
   }
 
-  const queue: { pos: {x: number, z: number}, path: {x: number, z: number}[] }[] = [];
+  const queue: { pos: { x: number; z: number }; path: { x: number; z: number }[] }[] = [];
   const visited = new Set<string>();
 
   // Find tracks adjacent to startPos
@@ -1251,7 +1307,9 @@ function findLogisticsPath(startPos: {x: number, z: number}, resourceType: strin
   }
 
   while (queue.length > 0) {
-    const { pos, path } = queue.shift()!;
+    const item = queue.shift();
+    if (!item) break;
+    const { pos, path } = item;
 
     // Check if adjacent to sink
     for (const sink of sinks) {
@@ -1297,14 +1355,17 @@ function updateLogistics(dt: number) {
       if (cart.pathIndex >= cart.path.length) {
         // Reached destination
         const isMint = cart.resource === 'ore' && distance2D(target, sanctuaryPosition) > 10;
-        
+
         if (isMint) {
           setSession({ gold: session.gold + 15 });
           spawnFloatingText({ x: target.x, y: 3, z: target.z }, '+15g', '#facc15', 10);
         } else {
           if (cart.resource === 'wood') setSession({ wood: session.wood + 10 });
           if (cart.resource === 'ore') setSession({ ore: session.ore + 1 });
-          if (cart.resource === 'gem') setSession({ gem: session.gem + (session.relics?.includes('blessed_pickaxe') ? 2 : 1) });
+          if (cart.resource === 'gem')
+            setSession({
+              gem: session.gem + (session.relics?.includes('blessed_pickaxe') ? 2 : 1),
+            });
         }
         toDestroy.push(entity);
       }
@@ -1424,8 +1485,8 @@ export function buildStructure(type: BuildingType, position: { x: number; y: num
   markRunDirty('build_structure');
   spawnParticleBurst(snappedPosition, '#d4af37', 10, 0.85);
 
-  const ironVanguard = session.doctrines.find(d => d.nodeId === 'iron_vanguard');
-  const hpMultiplier = ironVanguard ? 1 + (0.10 * ironVanguard.level) : 1;
+  const ironVanguard = session.doctrines.find((d) => d.nodeId === 'iron_vanguard');
+  const hpMultiplier = ironVanguard ? 1 + 0.1 * ironVanguard.level : 1;
 
   if (type === 'wall') {
     gameWorld.spawn(
@@ -1499,10 +1560,13 @@ export function sellBuilding(entity: Entity) {
   );
   const woodValue = Math.floor((config.woodCost ?? 0) * 0.5);
 
-  entity.destroy();
   const position = entity.get(Position);
-  if (position) {
-    spawnParticleBurst(position, '#64748b', 10, 0.9);
+  const posClone = position ? { x: position.x, y: position.y, z: position.z } : null;
+
+  entity.destroy();
+
+  if (posClone) {
+    spawnParticleBurst(posClone, '#64748b', 10, 0.9);
   }
   setSession({ gold: session.gold + sellValue, wood: session.wood + woodValue, cameraShake: 1 });
   markRunDirty('sell_building');
@@ -1517,11 +1581,17 @@ export function sellWall(entity: Entity) {
   }
 
   const position = entity.get(Position);
+  const posClone = position ? { x: position.x, y: position.y, z: position.z } : null;
+
   entity.destroy();
-  if (position) {
-    spawnParticleBurst(position, '#64748b', 8, 0.8);
+
+  if (posClone) {
+    spawnParticleBurst(posClone, '#64748b', 8, 0.8);
   }
-  setSession({ wood: session.wood + Math.floor((BUILDINGS.wall.woodCost ?? 0) * 0.5), cameraShake: 1 });
+  setSession({
+    wood: session.wood + Math.floor((BUILDINGS.wall.woodCost ?? 0) * 0.5),
+    cameraShake: 1,
+  });
   markRunDirty('sell_wall');
   return true;
 }
@@ -1629,7 +1699,13 @@ export function castSpell(spellId: string) {
 
 export function castMeteorStrike() {
   const session = getSession();
-  if (!session || (session.spellCooldowns['meteor_strike'] ?? 0) > 0 || session.gameOver || session.faith < 35) return false;
+  if (
+    !session ||
+    (session.spellCooldowns['meteor_strike'] ?? 0) > 0 ||
+    session.gameOver ||
+    session.faith < 35
+  )
+    return false;
 
   const enemyEntities: Entity[] = [];
   for (const entity of gameWorld.query(Unit, Position)) {
@@ -1641,7 +1717,7 @@ export function castMeteorStrike() {
 
   if (enemyEntities.length === 0) return false;
 
-  const targetEnemy = enemyEntities.sort((left, right) => {
+  const targetEnemy = [...enemyEntities].sort((left, right) => {
     const leftPosition = left.get(Position);
     const rightPosition = right.get(Position);
     if (!leftPosition || !rightPosition) return 0;
@@ -1664,14 +1740,24 @@ export function castMeteorStrike() {
   }
 
   triggerBanner('Meteor Strike', 'danger', 1.4, 0.24, '#ef4444');
-  setSession({ spellCooldowns: { ...session.spellCooldowns, meteor_strike: 25 }, cameraShake: 8, faith: session.faith - 35 });
+  setSession({
+    spellCooldowns: { ...session.spellCooldowns, meteor_strike: 25 },
+    cameraShake: 8,
+    faith: session.faith - 35,
+  });
   markRunDirty('cast_spell');
   return true;
 }
 
 export function castDivineShield() {
   const session = getSession();
-  if (!session || (session.spellCooldowns['divine_shield'] ?? 0) > 0 || session.gameOver || session.faith < 40) return false;
+  if (
+    !session ||
+    (session.spellCooldowns['divine_shield'] ?? 0) > 0 ||
+    session.gameOver ||
+    session.faith < 40
+  )
+    return false;
 
   let shielded = false;
   for (const entity of gameWorld.query(Unit)) {
@@ -1684,7 +1770,10 @@ export function castDivineShield() {
 
   if (shielded) {
     triggerBanner('Divine Shield', 'holy', 1.4, 0.24, '#3b82f6');
-    setSession({ spellCooldowns: { ...session.spellCooldowns, divine_shield: 30 }, faith: session.faith - 40 });
+    setSession({
+      spellCooldowns: { ...session.spellCooldowns, divine_shield: 30 },
+      faith: session.faith - 40,
+    });
     markRunDirty('cast_spell');
     return true;
   }
@@ -1693,7 +1782,13 @@ export function castDivineShield() {
 
 export function castChronoShift() {
   const session = getSession();
-  if (!session || (session.spellCooldowns['chrono_shift'] ?? 0) > 0 || session.gameOver || session.faith < 50) return false;
+  if (
+    !session ||
+    (session.spellCooldowns['chrono_shift'] ?? 0) > 0 ||
+    session.gameOver ||
+    session.faith < 50
+  )
+    return false;
 
   let frozen = false;
   for (const entity of gameWorld.query(Unit, Position)) {
@@ -1706,7 +1801,10 @@ export function castChronoShift() {
 
   if (frozen) {
     triggerBanner('Chrono Shift', 'holy', 1.4, 0.24, '#38bdf8');
-    setSession({ spellCooldowns: { ...session.spellCooldowns, chrono_shift: 30 }, faith: session.faith - 50 });
+    setSession({
+      spellCooldowns: { ...session.spellCooldowns, chrono_shift: 30 },
+      faith: session.faith - 50,
+    });
     markRunDirty('cast_spell');
     return true;
   }
@@ -1715,7 +1813,13 @@ export function castChronoShift() {
 
 export function castHolyNova() {
   const session = getSession();
-  if (!session || (session.spellCooldowns['holy_nova'] ?? 0) > 0 || session.gameOver || session.faith < 25) return false;
+  if (
+    !session ||
+    (session.spellCooldowns['holy_nova'] ?? 0) > 0 ||
+    session.gameOver ||
+    session.faith < 25
+  )
+    return false;
 
   let healed = false;
   for (const entity of gameWorld.query(Unit, Position)) {
@@ -1728,7 +1832,10 @@ export function castHolyNova() {
 
   if (healed) {
     triggerBanner('Holy Nova', 'holy', 1.4, 0.24, '#4ade80');
-    setSession({ spellCooldowns: { ...session.spellCooldowns, holy_nova: 20 }, faith: session.faith - 25 });
+    setSession({
+      spellCooldowns: { ...session.spellCooldowns, holy_nova: 20 },
+      faith: session.faith - 25,
+    });
     markRunDirty('cast_spell');
     return true;
   }
@@ -1736,8 +1843,14 @@ export function castHolyNova() {
 }
 export function castZealousHaste() {
   const session = getSession();
-  if (!session || (session.spellCooldowns['zealous_haste'] ?? 0) > 0 || session.gameOver || session.faith < 25) return false;
-  
+  if (
+    !session ||
+    (session.spellCooldowns['zealous_haste'] ?? 0) > 0 ||
+    session.gameOver ||
+    session.faith < 25
+  )
+    return false;
+
   for (const entity of gameWorld.query(Unit, Position)) {
     const unit = entity.get(Unit);
     if (unit?.team === 'ally') {
@@ -1746,15 +1859,24 @@ export function castZealousHaste() {
   }
 
   triggerBanner('Zealous Haste', 'holy', 1.4, 0.24, '#fde047');
-  setSession({ spellCooldowns: { ...session.spellCooldowns, zealous_haste: 30 }, faith: session.faith - 25 });
+  setSession({
+    spellCooldowns: { ...session.spellCooldowns, zealous_haste: 30 },
+    faith: session.faith - 25,
+  });
   markRunDirty('cast_spell');
   return true;
 }
 
 export function castEarthquake() {
   const session = getSession();
-  if (!session || (session.spellCooldowns['earthquake'] ?? 0) > 0 || session.gameOver || session.faith < 25) return false;
-  
+  if (
+    !session ||
+    (session.spellCooldowns['earthquake'] ?? 0) > 0 ||
+    session.gameOver ||
+    session.faith < 25
+  )
+    return false;
+
   for (const entity of gameWorld.query(Unit, Position)) {
     const unit = entity.get(Unit);
     if (unit?.team === 'enemy') {
@@ -1765,14 +1887,24 @@ export function castEarthquake() {
   }
 
   triggerBanner('Earthquake', 'danger', 1.4, 0.24, '#f97316');
-  setSession({ spellCooldowns: { ...session.spellCooldowns, earthquake: 25 }, cameraShake: 8, faith: session.faith - 25 });
+  setSession({
+    spellCooldowns: { ...session.spellCooldowns, earthquake: 25 },
+    cameraShake: 8,
+    faith: session.faith - 25,
+  });
   markRunDirty('cast_spell');
   return true;
 }
 
 export function castSmite() {
   const session = getSession();
-  if (!session || (session.spellCooldowns['smite'] ?? 0) > 0 || session.gameOver || session.faith < 25) return false;
+  if (
+    !session ||
+    (session.spellCooldowns['smite'] ?? 0) > 0 ||
+    session.gameOver ||
+    session.faith < 25
+  )
+    return false;
 
   const enemyEntities: Entity[] = [];
   for (const entity of gameWorld.query(Unit, Position)) {
@@ -1817,7 +1949,11 @@ export function castSmite() {
   }
 
   triggerBanner('Divine Smite', 'holy', 1.4, 0.24, '#fde68a');
-  setSession({ spellCooldowns: { ...session.spellCooldowns, smite: 15 }, cameraShake: 4, faith: session.faith - 25 });
+  setSession({
+    spellCooldowns: { ...session.spellCooldowns, smite: 15 },
+    cameraShake: 4,
+    faith: session.faith - 25,
+  });
   markRunDirty('cast_smite');
   return true;
 }
@@ -1920,7 +2056,7 @@ export function hydrateRunWorld(snapshot: ActiveRunSnapshotV1) {
   }
 
   for (const unit of snapshot.units) {
-    gameWorld.spawn(
+    const entity = gameWorld.spawn(
       Unit({
         type: unit.type,
         team: unit.team,
@@ -1941,7 +2077,42 @@ export function hydrateRunWorld(snapshot: ActiveRunSnapshotV1) {
       }),
       Position(unit.position),
       Facing({ y: unit.facingY }),
-    );  }
+    );
+
+    if (unit.type !== 'wall') {
+      const config = UNITS[unit.type];
+      const vehicle = new Vehicle();
+      vehicle.maxSpeed = unit.affix === 'swift' ? config.speed * 2 : config.speed;
+      vehicle.position.copy(new YukaVector3(unit.position.x, unit.position.y, unit.position.z));
+      vehicle.boundingRadius = 1;
+
+      if (unit.team === 'enemy') {
+        const pathBehavior = new FollowPathBehavior(yukaRoadPath, 1.5);
+        pathBehavior.active = true;
+        vehicle.steering.add(pathBehavior);
+      } else {
+        const reversePath = new Path();
+        const waypoints =
+          (yukaRoadPath as unknown as { _waypoints?: YukaVector3[] })._waypoints || [];
+        for (const wp of [...waypoints].reverse()) {
+          reversePath.add(wp);
+        }
+        const advBehavior = new FollowPathBehavior(reversePath, 1.5);
+        vehicle.steering.add(advBehavior);
+
+        const separation = new SeparationBehavior();
+        separation.weight = 2.0;
+        vehicle.steering.add(separation);
+
+        const seek = new SeekBehavior();
+        seek.active = false;
+        vehicle.steering.add(seek);
+      }
+
+      yukaManager.add(vehicle);
+      vehiclesByEntityId.set(entity.id() as number, vehicle);
+    }
+  }
 }
 
 export function checkpointRun(reason: string) {

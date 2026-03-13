@@ -1,4 +1,3 @@
-import { eq } from 'drizzle-orm';
 import { db } from '../client';
 import { codexEntries } from '../schema';
 

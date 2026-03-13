@@ -63,7 +63,9 @@ export default function DoctrineScreen() {
               key={node.nodeId}
               className="rounded-2xl border border-[#8a6a44] bg-[#eadcc3] p-4"
             >
-              <Text className="text-xl font-bold text-[#3e2723]">{node.title} (Lv. {level}/5)</Text>
+              <Text className="text-xl font-bold text-[#3e2723]">
+                {node.title} (Lv. {level}/5)
+              </Text>
               <Text className="mt-1 text-sm text-[#6e4e31]">{node.description}</Text>
               <View className="mt-3 flex-row items-center justify-between">
                 <Text className="text-sm font-semibold text-[#75512d]">

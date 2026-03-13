@@ -14,15 +14,15 @@ import { HUD } from '../components/ui/HUD';
 import {
   abandonActiveRun,
   bankRunRewards,
+  discoverCodexEntry,
   loadActiveRunRecord,
   loadAutoResumeSetting,
   loadPreferredSpeed,
   markBrokenRunAndReset,
   saveActiveRunRecord,
   updatePreferredSpeed,
-  useMetaProgress,
-  discoverCodexEntry,
   useDoctrineNodes,
+  useMetaProgress,
 } from '../db/meta';
 import { BUILDINGS, type BuildingType } from '../engine/constants';
 import {
@@ -42,9 +42,8 @@ import {
   serializeRunWorld,
   snapPlacementPosition,
 } from '../engine/GameEngine';
-import { getActivePlacement, getPlacementPreview, getSelectedEntity } from '../engine/selectors';
-
 import { soundManager } from '../engine/SoundManager';
+import { getActivePlacement, getPlacementPreview, getSelectedEntity } from '../engine/selectors';
 
 function CodexDiscoveryBridge() {
   const session = useTrait(gameWorld, GameSession);
@@ -170,8 +169,10 @@ function EndOfRunModal() {
   return (
     <View className="absolute inset-0 items-center justify-center bg-[#0a0806]/95 px-6">
       <View className="w-full max-w-md rounded-[32px] border-2 border-[#8b3026] bg-[#2a100d] p-8 shadow-2xl">
-        <Text className="text-center text-5xl font-bold text-[#f2d6c9]">{session.announcement === 'Victory Achieved!' ? 'Victory' : 'The Grail Is Lost'}</Text>
-        
+        <Text className="text-center text-5xl font-bold text-[#f2d6c9]">
+          {session.announcement === 'Victory Achieved!' ? 'Victory' : 'The Grail Is Lost'}
+        </Text>
+
         <View className="mt-8 gap-4">
           <View className="flex-row justify-between border-b border-[#5a371f] pb-2">
             <Text className="text-xl text-[#dfbfaf]">Wave Reached</Text>
@@ -272,8 +273,6 @@ function RunPersistenceBridge() {
   return null;
 }
 
-
-
 function GameContent({
   onCancelPlacement,
   onClearSelection,
@@ -308,7 +307,14 @@ function GameContent({
 
 export default function GameScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ mode?: string; biome?: string; challenge?: string; spells?: string; mapSize?: string; seed?: string }>();
+  const params = useLocalSearchParams<{
+    mode?: string;
+    biome?: string;
+    challenge?: string;
+    spells?: string;
+    mapSize?: string;
+    seed?: string;
+  }>();
   const { settings, unlocks } = useMetaProgress();
   const doctrineNodes = useDoctrineNodes();
   const [bootLabel, setBootLabel] = useState('Preparing reliquaries...');
@@ -333,7 +339,9 @@ export default function GameScreen() {
       const preferredSpeed = await loadPreferredSpeed();
       const savedRun = await loadActiveRunRecord();
       const autoResume = await loadAutoResumeSetting();
-      const doctrines = doctrineNodes.filter(n => n.level > 0).map(n => ({ nodeId: n.nodeId, level: n.level }));
+      const doctrines = doctrineNodes
+        .filter((n) => n.level > 0)
+        .map((n) => ({ nodeId: n.nodeId, level: n.level }));
       const spells = params.spells ? params.spells.split(',') : ['smite'];
       const biome = params.biome ?? 'kings-road';
       const difficulty = params.challenge ?? 'pilgrim';
@@ -373,7 +381,15 @@ export default function GameScreen() {
     return () => {
       cancelled = true;
     };
-  }, [bootMode, doctrineNodes, params.biome, params.challenge, params.mapSize, params.seed, params.spells]);
+  }, [
+    bootMode,
+    doctrineNodes,
+    params.biome,
+    params.challenge,
+    params.mapSize,
+    params.seed,
+    params.spells,
+  ]);
 
   const handleExit = async () => {
     const snapshot = serializeRunWorld();

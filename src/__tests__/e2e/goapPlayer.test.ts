@@ -1,4 +1,4 @@
-import { Goal, GoalEvaluator, Think } from 'yuka';
+import { GameEntity, Goal, GoalEvaluator, Think } from 'yuka';
 import {
   createRunWorld,
   getSession,
@@ -22,11 +22,11 @@ jest.mock('../../engine/SoundManager', () => ({
 
 // --- GOALS ---
 // A mock entity to own the Think brain
-class PlayerGovernor {
-  brain = new Think(this as any);
+class PlayerGovernor extends GameEntity {
+  brain = new Think<PlayerGovernor>(this);
 }
 
-class SurviveGoal extends Goal<any> {
+class SurviveGoal extends Goal<PlayerGovernor> {
   activate() {
     // Determine if we should skip the build phase
     const session = getSession();
@@ -40,7 +40,7 @@ class SurviveGoal extends Goal<any> {
   }
 }
 
-class BuildDefensesGoal extends Goal<any> {
+class BuildDefensesGoal extends Goal<PlayerGovernor> {
   activate() {
     const session = getSession();
     if (!session || session.phase !== 'build') return;
@@ -70,10 +70,14 @@ class BuildDefensesGoal extends Goal<any> {
   }
 }
 
-class CastSpellGoal extends Goal<any> {
+class CastSpellGoal extends Goal<PlayerGovernor> {
   activate() {
     const session = getSession();
-    if (session?.phase === 'defend' && session.faith >= 25 && (session.spellCooldowns['smite'] ?? 0) <= 0) {
+    if (
+      session?.phase === 'defend' &&
+      session.faith >= 25 &&
+      (session.spellCooldowns.smite ?? 0) <= 0
+    ) {
       queueWorldCommand({ type: 'castSpell', spellId: 'smite' });
     }
   }
@@ -84,32 +88,36 @@ class CastSpellGoal extends Goal<any> {
 
 // --- EVALUATORS ---
 
-class SurviveEvaluator extends GoalEvaluator<any> {
+class SurviveEvaluator extends GoalEvaluator<PlayerGovernor> {
   calculateDesirability() {
     const session = getSession();
     return session?.phase === 'build' && session.buildTimeLeft > 5 ? 0.8 : 0;
   }
-  setGoal(owner: any) {
+  setGoal(owner: PlayerGovernor) {
     owner.brain.addSubgoal(new SurviveGoal(owner));
   }
 }
 
-class BuildDefensesEvaluator extends GoalEvaluator<any> {
+class BuildDefensesEvaluator extends GoalEvaluator<PlayerGovernor> {
   calculateDesirability() {
     const session = getSession();
     return session?.phase === 'build' ? 1.0 : 0;
   }
-  setGoal(owner: any) {
+  setGoal(owner: PlayerGovernor) {
     owner.brain.addSubgoal(new BuildDefensesGoal(owner));
   }
 }
 
-class CastSpellEvaluator extends GoalEvaluator<any> {
+class CastSpellEvaluator extends GoalEvaluator<PlayerGovernor> {
   calculateDesirability() {
     const session = getSession();
-    return session?.phase === 'defend' && session.faith >= 25 && (session.spellCooldowns['smite'] ?? 0) <= 0 ? 1.0 : 0;
+    return session?.phase === 'defend' &&
+      session.faith >= 25 &&
+      (session.spellCooldowns.smite ?? 0) <= 0
+      ? 1.0
+      : 0;
   }
-  setGoal(owner: any) {
+  setGoal(owner: PlayerGovernor) {
     owner.brain.addSubgoal(new CastSpellGoal(owner));
   }
 }
@@ -142,7 +150,7 @@ describe('YUKA Goal-Driven Player Governor E2E', () => {
       if (!session || session.gameOver) break;
 
       maxWaveReached = Math.max(maxWaveReached, session.wave);
-      
+
       if (ticks % 10 === 0) {
         governor.brain.arbitrate();
         governor.brain.execute();

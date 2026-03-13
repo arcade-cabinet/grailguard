@@ -4,6 +4,7 @@ import DoctrineScreen from '../../app/doctrine';
 import MainMenuScreen from '../../app/index';
 import SettingsScreen from '../../app/settings';
 
+// biome-ignore lint/suspicious/noExplicitAny: react-test-renderer has incomplete types
 const TestRenderer = require('react-test-renderer') as any;
 const act = TestRenderer.act;
 
@@ -20,7 +21,9 @@ type TestTouchableNode = {
   findAllByType: (childType: unknown) => TestTextNode[];
 };
 
+// biome-ignore lint/suspicious/noExplicitAny: react-test-renderer has incomplete types
 function renderWithAct(node: React.ReactNode): any {
+  // biome-ignore lint/suspicious/noExplicitAny: react-test-renderer has incomplete types
   let renderer: any = null;
   act(() => {
     renderer = TestRenderer.create(node);
@@ -171,7 +174,9 @@ describe('meta screens', () => {
     pressButtonByLabel(renderer, 'Doctrine');
     pressButtonByLabel(renderer, 'Settings');
 
-    expect(pushMock).toHaveBeenCalledWith('/game?mode=fresh&biome=kings-road&challenge=pilgrim&spells=smite&mapSize=100');
+    expect(pushMock).toHaveBeenCalledWith(
+      '/game?mode=fresh&biome=kings-road&challenge=pilgrim&spells=smite&mapSize=100',
+    );
     expect(pushMock).toHaveBeenCalledWith('/game?mode=resume');
     expect(pushMock).toHaveBeenCalledWith('/codex');
     expect(pushMock).toHaveBeenCalledWith('/doctrine');
@@ -198,6 +203,7 @@ describe('meta screens', () => {
     const renderer = renderWithAct(<CodexScreen />);
     const textContent = renderer.root
       .findAllByType(Text)
+      // biome-ignore lint/suspicious/noExplicitAny: react-test-renderer node traversal
       .flatMap((node: any) => (node as unknown as TestTextNode).props.children)
       .join(' ');
 

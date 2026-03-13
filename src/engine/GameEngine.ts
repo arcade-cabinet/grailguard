@@ -1195,11 +1195,12 @@ function codexDiscoverySystem() {
   if (!session) return;
 
   let changed = false;
-  const newDiscovered = [...session.discoveredCodex];
+  let changed = false;
+  let newDiscovered = session.discoveredCodex;
   for (const entity of gameWorld.query(CodexId)) {
     const codex = entity.get(CodexId);
     if (codex && !newDiscovered.includes(codex.id)) {
-      newDiscovered.push(codex.id);
+      newDiscovered = [...newDiscovered, codex.id];
       changed = true;
     }
   }

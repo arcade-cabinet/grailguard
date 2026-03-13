@@ -11,6 +11,8 @@
  */
 
 import * as THREE from 'three';
+import roadTemplatesData from '../data/roadTemplates.json';
+import type { Rng } from './systems/rng';
 
 /**
  * Creates a seeded pseudo-random number generator using the Mulberry32
@@ -103,4 +105,26 @@ export function generateRoadPoints(seedStr: string, mapSize: number): THREE.Vect
   points.push(new THREE.Vector3(0, 0.5, 0));
 
   return points;
+}
+
+/** Shape of a single road template loaded from roadTemplates.json. */
+export interface RoadTemplate {
+  /** Descriptive template name (e.g. 's-curve', 'u-turn', 'winding'). */
+  name: string;
+  /** Ordered array of waypoint coordinates. */
+  waypoints: Array<{ x: number; y: number; z: number }>;
+}
+
+/**
+ * Randomly selects one of the predefined road templates using a seeded PRNG.
+ * Templates provide hand-crafted road layouts as an alternative to the
+ * procedurally generated paths from {@link generateRoadPoints}.
+ *
+ * @param rng - A seeded PRNG instance for deterministic template selection.
+ * @returns A road template with a name and waypoints array.
+ */
+export function selectRoadTemplate(rng: Rng): RoadTemplate {
+  const templates = roadTemplatesData.templates;
+  const index = rng.nextInt(0, templates.length - 1);
+  return templates[index];
 }

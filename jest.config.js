@@ -3,12 +3,10 @@ const config = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   roots: ['<rootDir>/src'],
-  testMatch: ['**/__tests__/**/*.test.ts'],
+  testMatch: ['**/__tests__/**/*.test.ts', '**/__tests__/**/*.test.tsx'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
-    '^three$': '<rootDir>/src/__mocks__/three.ts',
-    '^@react-native-async-storage/async-storage$':
-      '<rootDir>/src/__mocks__/@react-native-async-storage/async-storage.ts',
+    '^react-native$': '<rootDir>/src/__mocks__/react-native.ts',
   },
   transform: {
     '^.+\\.tsx?$': [
@@ -20,8 +18,7 @@ const config = {
   },
   collectCoverageFrom: [
     'src/engine/**/*.ts',
-    'src/utils/**/*.ts',
-    'src/store/**/*.ts',
+    'src/db/**/*.ts',
     '!src/**/__tests__/**',
     '!src/**/__mocks__/**',
   ],

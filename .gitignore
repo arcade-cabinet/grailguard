@@ -162,3 +162,12 @@ blob-report/
 
 expo-env.d.ts
 # @end expo-cli
+
+# Playwright
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+
+# npm artifacts
+package-lock.json

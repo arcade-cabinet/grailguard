@@ -78,43 +78,33 @@ summary: "Implementation status, what works, what's left, known issues"
 
 ## What's Left to Build
 
-### High Priority
-- [ ] Expanded test coverage (engine systems, DB repos, edge cases)
-- [ ] Touch gesture controls for mobile (pan, pinch-zoom)
-- [ ] InstancedMesh optimization for particles and scenery
-- [ ] Building sell/refund during build phase
-- [ ] Tutorial / onboarding flow for new players
+### Immediate (next session)
+- [ ] Verify iOS UI rendering with NativeWind on default port 8081
+- [ ] Verify WebGPU Canvas rendering on native device
+- [ ] Migrate expo-sqlite to op-sqlite (JSI, no WASM)
+- [ ] Add react-native-rapier for physics (replace Yuka collision)
+- [ ] Migrate UI animations to Reanimated worklets (reactnativereusables.com patterns)
+- [ ] Port Playwright E2E tests to Maestro flows
 
-### Medium Priority
-- [ ] Additional biomes (desert-wastes, frost-peaks, etc.)
-- [ ] Day/night cycle with visual atmosphere changes
-- [ ] More enemy types and boss variants
-- [ ] Difficulty tiers (pilgrim, crusader, inquisitor)
-- [ ] Leaderboards or run comparison
-- [ ] Haptic feedback integration
+### Future
+- [ ] App store builds via EAS
+- [ ] LOD system for distant buildings/units
+- [ ] Multiplayer exploration (if demand exists)
 
-### Low Priority
-- [ ] CI/CD pipeline (GitHub Actions)
-- [ ] GitHub Pages web deployment
-- [ ] App store builds (EAS)
-- [ ] Accessibility improvements
-- [ ] Localization
+## Test Coverage (current)
 
-## Test Coverage Gaps (vs initial-release)
-
-Initial-release had fine-grained subsystem tests that were lost in the monolithic consolidation:
-- **BuildingSystem tests** — building placement, spawning cadence, upgrade cost scaling
-- **CombatSystem tests** — siege targeting priority, damage calculations, AoE radius
-- **waveDirector tests** — budget allocation, enemy type selection, boss scheduling
-- **EnemyBrain tests** — flocking behavior weights, path following, evasion triggers
-- **PlayerGovernorBrain tests** — GOAP goal scoring, action selection
-
-feat/poc-reset only has 2 integration tests (wave completion cleanup + serialize/hydrate). Decomposing `GameEngine.ts` into modules would re-enable subsystem-level testing.
+486 tests across 38 suites covering:
+- **Engine subsystems:** waveSystem, combatSystem, buildingSystem, logisticsSystem, projectileSystem, vfxSystem, spellSystem, codexSystem (116 tests)
+- **Data configs:** All 12 JSON config files validated (101 tests)
+- **DB repos:** profileRepo, unlockRepo, runRepo, settingsRepo, doctrineRepo, codexRepo, bootstrapRepo (130 tests)
+- **Meta service:** bankRunRewards, settings, unlocks, run lifecycle (30 tests)
+- **AI:** enemyBrain flocking, playerGovernor GOAP, biomeSystem (44 tests)
+- **Integration:** gameEngine wave progression, serialize/hydrate, GOAP auto-play (3 tests)
+- **E2E framework:** Playwright specs (gameFlow, metaScreens) + Maestro ready
 
 ## Known Issues
 
-- `GameEngine.ts` is ~2200 LOC -- candidate for decomposition into subsystem modules
-- `Math.random()` used in some combat/particle code -- should be seeded for determinism
-- No reduced-FX path implemented yet despite settings toggle existing
-- Playwright E2E tests removed in this branch (need rewrite for new architecture)
-- Subsystem test coverage regressed from initial-release due to monolithic engine (see gap above)
+- GameEngine.ts still 2000 LOC (down from 2473) — orchestration layer, logic extracted to pure modules
+- iOS dev client connectivity fails on non-default port (8082) — works on 8081
+- WebGPU rendering not yet visually confirmed on iOS (port conflict blocked testing)
+- expo-sqlite web requires COEP/COOP — plan to migrate to op-sqlite (JSI) eliminates this

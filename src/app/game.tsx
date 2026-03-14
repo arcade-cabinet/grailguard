@@ -697,49 +697,54 @@ function LiveGameView({
   return (
     <div
       ref={containerRef}
-      className="relative flex h-screen w-screen flex-col bg-[#87CEEB]"
+      className="relative h-screen w-screen overflow-hidden"
     >
+      {/* Full-viewport 3D Canvas (position: absolute via rendererSwitch.web) */}
       <GestureOverlay>
         <div
-          className="flex flex-1 flex-col"
+          className="absolute inset-0"
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
         >
           <ArenaRenderer placementPreview={placementPreview} selectedEntity={selectedEntity} />
-
-          {activePlacement ? (
-            <div className="absolute bottom-40 left-4 right-4 rounded-2xl border border-[#d4af37] bg-[#1f140f]/90 px-4 py-3">
-              <p className="text-center text-sm font-semibold tracking-[2px] text-[#f7ebd0]">
-                {t('game_placement_hint', { building: BUILDINGS[activePlacement].name })}
-              </p>
-              <p className="mt-1 text-center text-xs uppercase tracking-[2px] text-[#c9b18b]">
-                {t('game_placement_rules')}
-              </p>
-            </div>
-          ) : null}
         </div>
       </GestureOverlay>
 
-      {!isBootstrapping ? (
-        <>
-          <GameContent
-            onCancelPlacement={clearPlacement}
-            onClearSelection={clearSelection}
-            onExit={onExit}
-            onSelectPlacement={(type) => {
-              clearSelection();
-              queueWorldCommand({
-                type: 'setPlacementPreview',
-                buildingType: type,
-                preview: null,
-              });
-            }}
-            unlocked={unlocks}
-          />
-          <FloatingTextLayer viewportSize={viewportSize} />
-        </>
-      ) : null}
+      {/* HUD overlay on top of Canvas */}
+      <div className="pointer-events-none absolute inset-0">
+        {activePlacement ? (
+          <div className="pointer-events-auto absolute bottom-40 left-4 right-4 rounded-2xl border border-[#d4af37] bg-[#1f140f]/90 px-4 py-3">
+            <p className="text-center text-sm font-semibold tracking-[2px] text-[#f7ebd0]">
+              {t('game_placement_hint', { building: BUILDINGS[activePlacement].name })}
+            </p>
+            <p className="mt-1 text-center text-xs uppercase tracking-[2px] text-[#c9b18b]">
+              {t('game_placement_rules')}
+            </p>
+          </div>
+        ) : null}
+
+        {!isBootstrapping ? (
+          <div className="pointer-events-auto">
+            <GameContent
+              onCancelPlacement={clearPlacement}
+              onClearSelection={clearSelection}
+              onExit={onExit}
+              onSelectPlacement={(type) => {
+                clearSelection();
+                queueWorldCommand({
+                  type: 'setPlacementPreview',
+                  buildingType: type,
+                  preview: null,
+                });
+              }}
+              unlocked={unlocks}
+            />
+          </div>
+        ) : null}
+
+        {!isBootstrapping ? <FloatingTextLayer viewportSize={viewportSize} /> : null}
+      </div>
 
       <LoadingOverlay forceVisible={isBootstrapping} label={bootLabel} />
       {!isBootstrapping ? <EndOfRunModal /> : null}

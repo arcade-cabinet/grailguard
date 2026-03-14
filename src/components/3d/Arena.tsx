@@ -2,11 +2,13 @@
  * @module Arena
  *
  * Root React Three Fiber scene for the Grailguard game. Assembles the full 3D
- * battlefield: terrain, road, environment scatter (trees/rocks), lighting,
- * camera rig, and all entity meshes (buildings, units, projectiles, particles,
- * resource carts, and world effects). Also exposes helper functions for
- * projecting between screen coordinates and the ground plane.
+ * battlefield: PBR terrain with tiled grass textures, HDRI environment sky,
+ * stone-paved road, environment scatter (trees/rocks), physically-based
+ * lighting, camera rig, and all entity meshes (buildings, units, projectiles,
+ * particles, resource carts, and world effects). Also exposes helper functions
+ * for projecting between screen coordinates and the ground plane.
  */
+import { Environment, useTexture } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import type { Entity } from 'koota';
 import { useQuery, useTrait } from 'koota/react';
@@ -38,7 +40,6 @@ import { UnitMesh } from './Entities/UnitMesh';
 import { WorldEffectMesh } from './Entities/WorldEffectMesh';
 import { ParticlePool, useParticlePool } from './ParticlePool';
 import { Sanctuary } from './Sanctuary';
-import { TerrainGrid } from './TerrainGrid';
 
 const placementPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const placementRaycaster = new THREE.Raycaster();
@@ -301,17 +302,60 @@ function EnvironmentScatter() {
   );
 }
 
-/** @deprecated Replaced by TerrainGrid InstancedMesh implementation. */
+/**
+ * PBR grass terrain -- a large plane with tiled grass textures (color, normal,
+ * roughness, AO, displacement) for photorealistic ground rendering.
+ */
+function PBRTerrain() {
+  const textures = useTexture({
+    map: '/assets/pbr/grass/Grass004_1K-JPG_Color.jpg',
+    normalMap: '/assets/pbr/grass/Grass004_1K-JPG_NormalGL.jpg',
+    roughnessMap: '/assets/pbr/grass/Grass004_1K-JPG_Roughness.jpg',
+    aoMap: '/assets/pbr/grass/Grass004_1K-JPG_AmbientOcclusion.jpg',
+    displacementMap: '/assets/pbr/grass/Grass004_1K-JPG_Displacement.jpg',
+  });
 
-function Road() {
+  useMemo(() => {
+    for (const tex of Object.values(textures)) {
+      (tex as THREE.Texture).wrapS = THREE.RepeatWrapping;
+      (tex as THREE.Texture).wrapT = THREE.RepeatWrapping;
+      (tex as THREE.Texture).repeat.set(20, 20);
+    }
+  }, [textures]);
+
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]} receiveShadow>
+      <planeGeometry args={[200, 200, 64, 64]} />
+      <meshStandardMaterial
+        {...textures}
+        displacementScale={0.5}
+      />
+    </mesh>
+  );
+}
+
+/**
+ * PBR stone road -- applies PavingStones textures to the road TubeGeometry
+ * that follows the procedural CatmullRom spline path.
+ */
+function PBRRoad() {
   const session = useTrait(gameWorld, GameSession);
-  const color =
-    session?.biome === 'dark-forest'
-      ? '#5c4033'
-      : session?.biome === 'desert-wastes'
-        ? '#d2a679'
-        : '#8b5a2b';
   const [tubeGeo, setTubeGeo] = useState<THREE.TubeGeometry | null>(null);
+
+  const roadTextures = useTexture({
+    map: '/assets/pbr/road/PavingStones003_1K-JPG_Color.jpg',
+    normalMap: '/assets/pbr/road/PavingStones003_1K-JPG_NormalGL.jpg',
+    roughnessMap: '/assets/pbr/road/PavingStones003_1K-JPG_Roughness.jpg',
+    displacementMap: '/assets/pbr/road/PavingStones003_1K-JPG_Displacement.jpg',
+  });
+
+  useMemo(() => {
+    for (const tex of Object.values(roadTextures)) {
+      (tex as THREE.Texture).wrapS = THREE.RepeatWrapping;
+      (tex as THREE.Texture).wrapT = THREE.RepeatWrapping;
+      (tex as THREE.Texture).repeat.set(10, 1);
+    }
+  }, [roadTextures]);
 
   useEffect(() => {
     const geometry = new THREE.TubeGeometry(roadSpline, 128, 3.5, 8, false);
@@ -322,13 +366,16 @@ function Road() {
     setTubeGeo(geometry);
 
     return () => geometry.dispose();
-  }, [session?.runId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [session?.runId]);
 
   if (!tubeGeo) return null;
 
   return (
     <mesh geometry={tubeGeo} receiveShadow>
-      <meshStandardMaterial color={color} />
+      <meshStandardMaterial
+        {...roadTextures}
+        displacementScale={0.1}
+      />
     </mesh>
   );
 }
@@ -385,12 +432,13 @@ export function Arena({
   return (
     <ParticlePool>
       <ParticlePoolBridge />
+      <Environment files="/assets/hdri/approaching_storm_1k.hdr" background />
       <DayNightCycle wave={session?.wave ?? 1} />
       <EnvironmentScatter />
       <CameraController />
       <GameLoop />
-      <TerrainGrid biome={session?.biome} seed={session?.runId ?? session?.seed} />
-      <Road />
+      <PBRTerrain />
+      <PBRRoad />
       <Sanctuary
         position={[sanctuaryPosition.x, 0, sanctuaryPosition.z]}
         health={session?.health ?? 20}

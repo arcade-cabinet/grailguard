@@ -11,7 +11,8 @@ import type { ArenaRendererProps } from './rendererSwitch';
 
 /**
  * Web arena renderer using R3F Canvas with Three.js WebGL.
- * Matches the original game.tsx Canvas configuration.
+ * Canvas fills its container absolutely for full-viewport rendering.
+ * Shadows are enabled with soft shadow mapping for PBR materials.
  */
 export function WebArenaRenderer({ placementPreview, selectedEntity }: ArenaRendererProps) {
   return (
@@ -19,7 +20,7 @@ export function WebArenaRenderer({ placementPreview, selectedEntity }: ArenaRend
       orthographic
       camera={{ position: [0, 100, 70], zoom: 1, near: 0.1, far: 1000 }}
       shadows
-      style={{ flex: 1 }}
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
     >
       <Suspense fallback={null}>
         <Arena placementPreview={placementPreview} selectedEntity={selectedEntity} />

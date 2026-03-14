@@ -1,12 +1,12 @@
 /**
  * @module modelPaths
  *
- * Central registry of GLB asset paths for all building and unit types.
- * Paths are URL strings served from the public/ directory via Vite.
- * All models are eagerly preloaded at module evaluation time
- * using `useGLTF.preload`.
+ * Central registry of GLB asset paths for all building and unit types,
+ * plus PBR texture preloads. Paths are URL strings served from the
+ * public/ directory via Vite. All models and textures are eagerly
+ * preloaded at module evaluation time.
  */
-import { useGLTF } from '@react-three/drei';
+import { useGLTF, useTexture } from '@react-three/drei';
 
 /**
  * Map from `BuildingType` keys to their resolved GLB asset paths.
@@ -53,10 +53,30 @@ const ALL_MODEL_PATHS = [
   '/assets/models/rock.glb',
 ];
 
+/** PBR texture paths for terrain, road, and ground materials. */
+const PBR_TEXTURE_PATHS = [
+  '/assets/pbr/grass/Grass004_1K-JPG_Color.jpg',
+  '/assets/pbr/grass/Grass004_1K-JPG_NormalGL.jpg',
+  '/assets/pbr/grass/Grass004_1K-JPG_Roughness.jpg',
+  '/assets/pbr/grass/Grass004_1K-JPG_AmbientOcclusion.jpg',
+  '/assets/pbr/grass/Grass004_1K-JPG_Displacement.jpg',
+  '/assets/pbr/road/PavingStones003_1K-JPG_Color.jpg',
+  '/assets/pbr/road/PavingStones003_1K-JPG_NormalGL.jpg',
+  '/assets/pbr/road/PavingStones003_1K-JPG_Roughness.jpg',
+  '/assets/pbr/road/PavingStones003_1K-JPG_Displacement.jpg',
+  '/assets/pbr/ground/Ground003_1K-JPG_Color.jpg',
+  '/assets/pbr/ground/Ground003_1K-JPG_NormalGL.jpg',
+  '/assets/pbr/ground/Ground003_1K-JPG_Roughness.jpg',
+  '/assets/pbr/ground/Ground003_1K-JPG_Displacement.jpg',
+];
+
 // Only preload in browser environment
 if (typeof window !== 'undefined') {
   for (const path of ALL_MODEL_PATHS) {
     useGLTF.preload(path);
+  }
+  for (const path of PBR_TEXTURE_PATHS) {
+    useTexture.preload(path);
   }
 }
 

@@ -48,7 +48,7 @@ Each entity type has a dedicated mesh component:
 
 ## Asset Registry (`modelPaths.ts`)
 
-Maps building/unit types to GLB file paths under `public/assets/models/`. All models are preloaded via `useGLTF.preload()` before gameplay begins.
+Maps building/unit types to GLB file paths under `assets/models/`. All models are preloaded via `useGLTF.preload()` before gameplay begins.
 
 ## Performance Rules
 

@@ -57,7 +57,7 @@ grailguard/
 │   │   ├── DatabaseProvider.tsx     # React context for DB initialization
 │   │   └── repos/                  # Repository functions per domain
 │   └── __tests__/                  # Jest test suites
-├── public/assets/
+├── assets/
 │   ├── models/             # GLB character/building models
 │   └── materials/          # PBR texture sets (Grass001, Ground001)
 ├── docs/                   # Documentation (this directory)

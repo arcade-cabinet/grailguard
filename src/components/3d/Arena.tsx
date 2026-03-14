@@ -22,6 +22,7 @@ import {
   Projectile,
   ResourceCart,
   roadSpline,
+  sanctuaryPosition,
   stepRunWorld,
   Unit,
   WorldEffect,
@@ -34,6 +35,7 @@ import { UnitMesh } from './Entities/UnitMesh';
 import { WorldEffectMesh } from './Entities/WorldEffectMesh';
 import { DayNightCycle } from './DayNightCycle';
 import { ParticlePool } from './ParticlePool';
+import { Sanctuary } from './Sanctuary';
 import { TerrainGrid } from './TerrainGrid';
 
 let activeCamera: THREE.Camera | null = null;
@@ -392,6 +394,11 @@ export function Arena({
       <GameLoop />
       <TerrainGrid biome={session?.biome} seed={session?.runId ?? session?.seed} />
       <Road />
+      <Sanctuary
+        position={[sanctuaryPosition.x, 0, sanctuaryPosition.z]}
+        health={session?.health ?? 20}
+        maxHealth={20}
+      />
       <PlacementGhost preview={placementPreview} />
 
       {buildingEntities.map((entity) => (

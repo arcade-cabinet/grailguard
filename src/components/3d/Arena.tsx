@@ -270,7 +270,7 @@ function EnvironmentScatter() {
     initialized.current = true;
   });
 
-  if (!treeData.geo || !boulderData.geo) return null;
+  if (!treeData.geo || !treeData.mat || !boulderData.geo || !boulderData.mat) return null;
 
   return (
     <>

@@ -272,16 +272,16 @@ describe('waveSystem', () => {
       const result = applyDifficultyModifiers(baseStats, 'inquisitor');
       expect(result.hp).toBe(130);
       expect(result.damage).toBe(65);
-      expect(result.speed).toBe(6);
+      expect(result.speed).toBeCloseTo(6.5);
     });
 
-    it('floors fractional results', () => {
+    it('floors hp and damage but preserves fractional speed', () => {
       const oddStats = { hp: 33, damage: 17, speed: 3 };
       const result = applyDifficultyModifiers(oddStats, 'inquisitor');
-      // 33 * 1.3 = 42.9 => 42, 17 * 1.3 = 22.1 => 22, 3 * 1.3 = 3.9 => 3
+      // 33 * 1.3 = 42.9 => 42, 17 * 1.3 = 22.1 => 22, 3 * 1.3 = 3.9 (not floored)
       expect(result.hp).toBe(42);
       expect(result.damage).toBe(22);
-      expect(result.speed).toBe(3);
+      expect(result.speed).toBeCloseTo(3.9);
     });
 
     it('does not mutate the input stats object', () => {

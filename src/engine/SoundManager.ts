@@ -17,6 +17,7 @@
  */
 
 import * as Tone from 'tone';
+import { audioBus } from './audio/audioBridge';
 
 /**
  * Manages all procedural audio for the game. Wraps Tone.js synthesizers for
@@ -86,6 +87,9 @@ class AudioEngine {
       envelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.1 },
       volume: -10,
     }).toDestination();
+
+    // Subscribe to game audio events
+    this.subscribeToAudioBus();
   }
 
   /**
@@ -196,6 +200,30 @@ class AudioEngine {
     this.sfxSynth?.triggerAttackRelease('C3', '32n');
   }
 
+  /** Plays a rising fanfare to mark a new wave starting. */
+  playWaveStart() {
+    if (!this.soundEnabled || !this.inited) return;
+    this.sfxSynth?.triggerAttackRelease('E4', '16n');
+  }
+
+  /** Plays a triumphant note to mark a wave completed. */
+  playWaveComplete() {
+    if (!this.soundEnabled || !this.inited) return;
+    this.sfxSynth?.triggerAttackRelease('G5', '8n');
+  }
+
+  /** Plays a deep rumble for boss spawn. */
+  playBossSpawn() {
+    if (!this.soundEnabled || !this.inited) return;
+    this.sfxSynth?.triggerAttackRelease('C2', '4n');
+  }
+
+  /** Plays a sparkle sound for spell cast. */
+  playSpellCast() {
+    if (!this.soundEnabled || !this.inited) return;
+    this.sfxSynth?.triggerAttackRelease('A5', '16n');
+  }
+
   /**
    * Plays a dramatic minor chord and silences all other audio layers to
    * signal the end of the game.
@@ -205,6 +233,17 @@ class AudioEngine {
     this.stopMusic();
     this.stopAmbience();
     this.bgmSynth?.triggerAttackRelease(['C2', 'Eb2', 'G2'], '2m');
+  }
+
+  /** Subscribes to audioBus events. Should be called once during init. */
+  private subscribeToAudioBus() {
+    audioBus.on('combat_hit', () => this.playCombat());
+    audioBus.on('building_placed', () => this.playBuild());
+    audioBus.on('wave_start', () => this.playWaveStart());
+    audioBus.on('wave_complete', () => this.playWaveComplete());
+    audioBus.on('boss_spawn', () => this.playBossSpawn());
+    audioBus.on('game_over', () => this.playGameOver());
+    audioBus.on('spell_cast', () => this.playSpellCast());
   }
 
   dispose() {

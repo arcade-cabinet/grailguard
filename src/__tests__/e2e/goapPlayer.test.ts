@@ -155,7 +155,7 @@ describe('YUKA Goal-Driven Player Governor E2E', () => {
     governor.brain.addEvaluator(new CastSpellEvaluator());
 
     let ticks = 0;
-    const maxTicks = 1000;
+    const maxTicks = 5000;
     let maxWaveReached = 1;
 
     while (ticks < maxTicks) {

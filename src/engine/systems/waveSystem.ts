@@ -211,7 +211,7 @@ export function applyDifficultyModifiers(
   return {
     hp: Math.floor(stats.hp * multiplier),
     damage: Math.floor(stats.damage * multiplier),
-    speed: Math.floor(stats.speed * multiplier),
+    speed: stats.speed * multiplier,
   };
 }
 

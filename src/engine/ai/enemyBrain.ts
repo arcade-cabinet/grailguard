@@ -54,5 +54,6 @@ export function configureEnemyVehicle(vehicle: Vehicle, config: AiConfig): void 
 
   const evade = new EvadeBehavior();
   evade.weight = config.evasionWeight;
+  evade.active = false; // Requires a target Vehicle; activated when threat detected
   vehicle.steering.add(evade);
 }

@@ -76,10 +76,20 @@ import {
 import {
   calculateWaveBudget as _calcBudget,
   calculateBuildTimer as _calcBuildTimer,
+  applyDifficultyModifiers,
   buildWaveQueue,
   calculateWaveCompletionReward,
+  getBossVariant,
+  getWaveLabel,
   isWaveComplete,
+  type DifficultyTier,
 } from './systems/waveSystem';
+import { rollDrop, selectSiegeTarget, type SiegeBuilding } from './systems/combatSystem';
+import { applyBiomeModifiers, type BiomeSession } from './systems/biomeSystem';
+import { configureEnemyVehicle, type AiConfig } from './ai/enemyBrain';
+import aiConfig from '../data/aiConfig.json';
+import { updateTelemetry } from './telemetry';
+import { createPlayerGovernor, type GovernorWorldView } from './ai/playerGovernor';
 
 // ────────────────────────────────────────────────────────────────
 // Yuka AI manager
@@ -225,6 +235,16 @@ export const GameSession = trait(() => ({
   placementZ: 0,
   placementValid: false,
   roadPoints: [] as { x: number; y: number; z: number }[],
+  governorEnabled: false,
+  reducedFx: false,
+  biomeModifiers: {
+    faithRegenRate: 1,
+    killGoldBase: 1,
+    enemySpeed: 1,
+    enemyHp: 1,
+    buildTimer: 1,
+    dropChance: 1,
+  } as BiomeSession,
 }));
 
 /** ECS trait for minecart entities on logistics tracks. */
@@ -471,7 +491,9 @@ function spawnParticleBurstECS(
   count: number,
   intensity = 1,
 ) {
-  const particles = generateParticleBurst(position, color, count, intensity, runRng);
+  const session = getSession();
+  const reduced = session?.reducedFx ?? false;
+  const particles = generateParticleBurst(position, color, count, intensity, runRng, reduced);
   for (const p of particles) {
     const e = gameWorld.spawn(
       Particle({ color: p.color, life: p.life, size: p.size, vx: p.vx, vy: p.vy, vz: p.vz }),
@@ -548,6 +570,35 @@ function destroyUnit(entity: Entity, rewardGold: boolean) {
         spawnFloatingText(position, `+${unit.reward}g`, '#facc15', 10);
         spawnParticleBurstECS(position, '#facc15', 8, 1);
       }
+      // Roll for item drop
+      const drop = rollDrop(runRng, session.relics ?? []);
+      if (drop && position) {
+        if (drop === 'potion') {
+          // Heal nearest ally
+          let bestAlly: Entity | null = null;
+          let bestDist = Infinity;
+          for (const e of gameWorld.query(Unit, Position)) {
+            const u = e.get(Unit);
+            const p = e.get(Position);
+            if (u && p && u.team === 'ally' && u.hp < u.maxHp) {
+              const d = distance2D(position, p);
+              if (d < bestDist) { bestDist = d; bestAlly = e; }
+            }
+          }
+          if (bestAlly) {
+            const allyUnit = bestAlly.get(Unit);
+            if (allyUnit) {
+              const healAmount = Math.floor(allyUnit.maxHp * 0.5);
+              applyDeltaToUnit(bestAlly, -healAmount, '#4ade80');
+            }
+          }
+          spawnFloatingText(position, 'Potion!', '#4ade80', 12);
+        } else if (drop === 'star') {
+          setSession({ gold: (getSession()?.gold ?? 0) + 10 });
+          spawnFloatingText(position, '+10g Star!', '#fde047', 12);
+          spawnParticleBurstECS(position, '#fde047', 10, 1.2);
+        }
+      }
     }
   }
 
@@ -604,14 +655,28 @@ function spawnScaledUnit(
       ? 1 + 0.1 * ironVanguard.level
       : 1;
 
+  // Apply difficulty modifiers to enemy stats
+  let baseHp = config.hp * multiplier * hpMultiplier;
+  let baseDamage = config.damage * multiplier;
+  let baseSpeed = affix === 'swift' ? config.speed * combatConfig.swiftSpeedMultiplier : config.speed;
+  if (team === 'enemy') {
+    const diffMods = applyDifficultyModifiers(
+      { hp: baseHp, damage: baseDamage, speed: baseSpeed },
+      (session.difficulty as DifficultyTier) || 'pilgrim',
+    );
+    baseHp = diffMods.hp;
+    baseDamage = diffMods.damage;
+    baseSpeed = diffMods.speed;
+  }
+
   const entity = gameWorld.spawn(
     Unit({
       type,
       team,
-      maxHp: config.hp * multiplier * hpMultiplier,
-      hp: config.hp * multiplier * hpMultiplier,
-      damage: config.damage * multiplier,
-      speed: affix === 'swift' ? config.speed * combatConfig.swiftSpeedMultiplier : config.speed,
+      maxHp: baseHp,
+      hp: baseHp,
+      damage: baseDamage,
+      speed: baseSpeed,
       range: affix === 'ranged' ? 15 : config.range,
       atkSpd:
         affix === 'swift' ? config.atkSpd * combatConfig.swiftCooldownMultiplier : config.atkSpd,
@@ -634,14 +699,16 @@ function spawnScaledUnit(
   if (type !== 'wall') {
     const vehicle = new Vehicle();
     vehicle.position.set(position.x, 0, position.z);
-    vehicle.maxSpeed =
-      affix === 'swift' ? config.speed * combatConfig.swiftSpeedMultiplier : config.speed;
+    vehicle.maxSpeed = baseSpeed;
     const followBehavior = new FollowPathBehavior(yukaRoadPath);
     followBehavior.active = team === 'enemy';
     vehicle.steering.add(followBehavior);
     if (team === 'ally') {
       vehicle.steering.add(new SeparationBehavior());
       vehicle.steering.add(new SeekBehavior(new YukaVector3()));
+    }
+    if (team === 'enemy') {
+      configureEnemyVehicle(vehicle, aiConfig as AiConfig);
     }
     yukaManager.add(vehicle);
     vehiclesByEntityId.set(entity.id() as number, vehicle);
@@ -783,10 +850,43 @@ function updateUnits(dt: number) {
         const seek = vehicle.steering.behaviors.find((b) => b instanceof SeekBehavior);
         if (seek) seek.active = false;
       } else if (unit.team === 'enemy') {
+        // Siege targeting: redirect enemy toward a nearby building if available
+        // Only try siege when past halfway along the road (pathIndex > half)
+        const siegeRange = 25;
+        let siegeTargetFound = false;
+        if (unit.pathIndex > roadSamples.length * 0.4) {
+          const buildings: SiegeBuilding[] = [];
+          for (const be of gameWorld.query(Building, Position)) {
+            const bb = be.get(Building);
+            const bp = be.get(Position);
+            if (bb && bp && distance2D(position, bp) < siegeRange) {
+              buildings.push({ id: be.id() as number, type: bb.type, x: bp.x, z: bp.z });
+            }
+          }
+          const siegeTarget = buildings.length > 0
+            ? selectSiegeTarget(unit.type, buildings, position)
+            : undefined;
+          if (siegeTarget) {
+            let seek = vehicle.steering.behaviors.find((b) => b instanceof SeekBehavior) as
+              | SeekBehavior
+              | undefined;
+            if (!seek) {
+              seek = new SeekBehavior();
+              vehicle.steering.add(seek);
+            }
+            seek.target.set(siegeTarget.x, 0, siegeTarget.z);
+            seek.active = true;
+            const follow = vehicle.steering.behaviors.find((b) => b instanceof FollowPathBehavior);
+            if (follow) follow.active = false;
+            siegeTargetFound = true;
+          }
+        }
+        if (!siegeTargetFound) {
         const follow = vehicle.steering.behaviors.find((b) => b instanceof FollowPathBehavior);
         if (follow) follow.active = true;
         const seek = vehicle.steering.behaviors.find((b) => b instanceof SeekBehavior);
         if (seek) seek.active = false;
+        }
         if (distance2D(position, sanctuaryPosition) < 6) {
           damageSanctuary(
             unit.type === 'boss' ? waveConfig.grailDamageBoss : waveConfig.grailDamageNormal,
@@ -1061,7 +1161,9 @@ function updateWaveState(dt: number) {
       next.affix,
     );
     if (next.type === 'boss') {
-      triggerBanner('Boss Approaches', 'danger', 2.8, 0.22, '#ef4444');
+      const bossVariant = getBossVariant(session.wave);
+      const bossLabel = bossVariant ? `${bossVariant.id} Approaches` : 'Boss Approaches';
+      triggerBanner(bossLabel, 'danger', 2.8, 0.22, '#ef4444');
       audioBus.emit({ type: 'boss_spawn' });
       spawnWorldEffect(
         'boss_spawn',
@@ -1253,6 +1355,8 @@ function updateLogistics(dt: number) {
 }
 
 function updateFloatingTexts(dt: number) {
+  const session = getSession();
+  const reduced = session?.reducedFx ?? false;
   const toDestroy: Entity[] = [];
   for (const entity of gameWorld.query(FloatingText, Position)) {
     const ft = entity.get(FloatingText);
@@ -1262,6 +1366,7 @@ function updateFloatingTexts(dt: number) {
     const result = updateFloatingTextPure(
       { y: position.y, life: ft.life, riseSpeed: ft.riseSpeed },
       dt,
+      reduced,
     );
     ft.life = result.life;
     position.y = result.y;
@@ -1377,7 +1482,9 @@ function initialBuildPhase() {
     buildTimeLeft: _calcBuildTimer(session.wave),
     announcement: 'Build Phase',
   });
-  triggerBanner(`Prepare for Wave ${session.wave}`, 'holy', 2.4, 0.08, '#facc15');
+  const budget = _calcBudget(session.wave);
+  const waveLabel = getWaveLabel(budget);
+  triggerBanner(`Wave ${session.wave}: ${waveLabel}`, 'holy', 2.4, 0.08, '#facc15');
 }
 
 export function createRunWorld(options?: {
@@ -1438,6 +1545,19 @@ export function createRunWorld(options?: {
     placementValid: false,
     roadPoints: rawRoadPoints,
   });
+  // Apply biome modifiers
+  const biomeId = options?.biome ?? 'kings-road';
+  const baseModifiers: BiomeSession = {
+    faithRegenRate: 1,
+    killGoldBase: 1,
+    enemySpeed: 1,
+    enemyHp: 1,
+    buildTimer: 1,
+    dropChance: 1,
+  };
+  const modifiedBiome = applyBiomeModifiers(baseModifiers, biomeId);
+  setSession({ biomeModifiers: modifiedBiome });
+
   setAutosaveState({ dirty: true, reason: 'create_run', lastCheckpointAt: 0 });
   initialBuildPhase();
 }
@@ -1455,12 +1575,50 @@ export function disposeRunWorld() {
 // Main update loop
 // ────────────────────────────────────────────────────────────────
 
+/** Cached governor instance to avoid re-creating each frame. */
+let _governor: ReturnType<typeof createPlayerGovernor> | null = null;
+
 export function updateGameWorld(dt: number) {
   const session = getSession();
   if (!session || session.gameOver) return;
 
   yukaManager.update(dt);
   setSession({ elapsedMs: session.elapsedMs + dt * 1000 });
+
+  // GOAP Governor: auto-play when enabled
+  if (session.governorEnabled) {
+    if (!_governor) _governor = createPlayerGovernor();
+    let enemyCount = 0;
+    let enemyNearSanctuary = 0;
+    let buildingCount = 0;
+    for (const e of gameWorld.query(Unit)) {
+      const u = e.get(Unit);
+      const p = e.get(Position);
+      if (u?.team === 'enemy') {
+        enemyCount++;
+        if (p && distance2D(p, sanctuaryPosition) < 20) enemyNearSanctuary++;
+      }
+    }
+    for (const _e of gameWorld.query(Building)) buildingCount++;
+    const worldView: GovernorWorldView = {
+      phase: session.phase,
+      wave: session.wave,
+      gold: session.gold,
+      wood: session.wood,
+      faith: session.faith,
+      health: session.health,
+      maxHealth: 20,
+      buildTimeLeft: session.buildTimeLeft,
+      buildingCount,
+      enemyCount,
+      enemyNearSanctuary,
+      smiteCooldown: session.spellCooldowns.smite ?? 0,
+    };
+    const commands = _governor.decide(worldView);
+    for (const cmd of commands) {
+      queueWorldCommand(cmd);
+    }
+  }
 
   updateWaveState(dt);
   updateBuildings(dt);
@@ -1476,6 +1634,22 @@ export function updateGameWorld(dt: number) {
   if (latestSession) {
     setSession({ announcement: nowAnnouncement(latestSession) });
   }
+
+  // Update telemetry counts
+  let unitCount = 0;
+  let particleCount = 0;
+  let projectileCount = 0;
+  for (const _e of gameWorld.query(Unit)) unitCount++;
+  for (const _e of gameWorld.query(Particle)) particleCount++;
+  for (const _e of gameWorld.query(Projectile)) projectileCount++;
+  const totalEntities = unitCount + particleCount + projectileCount;
+  updateTelemetry({
+    entityCount: totalEntities,
+    activeParticles: particleCount,
+    activeProjectiles: projectileCount,
+    activeUnits: unitCount,
+    frameTimeMs: dt * 1000,
+  });
 }
 
 export function stepRunWorld(dt: number) {
@@ -1701,8 +1875,10 @@ export function startWave() {
   setWaveState({ spawnTimer: 0.5 });
   markRunDirty('start_wave');
   audioBus.emit({ type: 'wave_start' });
+  const startBudget = _calcBudget(session.wave);
+  const startLabel = getWaveLabel(startBudget);
   triggerBanner(
-    isBossWave ? `Boss Wave ${session.wave}` : `Wave ${session.wave} Begins`,
+    isBossWave ? `Boss Wave ${session.wave}` : `Wave ${session.wave}: ${startLabel}`,
     isBossWave ? 'danger' : 'holy',
     isBossWave ? 2.8 : 2.2,
     isBossWave ? 0.16 : 0.1,

@@ -41,10 +41,19 @@ describe('mapConfig', () => {
     expect(mapConfig.yukaPathPointCount).toBe(50);
   });
 
-  it('all values are positive numbers', () => {
-    for (const value of Object.values(mapConfig)) {
-      expect(typeof value).toBe('number');
-      expect(value).toBeGreaterThan(0);
+  it('all top-level numeric values are positive', () => {
+    const numericKeys = ['size', 'roadSampleCount', 'placementGridSize', 'wallMaxRoadDistance', 'spawnerMinRoadDistance', 'roadSplinePointCount', 'yukaPathPointCount'] as const;
+    for (const key of numericKeys) {
+      expect(typeof mapConfig[key]).toBe('number');
+      expect(mapConfig[key]).toBeGreaterThan(0);
     }
+  });
+
+  it('scenery config has valid values', () => {
+    expect(mapConfig.scenery).toBeDefined();
+    expect(mapConfig.scenery.treeCount).toBeGreaterThan(0);
+    expect(mapConfig.scenery.rockCount).toBeGreaterThan(0);
+    expect(mapConfig.scenery.scatterRadius).toBeGreaterThan(0);
+    expect(mapConfig.scenery.minRoadClearance).toBeGreaterThan(0);
   });
 });

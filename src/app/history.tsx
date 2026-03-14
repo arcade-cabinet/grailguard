@@ -5,8 +5,7 @@
  * Shows date, waves survived, difficulty, coins earned, kills equivalent
  * (via wave count proxy), and duration. Sorted newest first.
  */
-import { useRouter } from 'expo-router';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { useNavigate } from 'react-router-dom';
 import { useRunHistory } from '../db/meta';
 import { soundManager } from '../engine/SoundManager';
 import { t } from '../i18n';
@@ -40,80 +39,80 @@ function formatDate(timestamp: number): string {
   });
 }
 
-export default function HistoryScreen() {
-  const router = useRouter();
+export function HistoryScreen() {
+  const navigate = useNavigate();
   const runs = useRunHistory();
 
   // Sort newest first by createdAt
   const sortedRuns = [...runs].sort((a, b) => b.createdAt - a.createdAt);
 
   return (
-    <View className="flex-1 bg-[#140d09] px-5 pb-6 pt-14">
-      <View className="rounded-[28px] border border-[#6b4a2f] bg-[#241711]/95 px-5 py-5">
-        <Text className="text-xs font-bold uppercase tracking-[4px] text-[#b98b52]">
+    <div className="flex min-h-screen flex-col bg-[#140d09] px-5 pb-6 pt-14">
+      <div className="rounded-[28px] border border-[#6b4a2f] bg-[#241711]/95 px-5 py-5">
+        <p className="text-xs font-bold uppercase tracking-[4px] text-[#b98b52]">
           {t('history_header')}
-        </Text>
-        <Text className="mt-2 text-4xl font-bold text-[#f0dfbe]">{t('history_title')}</Text>
-        <Text className="mt-2 text-sm text-[#d8c3a2]">
+        </p>
+        <h1 className="mt-2 text-4xl font-bold text-[#f0dfbe]">{t('history_title')}</h1>
+        <p className="mt-2 text-sm text-[#d8c3a2]">
           {t('history_count', { count: sortedRuns.length })}
-        </Text>
-      </View>
+        </p>
+      </div>
 
-      <ScrollView className="mt-4" contentContainerClassName="gap-3 pb-4">
+      <div className="mt-4 flex flex-1 flex-col gap-3 overflow-auto pb-4">
         {sortedRuns.length === 0 ? (
-          <View className="rounded-2xl border border-[#8a6a44] bg-[#f3e8d5] p-6">
-            <Text className="text-center text-lg text-[#6e4e31]">
+          <div className="rounded-2xl border border-[#8a6a44] bg-[#f3e8d5] p-6">
+            <p className="text-center text-lg text-[#6e4e31]">
               {t('history_empty')}
-            </Text>
-          </View>
+            </p>
+          </div>
         ) : null}
 
         {sortedRuns.map((run) => (
-          <View
+          <div
             key={run.runId}
             className="rounded-2xl border border-[#8a6a44] bg-[#f3e8d5] p-4"
-            accessibilityLabel={`Run: Wave ${run.waveReached}, ${run.result === 'defeat' ? 'Defeated' : 'Abandoned'}, ${run.coinsEarned} coins earned, ${run.biome} biome`}
+            aria-label={`Run: Wave ${run.waveReached}, ${run.result === 'defeat' ? 'Defeated' : 'Abandoned'}, ${run.coinsEarned} coins earned, ${run.biome} biome`}
           >
-            <View className="flex-row items-start justify-between">
-              <View className="flex-1">
-                <Text className="text-lg font-bold text-[#3e2723]">
+            <div className="flex flex-row items-start justify-between">
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-[#3e2723]">
                   {t('history_wave_label', { wave: run.waveReached })} — {run.result === 'defeat' ? t('history_result_defeat') : t('history_result_abandoned')}
-                </Text>
-                <Text className="mt-1 text-sm text-[#6e4e31]">{formatDate(run.createdAt)}</Text>
-              </View>
-              <View className="items-end">
-                <Text className="text-xl font-bold text-[#c38115]">{t('history_coins', { coins: run.coinsEarned })}</Text>
-              </View>
-            </View>
+                </h3>
+                <p className="mt-1 text-sm text-[#6e4e31]">{formatDate(run.createdAt)}</p>
+              </div>
+              <div className="text-right">
+                <span className="text-xl font-bold text-[#c38115]">{t('history_coins', { coins: run.coinsEarned })}</span>
+              </div>
+            </div>
 
-            <View className="mt-3 flex-row justify-between">
-              <View className="flex-row gap-4">
-                <Text className="text-xs uppercase tracking-[2px] text-[#75512d]">
+            <div className="mt-3 flex flex-row justify-between">
+              <div className="flex flex-row gap-4">
+                <span className="text-xs uppercase tracking-[2px] text-[#75512d]">
                   {t('history_biome', { biome: run.biome })}
-                </Text>
-                <Text className="text-xs uppercase tracking-[2px] text-[#75512d]">
+                </span>
+                <span className="text-xs uppercase tracking-[2px] text-[#75512d]">
                   {t('history_difficulty', { difficulty: run.difficulty })}
-                </Text>
-              </View>
-              <Text className="text-xs uppercase tracking-[2px] text-[#75512d]">
+                </span>
+              </div>
+              <span className="text-xs uppercase tracking-[2px] text-[#75512d]">
                 {t('history_duration', { duration: formatDuration(run.durationMs) })}
-              </Text>
-            </View>
-          </View>
+              </span>
+            </div>
+          </div>
         ))}
-      </ScrollView>
+      </div>
 
-      <TouchableOpacity
-        onPress={() => {
+      <button
+        type="button"
+        onClick={() => {
           soundManager.playUiClick();
-          router.back();
+          navigate(-1);
         }}
-        className="mt-4 self-center rounded-xl border border-[#a88a44] bg-[#4a3b22] px-8 py-3"
-        accessibilityRole="button"
-        accessibilityLabel={t('btn_return_to_court')}
+        className="mx-auto mt-4 rounded-xl border border-[#a88a44] bg-[#4a3b22] px-8 py-3"
+        aria-label={t('btn_return_to_court')}
       >
-        <Text className="text-lg font-bold text-[#f7ebd0]">{t('btn_return_to_court')}</Text>
-      </TouchableOpacity>
-    </View>
+        <span className="text-lg font-bold text-[#f7ebd0]">{t('btn_return_to_court')}</span>
+      </button>
+    </div>
   );
 }

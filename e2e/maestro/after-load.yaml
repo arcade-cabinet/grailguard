@@ -1,9 +1,0 @@
-appId: com.arcadecabinet.grailguard
----
-- launchApp:
-    arguments:
-      EXDevLauncherURL: "http://localhost:8081"
-- extendedWaitUntil:
-    visible: ".*"
-    timeout: 60000
-- takeScreenshot: e2e/maestro/screenshots/02-loaded

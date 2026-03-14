@@ -3,7 +3,7 @@
  *
  * Renders a resource cart entity as a bouncing colored cube.
  */
-import { useFrame } from '@react-three/fiber/native';
+import { useFrame } from '@react-three/fiber';
 import type { Entity } from 'koota';
 import { useRef } from 'react';
 import type * as THREE from 'three';

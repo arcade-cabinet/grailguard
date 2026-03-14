@@ -1,10 +1,8 @@
 /**
  * @module rendererSwitch.web
  *
- * Web-only renderer that wraps the existing R3F Canvas + Arena.
- * This file is only loaded on web platforms via the rendererSwitch module.
- * Metro's platform-specific resolution (.web.tsx) ensures this is never
- * bundled on native.
+ * Web renderer that wraps the existing R3F Canvas + Arena.
+ * Uses Three.js WebGL for rendering the 3D scene.
  */
 import { Canvas } from '@react-three/fiber';
 import { Suspense } from 'react';

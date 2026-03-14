@@ -6,17 +6,17 @@ import {
   stepRunWorld,
 } from '../../engine/GameEngine';
 
-jest.mock('../../engine/SoundManager', () => ({
+vi.mock('../../engine/SoundManager', () => ({
   soundManager: {
-    init: jest.fn(),
-    playAmbience: jest.fn(),
-    stopAmbience: jest.fn(),
-    playMusic: jest.fn(),
-    stopMusic: jest.fn(),
-    playUiClick: jest.fn(),
-    playBuild: jest.fn(),
-    playCombat: jest.fn(),
-    playGameOver: jest.fn(),
+    init: vi.fn(),
+    playAmbience: vi.fn(),
+    stopAmbience: vi.fn(),
+    playMusic: vi.fn(),
+    stopMusic: vi.fn(),
+    playUiClick: vi.fn(),
+    playBuild: vi.fn(),
+    playCombat: vi.fn(),
+    playGameOver: vi.fn(),
   },
 }));
 
@@ -130,10 +130,10 @@ class CastSpellEvaluator extends GoalEvaluator<PlayerGovernor> {
 }
 
 describe('YUKA Goal-Driven Player Governor E2E', () => {
-  let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
+  let consoleLogSpy: ReturnType<typeof vi.spyOn>;
 
   beforeAll(() => {
-    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
   });
 
   afterAll(() => {

@@ -1,10 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { eq } from 'drizzle-orm';
 import { createTestDb, type TestDb } from '../testDb';
 
 let testDb: TestDb;
 
-jest.mock('../../../db/client', () => ({
+vi.mock('../../../db/client', () => ({
   get db() {
     return testDb.db;
   },

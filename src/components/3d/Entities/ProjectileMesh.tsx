@@ -3,7 +3,7 @@
  *
  * Renders a single in-flight projectile as a small colored sphere.
  */
-import { useFrame } from '@react-three/fiber/native';
+import { useFrame } from '@react-three/fiber';
 import type { Entity } from 'koota';
 import { useRef } from 'react';
 import type * as THREE from 'three';

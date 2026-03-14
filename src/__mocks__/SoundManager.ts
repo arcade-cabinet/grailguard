@@ -1,4 +1,6 @@
-const createMockFn = () => (typeof jest !== 'undefined' && jest.fn ? jest.fn() : () => {});
+import { vi } from 'vitest';
+
+const createMockFn = () => vi.fn();
 
 export const soundManager = {
   init: createMockFn(),

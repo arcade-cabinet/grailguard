@@ -1,9 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { createTestDb, type TestDb } from '../testDb';
 
 let testDb: TestDb;
 
-jest.mock('../../../db/client', () => ({
+vi.mock('../../../db/client', () => ({
   get db() {
     return testDb.db;
   },

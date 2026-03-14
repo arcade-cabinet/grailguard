@@ -7,12 +7,11 @@
  *
  * The module exposes:
  * - React hooks (`useMetaProgress`, `useCodexEntries`, `useDoctrineNodes`)
- *   backed by Drizzle live queries that re-render on every DB change.
+ *   backed by live queries that re-render on every DB change.
  * - Async command functions for purchasing unlocks, banking run rewards,
  *   persisting/restoring active-run snapshots, and updating settings.
  */
 import { eq } from 'drizzle-orm';
-import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { BUILDINGS, type BuildingType, type SpellType } from '../engine/constants';
 import { db } from './client';
 import { ensureSeedData as ensureBootstrapSeedData } from './repos/bootstrapRepo';
@@ -38,6 +37,7 @@ import {
   settings,
   unlocks,
 } from './schema';
+import { useLiveQuery } from './useLiveQuery';
 
 const DEFAULT_UNLOCKS: Record<BuildingType, boolean> = {
   wall: true,

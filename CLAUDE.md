@@ -14,7 +14,6 @@
 
 | Rule | Details |
 |------|---------|
-| No DOM APIs | This is React Native. Never use `document.*`, `window.*`, or HTML elements |
 | No `useState` for animation | Use `useFrame` + `useRef` for per-frame position/rotation/scale |
 | Engine logic in `src/engine/` | Never put simulation logic in React components |
 | DB access via `src/db/` | Never query SQLite directly from UI code |
@@ -26,22 +25,26 @@
 
 | Layer | Tech |
 |-------|------|
-| Framework | Expo SDK 55 |
+| Build | Vite 8 + TypeScript |
+| Framework | React 19 + react-router-dom |
 | 3D | React Three Fiber 9 + drei 10 |
 | ECS | Koota 0.6 |
 | AI | Yuka 0.7 |
 | Audio | Tone.js 15 |
-| DB | expo-sqlite + drizzle-orm |
-| Styling | NativeWind 4 + Tailwind 3 |
-| Testing | Jest 29 + Playwright |
+| DB | sql.js (WASM) + drizzle-orm |
+| Styling | Tailwind CSS 3 |
+| Testing | Vitest 4 |
+| Native | Capacitor (web-dir: dist) |
 
 ### Common Commands
 
 ```bash
 pnpm install          # Install dependencies
-pnpm start            # Expo dev server
-pnpm web              # Web dev server
-pnpm test             # Run tests
+pnpm dev              # Vite dev server (port 5173)
+pnpm build            # TypeScript check + production build
+pnpm preview          # Preview production build
+pnpm test             # Run tests (Vitest)
+pnpm test:watch       # Run tests in watch mode
 pnpm lint             # Biome lint
 pnpm typecheck        # TypeScript check
 pnpm db:generate      # Drizzle migrations

@@ -11,7 +11,6 @@
  * settingsRepo. The overlay only appears when `tutorialComplete` is false.
  */
 import { useState } from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
 import { updateSettings } from '../../db/meta';
 import { t } from '../../i18n';
 
@@ -67,61 +66,61 @@ export function Tutorial({ visible, onDismiss }: { visible: boolean; onDismiss: 
   };
 
   return (
-    <View
-      className="absolute inset-0 items-center justify-center"
+    <div
+      className="absolute inset-0 flex flex-col items-center justify-center"
       style={{ backgroundColor: 'rgba(10, 8, 6, 0.85)', zIndex: 9999 }}
-      accessibilityRole="alert"
-      accessibilityLabel={t(currentStep.textKey)}
+      role="alert"
+      aria-label={t(currentStep.textKey)}
     >
       {/* Spotlight circle hint */}
-      <View className="mb-8 h-28 w-28 items-center justify-center rounded-full border-2 border-[#d4af37]/60 bg-[#d4af37]/15">
-        <Text className="text-5xl">{currentStep.icon}</Text>
-      </View>
+      <div className="mb-8 flex h-28 w-28 items-center justify-center rounded-full border-2 border-[#d4af37]/60 bg-[#d4af37]/15">
+        <span className="text-5xl">{currentStep.icon}</span>
+      </div>
 
       {/* Step counter */}
-      <Text className="text-xs font-bold uppercase tracking-[4px] text-[#b98b52]">
+      <p className="text-xs font-bold uppercase tracking-[4px] text-[#b98b52]">
         {stepIndex + 1} / {STEPS.length}
-      </Text>
+      </p>
 
       {/* Instruction text */}
-      <Text className="mt-4 max-w-md px-6 text-center text-xl font-semibold leading-7 text-[#f5e8cc]">
+      <p className="mt-4 max-w-md px-6 text-center text-xl font-semibold leading-7 text-[#f5e8cc]">
         {t(currentStep.textKey)}
-      </Text>
+      </p>
 
       {/* Step indicator dots */}
-      <View className="mt-6 flex-row gap-2">
+      <div className="mt-6 flex flex-row gap-2">
         {STEPS.map((_, i) => (
-          <View
+          <div
             key={`dot-${i}`}
             className={`h-2.5 w-2.5 rounded-full ${
               i === stepIndex ? 'bg-[#d4af37]' : 'bg-[#6b4a2f]'
             }`}
           />
         ))}
-      </View>
+      </div>
 
       {/* Action buttons */}
-      <View className="mt-8 flex-row gap-4">
-        <TouchableOpacity
-          onPress={handleDismiss}
+      <div className="mt-8 flex flex-row gap-4">
+        <button
+          type="button"
+          onClick={handleDismiss}
           className="rounded-xl border border-[#8b6b45] bg-transparent px-6 py-3"
-          accessibilityRole="button"
-          accessibilityLabel={t('tutorial_btn_skip')}
+          aria-label={t('tutorial_btn_skip')}
         >
-          <Text className="font-bold text-[#c9b18b]">{t('tutorial_btn_skip')}</Text>
-        </TouchableOpacity>
+          <span className="font-bold text-[#c9b18b]">{t('tutorial_btn_skip')}</span>
+        </button>
 
-        <TouchableOpacity
-          onPress={handleNext}
+        <button
+          type="button"
+          onClick={handleNext}
           className="rounded-xl border border-[#d4af37] bg-[#4a3b22] px-8 py-3"
-          accessibilityRole="button"
-          accessibilityLabel={isLastStep ? t('tutorial_btn_done') : t('tutorial_btn_next')}
+          aria-label={isLastStep ? t('tutorial_btn_done') : t('tutorial_btn_next')}
         >
-          <Text className="font-bold text-[#f7ebd0]">
+          <span className="font-bold text-[#f7ebd0]">
             {isLastStep ? t('tutorial_btn_done') : t('tutorial_btn_next')}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+          </span>
+        </button>
+      </div>
+    </div>
   );
 }

@@ -9,8 +9,6 @@
     "includes": [
       "src/**/*.ts",
       "src/**/*.tsx",
-      "app/**/*.ts",
-      "app/**/*.tsx",
       "e2e/**/*.ts",
       "*.ts",
       "*.tsx",
@@ -72,7 +70,7 @@
   },
   "overrides": [
     {
-      "includes": ["*.config.js", "babel.config.js", "metro.config.js"],
+      "includes": ["*.config.js", "postcss.config.js"],
       "linter": {
         "rules": {
           "suspicious": {

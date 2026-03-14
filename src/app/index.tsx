@@ -7,10 +7,9 @@
  * modals for the Embark flow (biome, challenge, map size, seed, and spell
  * selection) and the Royal Market (building and spell purchases).
  */
-import * as Tooltip from '@rn-primitives/tooltip';
-import { useRouter } from 'expo-router';
+import * as Tooltip from '@radix-ui/react-tooltip';
 import { useState } from 'react';
-import { Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useNavigate } from 'react-router-dom';
 import {
   getUnlockCost,
   purchaseBuildingUnlock,
@@ -56,8 +55,8 @@ const SPELLS: Record<SpellType, { name: string; desc: string; icon: string }> = 
   },
 };
 
-export default function MainMenuScreen() {
-  const router = useRouter();
+export function MainMenu() {
+  const navigate = useNavigate();
   const { coins, hasActiveRun, settings, unlocks, spellUnlocks } = useMetaProgress();
   const [marketOpen, setMarketOpen] = useState(false);
   const [embarkOpen, setEmbarkOpen] = useState(false);
@@ -86,398 +85,393 @@ export default function MainMenuScreen() {
   };
 
   return (
-    <View className="flex-1 items-center justify-center overflow-hidden bg-[#1a120d] px-6">
-      <View className="absolute inset-0 bg-[#120b08]" />
-      <View className="absolute inset-x-0 top-0 h-64 bg-[#6b3f1d]/25" />
-      <View className="absolute bottom-[-120px] left-[-40px] h-72 w-72 rounded-full bg-[#d4af37]/10" />
-      <View className="absolute right-[-60px] top-20 h-80 w-80 rounded-full bg-[#8b1e1e]/10" />
+    <Tooltip.Provider>
+      <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#1a120d] px-6">
+        <div className="absolute inset-0 bg-[#120b08]" />
+        <div className="absolute inset-x-0 top-0 h-64 bg-[#6b3f1d]/25" />
+        <div className="absolute bottom-[-120px] left-[-40px] h-72 w-72 rounded-full bg-[#d4af37]/10" />
+        <div className="absolute right-[-60px] top-20 h-80 w-80 rounded-full bg-[#8b1e1e]/10" />
 
-      <View className="w-full max-w-4xl rounded-[28px] border border-[#6b4a2f] bg-[#241711]/95 px-6 py-8 shadow-2xl">
-        <Text className="text-center text-xs font-semibold uppercase tracking-[5px] text-[#b98b52]">
-          {t('app_subtitle')}
-        </Text>
-        <Text className="mt-3 text-center text-6xl font-bold text-[#ead7b0]">{t('app_title')}</Text>
-        <Text className="mt-3 text-center text-base leading-6 text-[#d7c6af]">
-          {t('app_tagline')}
-        </Text>
+        <div className="relative z-10 w-full max-w-4xl rounded-[28px] border border-[#6b4a2f] bg-[#241711]/95 px-6 py-8 shadow-2xl">
+          <p className="text-center text-xs font-semibold uppercase tracking-[5px] text-[#b98b52]">
+            {t('app_subtitle')}
+          </p>
+          <h1 className="mt-3 text-center text-6xl font-bold text-[#ead7b0]">{t('app_title')}</h1>
+          <p className="mt-3 text-center text-base leading-6 text-[#d7c6af]">
+            {t('app_tagline')}
+          </p>
 
-        <View className="mt-8 rounded-[24px] border border-[#7f5b37] bg-[#e9d8be] px-6 py-5">
-          <Text className="text-center text-xs font-bold uppercase tracking-[4px] text-[#6e4e31]">
-            {t('treasury_title')}
-          </Text>
-          <Text className="mt-2 text-center text-5xl font-bold text-[#c38115]">{coins} 🪙</Text>
-          <Text className="mt-1 text-center text-sm text-[#6e4e31]">
-            Theme: {settings?.theme ?? 'holy-grail'} • Preferred speed:{' '}
-            {settings?.preferredSpeed ?? 1}x
-          </Text>
-        </View>
+          <div className="mt-8 rounded-[24px] border border-[#7f5b37] bg-[#e9d8be] px-6 py-5">
+            <p className="text-center text-xs font-bold uppercase tracking-[4px] text-[#6e4e31]">
+              {t('treasury_title')}
+            </p>
+            <p className="mt-2 text-center text-5xl font-bold text-[#c38115]">{coins} 🪙</p>
+            <p className="mt-1 text-center text-sm text-[#6e4e31]">
+              Theme: {settings?.theme ?? 'holy-grail'} &bull; Preferred speed:{' '}
+              {settings?.preferredSpeed ?? 1}x
+            </p>
+          </div>
 
-        <View className="mt-8 flex-row flex-wrap justify-center gap-4">
-          <Tooltip.Root>
-            <Tooltip.Trigger asChild>
-              <TouchableOpacity
-                onPress={() => {
+          <div className="mt-8 flex flex-row flex-wrap justify-center gap-4">
+            <Tooltip.Root>
+              <Tooltip.Trigger asChild>
+                <button
+                  type="button"
+                  onClick={() => {
+                    soundManager.playUiClick();
+                    setEmbarkOpen(true);
+                  }}
+                  className="rounded-2xl border border-[#b98b52] bg-[#5a371f] px-10 py-4"
+                  aria-label="Embark on a new run"
+                >
+                  <span className="text-2xl font-bold text-[#f6e6c7]">{t('btn_embark')}</span>
+                </button>
+              </Tooltip.Trigger>
+              <Tooltip.Portal>
+                <Tooltip.Content
+                  side="top"
+                  className="rounded-xl border border-[#6b4a2f] bg-[#2b1c14] px-3 py-2"
+                >
+                  <span className="text-sm text-[#f6e6c7]">{t('btn_embark_tooltip')}</span>
+                </Tooltip.Content>
+              </Tooltip.Portal>
+            </Tooltip.Root>
+
+            {hasActiveRun ? (
+              <button
+                type="button"
+                onClick={() => {
                   soundManager.playUiClick();
-                  setEmbarkOpen(true);
+                  navigate('/game?mode=resume');
                 }}
-                className="rounded-2xl border border-[#b98b52] bg-[#5a371f] px-10 py-4"
-                accessibilityRole="button"
-                accessibilityLabel="Embark on a new run"
+                className="rounded-2xl border border-[#8b6b45] bg-[#3c2818] px-8 py-4"
+                aria-label="Continue active run"
               >
-                <Text className="text-2xl font-bold text-[#f6e6c7]">{t('btn_embark')}</Text>
-              </TouchableOpacity>
-            </Tooltip.Trigger>
-            <Tooltip.Portal>
-              <Tooltip.Content
-                side="top"
-                className="rounded-xl border border-[#6b4a2f] bg-[#2b1c14] px-3 py-2"
-              >
-                <Text className="text-sm text-[#f6e6c7]">{t('btn_embark_tooltip')}</Text>
-              </Tooltip.Content>
-            </Tooltip.Portal>
-          </Tooltip.Root>
+                <span className="text-xl font-bold text-[#e8d099]">{t('btn_continue_run')}</span>
+              </button>
+            ) : null}
 
-          {hasActiveRun ? (
-            <TouchableOpacity
-              onPress={() => {
+            <button
+              type="button"
+              onClick={() => {
                 soundManager.playUiClick();
-                router.push('/game?mode=resume');
+                setMarketOpen(true);
               }}
-              className="rounded-2xl border border-[#8b6b45] bg-[#3c2818] px-8 py-4"
-              accessibilityRole="button"
-              accessibilityLabel="Continue active run"
+              className="rounded-2xl border border-[#8b6b45] bg-[#2d2118] px-8 py-4"
+              aria-label="Open Royal Market"
             >
-              <Text className="text-xl font-bold text-[#e8d099]">{t('btn_continue_run')}</Text>
-            </TouchableOpacity>
-          ) : null}
+              <span className="text-xl font-bold text-[#e8d099]">{t('btn_royal_market')}</span>
+            </button>
 
-          <TouchableOpacity
-            onPress={() => {
-              soundManager.playUiClick();
-              setMarketOpen(true);
-            }}
-            className="rounded-2xl border border-[#8b6b45] bg-[#2d2118] px-8 py-4"
-            accessibilityRole="button"
-            accessibilityLabel="Open Royal Market"
-          >
-            <Text className="text-xl font-bold text-[#e8d099]">{t('btn_royal_market')}</Text>
-          </TouchableOpacity>
+            <button
+              type="button"
+              onClick={() => {
+                soundManager.playUiClick();
+                navigate('/codex');
+              }}
+              className="rounded-2xl border border-[#8b6b45] bg-[#2d2118] px-8 py-4"
+              aria-label="Open Codex"
+            >
+              <span className="text-xl font-bold text-[#e8d099]">{t('btn_codex')}</span>
+            </button>
 
-          <TouchableOpacity
-            onPress={() => {
-              soundManager.playUiClick();
-              router.push('/codex' as never);
-            }}
-            className="rounded-2xl border border-[#8b6b45] bg-[#2d2118] px-8 py-4"
-            accessibilityRole="button"
-            accessibilityLabel="Open Codex"
-          >
-            <Text className="text-xl font-bold text-[#e8d099]">{t('btn_codex')}</Text>
-          </TouchableOpacity>
+            <button
+              type="button"
+              onClick={() => navigate('/doctrine')}
+              className="rounded-2xl border border-[#8b6b45] bg-[#2d2118] px-8 py-4"
+              aria-label="Open Doctrine skill tree"
+            >
+              <span className="text-xl font-bold text-[#e8d099]">{t('btn_doctrine')}</span>
+            </button>
 
-          <TouchableOpacity
-            onPress={() => router.push('/doctrine' as never)}
-            className="rounded-2xl border border-[#8b6b45] bg-[#2d2118] px-8 py-4"
-            accessibilityRole="button"
-            accessibilityLabel="Open Doctrine skill tree"
-          >
-            <Text className="text-xl font-bold text-[#e8d099]">{t('btn_doctrine')}</Text>
-          </TouchableOpacity>
+            <button
+              type="button"
+              onClick={() => {
+                soundManager.playUiClick();
+                navigate('/history');
+              }}
+              className="rounded-2xl border border-[#8b6b45] bg-[#2d2118] px-8 py-4"
+              aria-label="View run history"
+            >
+              <span className="text-xl font-bold text-[#e8d099]">History</span>
+            </button>
 
-          <TouchableOpacity
-            onPress={() => {
-              soundManager.playUiClick();
-              router.push('/history' as never);
-            }}
-            className="rounded-2xl border border-[#8b6b45] bg-[#2d2118] px-8 py-4"
-            accessibilityRole="button"
-            accessibilityLabel="View run history"
-          >
-            <Text className="text-xl font-bold text-[#e8d099]">History</Text>
-          </TouchableOpacity>
+            <button
+              type="button"
+              onClick={() => navigate('/settings')}
+              className="rounded-2xl border border-[#8b6b45] bg-[#2d2118] px-8 py-4"
+              aria-label="Open Settings"
+            >
+              <span className="text-xl font-bold text-[#e8d099]">{t('btn_settings')}</span>
+            </button>
+          </div>
+        </div>
 
-          <TouchableOpacity
-            onPress={() => router.push('/settings' as never)}
-            className="rounded-2xl border border-[#8b6b45] bg-[#2d2118] px-8 py-4"
-            accessibilityRole="button"
-            accessibilityLabel="Open Settings"
-          >
-            <Text className="text-xl font-bold text-[#e8d099]">{t('btn_settings')}</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+        {/* Embark Modal */}
+        {embarkOpen ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0a0806]/90 px-4">
+            <div className="w-full max-w-2xl rounded-[28px] border border-[#6b4a2f] bg-[#eadcc3] p-6">
+              <h2 className="text-3xl font-bold text-[#3e2723]">{t('embark_title')}</h2>
+              <p className="mt-2 text-sm text-[#6e4e31]">{t('embark_subtitle')}</p>
 
-      <Modal
-        visible={embarkOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setEmbarkOpen(false)}
-      >
-        <View className="flex-1 items-center justify-center bg-[#0a0806]/90 px-4">
-          <View className="w-full max-w-2xl rounded-[28px] border border-[#6b4a2f] bg-[#eadcc3] p-6">
-            <Text className="text-3xl font-bold text-[#3e2723]">{t('embark_title')}</Text>
-            <Text className="mt-2 text-sm text-[#6e4e31]">{t('embark_subtitle')}</Text>
-
-            <Text className="mt-6 text-xl font-bold text-[#3e2723]">{t('embark_biome')}</Text>
-            <View className="mt-2 flex-row gap-3">
-              {BIOMES.map((b) => (
-                <TouchableOpacity
-                  key={b.id}
-                  onPress={() => setSelectedBiome(b.id)}
-                  className={`flex-1 rounded-xl border p-3 ${selectedBiome === b.id ? 'border-[#8b6b45] bg-[#cda97e]' : 'border-[#8a7c6c] bg-[#e1d0b7]'}`}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Select biome: ${b.name}`}
-                  accessibilityState={{ selected: selectedBiome === b.id }}
-                >
-                  <Text className="font-bold text-[#3e2723]">{b.name}</Text>
-                  <Text className="text-xs text-[#5c4033] mt-1">{b.desc}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <Text className="mt-6 text-xl font-bold text-[#3e2723]">{t('embark_challenge')}</Text>
-            <View className="mt-2 flex-row gap-3">
-              {CHALLENGES.map((c) => (
-                <TouchableOpacity
-                  key={c.id}
-                  onPress={() => setSelectedChallenge(c.id)}
-                  className={`flex-1 rounded-xl border p-3 ${selectedChallenge === c.id ? 'border-[#8b6b45] bg-[#cda97e]' : 'border-[#8a7c6c] bg-[#e1d0b7]'}`}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Select challenge: ${c.name}`}
-                  accessibilityState={{ selected: selectedChallenge === c.id }}
-                >
-                  <Text className="font-bold text-[#3e2723]">{c.name}</Text>
-                  <Text className="text-xs text-[#5c4033] mt-1">{c.desc}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <View className="mt-6 flex-row gap-6">
-              <View className="flex-1">
-                <Text className="text-xl font-bold text-[#3e2723]">{t('embark_map_size')}</Text>
-                <View className="mt-2 flex-row gap-3">
-                  {MAP_SIZES.map((s) => (
-                    <TouchableOpacity
-                      key={s.id}
-                      onPress={() => setSelectedSize(s.id)}
-                      className={`flex-1 items-center justify-center rounded-xl border p-3 ${selectedSize === s.id ? 'border-[#8b6b45] bg-[#cda97e]' : 'border-[#8a7c6c] bg-[#e1d0b7]'}`}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Map size: ${s.name}`}
-                      accessibilityState={{ selected: selectedSize === s.id }}
-                    >
-                      <Text className="font-bold text-[#3e2723]">{s.name}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-              <View className="flex-1">
-                <Text className="text-xl font-bold text-[#3e2723]">{t('embark_seed')}</Text>
-                <TextInput
-                  value={seedInput}
-                  onChangeText={setSeedInput}
-                  placeholder={t('embark_seed_placeholder')}
-                  placeholderTextColor="#8a7c6c"
-                  className="mt-2 flex-1 rounded-xl border border-[#8a7c6c] bg-[#e1d0b7] px-4 py-3 font-bold text-[#3e2723]"
-                />
-              </View>
-            </View>
-
-            <Text className="mt-6 text-xl font-bold text-[#3e2723]">{t('embark_spells')}</Text>
-            <View className="mt-2 flex-row flex-wrap gap-3">
-              {(Object.keys(SPELLS) as SpellType[]).map((spellId) => {
-                if (!spellUnlocks[spellId]) return null;
-                const spell = SPELLS[spellId];
-                const isSelected = selectedSpells.includes(spellId);
-                return (
-                  <TouchableOpacity
-                    key={spellId}
-                    onPress={() => toggleSpell(spellId)}
-                    className={`rounded-xl border p-3 ${isSelected ? 'border-[#8b6b45] bg-[#cda97e]' : 'border-[#8a7c6c] bg-[#e1d0b7]'}`}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${isSelected ? 'Deselect' : 'Select'} spell: ${spell.name}`}
-                    accessibilityState={{ selected: isSelected }}
+              <h3 className="mt-6 text-xl font-bold text-[#3e2723]">{t('embark_biome')}</h3>
+              <div className="mt-2 flex flex-row gap-3">
+                {BIOMES.map((b) => (
+                  <button
+                    type="button"
+                    key={b.id}
+                    onClick={() => setSelectedBiome(b.id)}
+                    className={`flex-1 rounded-xl border p-3 text-left ${selectedBiome === b.id ? 'border-[#8b6b45] bg-[#cda97e]' : 'border-[#8a7c6c] bg-[#e1d0b7]'}`}
+                    aria-label={`Select biome: ${b.name}`}
+                    aria-pressed={selectedBiome === b.id}
                   >
-                    <Text className="font-bold text-[#3e2723]">
-                      {spell.icon} {spell.name}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+                    <span className="font-bold text-[#3e2723]">{b.name}</span>
+                    <span className="mt-1 block text-xs text-[#5c4033]">{b.desc}</span>
+                  </button>
+                ))}
+              </div>
 
-            <View className="mt-6 flex-row items-center gap-3">
-              <TouchableOpacity
-                onPress={() => setGovernorEnabled(!governorEnabled)}
-                className={`rounded-xl border p-3 ${governorEnabled ? 'border-[#8b6b45] bg-[#cda97e]' : 'border-[#8a7c6c] bg-[#e1d0b7]'}`}
-                accessibilityRole="switch"
-                accessibilityLabel="Enable AI Governor auto-play"
-                accessibilityState={{ checked: governorEnabled }}
-              >
-                <Text className="font-bold text-[#3e2723]">{t('embark_governor')}</Text>
-              </TouchableOpacity>
-            </View>
+              <h3 className="mt-6 text-xl font-bold text-[#3e2723]">{t('embark_challenge')}</h3>
+              <div className="mt-2 flex flex-row gap-3">
+                {CHALLENGES.map((c) => (
+                  <button
+                    type="button"
+                    key={c.id}
+                    onClick={() => setSelectedChallenge(c.id)}
+                    className={`flex-1 rounded-xl border p-3 text-left ${selectedChallenge === c.id ? 'border-[#8b6b45] bg-[#cda97e]' : 'border-[#8a7c6c] bg-[#e1d0b7]'}`}
+                    aria-label={`Select challenge: ${c.name}`}
+                    aria-pressed={selectedChallenge === c.id}
+                  >
+                    <span className="font-bold text-[#3e2723]">{c.name}</span>
+                    <span className="mt-1 block text-xs text-[#5c4033]">{c.desc}</span>
+                  </button>
+                ))}
+              </div>
 
-            <View className="mt-8 flex-row justify-end gap-4">
-              <TouchableOpacity
-                onPress={() => setEmbarkOpen(false)}
-                className="rounded-xl border border-[#a88a44] bg-transparent px-6 py-3"
-                accessibilityRole="button"
-                accessibilityLabel="Cancel embark"
-              >
-                <Text className="font-bold text-[#4a3b22]">{t('btn_cancel')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => {
-                  setEmbarkOpen(false);
-                  const seedParam = seedInput.trim()
-                    ? `&seed=${encodeURIComponent(seedInput.trim())}`
-                    : '';
-                  const governorParam = governorEnabled ? '&governor=1' : '';
-                  router.push(
-                    `/game?mode=fresh&biome=${selectedBiome}&challenge=${selectedChallenge}&spells=${selectedSpells.join(',')}&mapSize=${selectedSize}${seedParam}${governorParam}`,
+              <div className="mt-6 flex flex-row gap-6">
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-[#3e2723]">{t('embark_map_size')}</h3>
+                  <div className="mt-2 flex flex-row gap-3">
+                    {MAP_SIZES.map((s) => (
+                      <button
+                        type="button"
+                        key={s.id}
+                        onClick={() => setSelectedSize(s.id)}
+                        className={`flex-1 items-center justify-center rounded-xl border p-3 text-center ${selectedSize === s.id ? 'border-[#8b6b45] bg-[#cda97e]' : 'border-[#8a7c6c] bg-[#e1d0b7]'}`}
+                        aria-label={`Map size: ${s.name}`}
+                        aria-pressed={selectedSize === s.id}
+                      >
+                        <span className="font-bold text-[#3e2723]">{s.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-[#3e2723]">{t('embark_seed')}</h3>
+                  <input
+                    type="text"
+                    value={seedInput}
+                    onChange={(e) => setSeedInput(e.target.value)}
+                    placeholder={t('embark_seed_placeholder')}
+                    className="mt-2 w-full rounded-xl border border-[#8a7c6c] bg-[#e1d0b7] px-4 py-3 font-bold text-[#3e2723] placeholder-[#8a7c6c]"
+                  />
+                </div>
+              </div>
+
+              <h3 className="mt-6 text-xl font-bold text-[#3e2723]">{t('embark_spells')}</h3>
+              <div className="mt-2 flex flex-row flex-wrap gap-3">
+                {(Object.keys(SPELLS) as SpellType[]).map((spellId) => {
+                  if (!spellUnlocks[spellId]) return null;
+                  const spell = SPELLS[spellId];
+                  const isSelected = selectedSpells.includes(spellId);
+                  return (
+                    <button
+                      type="button"
+                      key={spellId}
+                      onClick={() => toggleSpell(spellId)}
+                      className={`rounded-xl border p-3 ${isSelected ? 'border-[#8b6b45] bg-[#cda97e]' : 'border-[#8a7c6c] bg-[#e1d0b7]'}`}
+                      aria-label={`${isSelected ? 'Deselect' : 'Select'} spell: ${spell.name}`}
+                      aria-pressed={isSelected}
+                    >
+                      <span className="font-bold text-[#3e2723]">
+                        {spell.icon} {spell.name}
+                      </span>
+                    </button>
                   );
+                })}
+              </div>
+
+              <div className="mt-6 flex flex-row items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setGovernorEnabled(!governorEnabled)}
+                  className={`rounded-xl border p-3 ${governorEnabled ? 'border-[#8b6b45] bg-[#cda97e]' : 'border-[#8a7c6c] bg-[#e1d0b7]'}`}
+                  role="switch"
+                  aria-checked={governorEnabled}
+                  aria-label="Enable AI Governor auto-play"
+                >
+                  <span className="font-bold text-[#3e2723]">{t('embark_governor')}</span>
+                </button>
+              </div>
+
+              <div className="mt-8 flex flex-row justify-end gap-4">
+                <button
+                  type="button"
+                  onClick={() => setEmbarkOpen(false)}
+                  className="rounded-xl border border-[#a88a44] bg-transparent px-6 py-3"
+                  aria-label="Cancel embark"
+                >
+                  <span className="font-bold text-[#4a3b22]">{t('btn_cancel')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmbarkOpen(false);
+                    const seedParam = seedInput.trim()
+                      ? `&seed=${encodeURIComponent(seedInput.trim())}`
+                      : '';
+                    const governorParam = governorEnabled ? '&governor=1' : '';
+                    navigate(
+                      `/game?mode=fresh&biome=${selectedBiome}&challenge=${selectedChallenge}&spells=${selectedSpells.join(',')}&mapSize=${selectedSize}${seedParam}${governorParam}`,
+                    );
+                  }}
+                  className="rounded-xl border border-[#a88a44] bg-[#4a3b22] px-8 py-3"
+                  aria-label="Start run"
+                >
+                  <span className="text-lg font-bold text-[#f7ebd0]">{t('btn_start_run')}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Market Modal */}
+        {marketOpen ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0a0806]/90 px-4">
+            <div className="max-h-[90%] w-full max-w-5xl overflow-auto rounded-[28px] border border-[#6b4a2f] bg-[#eadcc3] p-6">
+              <div className="mb-6 flex flex-row items-center justify-between border-b border-[#6e4e31] pb-4">
+                <div>
+                  <h2 className="text-3xl font-bold text-[#3e2723]">{t('market_title')}</h2>
+                  <p className="text-sm text-[#6e4e31]">{t('market_subtitle')}</p>
+                </div>
+                <span className="text-2xl font-bold text-[#c38115]">{coins} 🪙</span>
+              </div>
+
+              <div className="flex flex-col gap-4 pb-4">
+                <h3 className="mt-2 text-2xl font-bold text-[#3e2723]">
+                  {t('market_structures')}
+                </h3>
+                {marketItems.map(([type, building]) => {
+                  const isUnlocked = unlocks[type];
+                  const unlockCost = getUnlockCost(type);
+                  const canAfford = coins >= unlockCost;
+
+                  return (
+                    <div key={type} className="rounded-2xl border border-[#8a6a44] bg-[#f3e8d5] p-4">
+                      <div className="flex flex-row items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <h4 className="text-2xl font-bold text-[#3e2723]">
+                            {building.icon} {building.name}
+                          </h4>
+                          <p className="mt-1 text-sm leading-5 text-[#6e4e31]">
+                            {building.role}
+                          </p>
+                          <p className="mt-2 text-xs uppercase tracking-[2px] text-[#75512d]">
+                            {building.stats}
+                          </p>
+                        </div>
+
+                        {isUnlocked ? (
+                          <div className="rounded-xl border border-[#8b6d3b] bg-[#dcc8aa] px-4 py-3">
+                            <span className="font-bold text-[#5c4033]">{t('market_unlocked')}</span>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={!canAfford}
+                            onClick={() => {
+                              void (async () => {
+                                await purchaseBuildingUnlock(type);
+                              })();
+                            }}
+                            className={`rounded-xl border px-4 py-3 ${
+                              canAfford
+                                ? 'border-[#a88a44] bg-[#4a3b22]'
+                                : 'border-[#8a7c6c] bg-[#8a7c6c]'
+                            }`}
+                            aria-label={`Unlock ${building.name} for ${unlockCost} coins`}
+                            aria-disabled={!canAfford}
+                          >
+                            <span className="font-bold text-[#f7ebd0]">{unlockCost} 🪙</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                <h3 className="mt-4 text-2xl font-bold text-[#3e2723]">{t('market_spells')}</h3>
+                {(Object.keys(SPELLS) as SpellType[]).map((type) => {
+                  const isUnlocked = spellUnlocks[type];
+                  const unlockCost = 200;
+                  const canAfford = coins >= unlockCost;
+                  const spell = SPELLS[type];
+
+                  return (
+                    <div key={type} className="rounded-2xl border border-[#8a6a44] bg-[#f3e8d5] p-4">
+                      <div className="flex flex-row items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <h4 className="text-2xl font-bold text-[#3e2723]">
+                            {spell.icon} {spell.name}
+                          </h4>
+                          <p className="mt-1 text-sm leading-5 text-[#6e4e31]">{spell.desc}</p>
+                        </div>
+
+                        {isUnlocked ? (
+                          <div className="rounded-xl border border-[#8b6d3b] bg-[#dcc8aa] px-4 py-3">
+                            <span className="font-bold text-[#5c4033]">{t('market_unlocked')}</span>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={!canAfford}
+                            onClick={() => {
+                              void (async () => {
+                                await purchaseSpellUnlock(type);
+                              })();
+                            }}
+                            className={`rounded-xl border px-4 py-3 ${
+                              canAfford
+                                ? 'border-[#a88a44] bg-[#4a3b22]'
+                                : 'border-[#8a7c6c] bg-[#8a7c6c]'
+                            }`}
+                            aria-label={`Unlock ${spell.name} spell for ${unlockCost} coins`}
+                            aria-disabled={!canAfford}
+                          >
+                            <span className="font-bold text-[#f7ebd0]">{unlockCost} 🪙</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  soundManager.playUiClick();
+                  setMarketOpen(false);
                 }}
-                className="rounded-xl border border-[#a88a44] bg-[#4a3b22] px-8 py-3"
-                accessibilityRole="button"
-                accessibilityLabel="Start run"
+                className="mx-auto mt-4 block rounded-xl border border-[#a88a44] bg-[#4a3b22] px-8 py-3"
+                aria-label="Return to court"
               >
-                <Text className="text-lg font-bold text-[#f7ebd0]">{t('btn_start_run')}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal
-        visible={marketOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setMarketOpen(false)}
-      >
-        <View className="flex-1 items-center justify-center bg-[#0a0806]/90 px-4">
-          <View className="max-h-[90%] w-full max-w-5xl rounded-[28px] border border-[#6b4a2f] bg-[#eadcc3] p-6">
-            <View className="mb-6 flex-row items-center justify-between border-b border-[#6e4e31] pb-4">
-              <View>
-                <Text className="text-3xl font-bold text-[#3e2723]">{t('market_title')}</Text>
-                <Text className="text-sm text-[#6e4e31]">{t('market_subtitle')}</Text>
-              </View>
-              <Text className="text-2xl font-bold text-[#c38115]">{coins} 🪙</Text>
-            </View>
-
-            <ScrollView contentContainerClassName="gap-4 pb-4">
-              <Text className="mt-2 text-2xl font-bold text-[#3e2723]">
-                {t('market_structures')}
-              </Text>
-              {marketItems.map(([type, building]) => {
-                const isUnlocked = unlocks[type];
-                const unlockCost = getUnlockCost(type);
-                const canAfford = coins >= unlockCost;
-
-                return (
-                  <View key={type} className="rounded-2xl border border-[#8a6a44] bg-[#f3e8d5] p-4">
-                    <View className="flex-row items-start justify-between gap-4">
-                      <View className="flex-1">
-                        <Text className="text-2xl font-bold text-[#3e2723]">
-                          {building.icon} {building.name}
-                        </Text>
-                        <Text className="mt-1 text-sm leading-5 text-[#6e4e31]">
-                          {building.role}
-                        </Text>
-                        <Text className="mt-2 text-xs uppercase tracking-[2px] text-[#75512d]">
-                          {building.stats}
-                        </Text>
-                      </View>
-
-                      {isUnlocked ? (
-                        <View className="rounded-xl border border-[#8b6d3b] bg-[#dcc8aa] px-4 py-3">
-                          <Text className="font-bold text-[#5c4033]">{t('market_unlocked')}</Text>
-                        </View>
-                      ) : (
-                        <TouchableOpacity
-                          disabled={!canAfford}
-                          onPress={() => {
-                            void (async () => {
-                              await purchaseBuildingUnlock(type);
-                            })();
-                          }}
-                          className={`rounded-xl border px-4 py-3 ${
-                            canAfford
-                              ? 'border-[#a88a44] bg-[#4a3b22]'
-                              : 'border-[#8a7c6c] bg-[#8a7c6c]'
-                          }`}
-                          accessibilityRole="button"
-                          accessibilityLabel={`Unlock ${building.name} for ${unlockCost} coins`}
-                          accessibilityState={{ disabled: !canAfford }}
-                        >
-                          <Text className="font-bold text-[#f7ebd0]">{unlockCost} 🪙</Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  </View>
-                );
-              })}
-
-              <Text className="mt-4 text-2xl font-bold text-[#3e2723]">{t('market_spells')}</Text>
-              {(Object.keys(SPELLS) as SpellType[]).map((type) => {
-                const isUnlocked = spellUnlocks[type];
-                const unlockCost = 200;
-                const canAfford = coins >= unlockCost;
-                const spell = SPELLS[type];
-
-                return (
-                  <View key={type} className="rounded-2xl border border-[#8a6a44] bg-[#f3e8d5] p-4">
-                    <View className="flex-row items-start justify-between gap-4">
-                      <View className="flex-1">
-                        <Text className="text-2xl font-bold text-[#3e2723]">
-                          {spell.icon} {spell.name}
-                        </Text>
-                        <Text className="mt-1 text-sm leading-5 text-[#6e4e31]">{spell.desc}</Text>
-                      </View>
-
-                      {isUnlocked ? (
-                        <View className="rounded-xl border border-[#8b6d3b] bg-[#dcc8aa] px-4 py-3">
-                          <Text className="font-bold text-[#5c4033]">{t('market_unlocked')}</Text>
-                        </View>
-                      ) : (
-                        <TouchableOpacity
-                          disabled={!canAfford}
-                          onPress={() => {
-                            void (async () => {
-                              await purchaseSpellUnlock(type);
-                            })();
-                          }}
-                          className={`rounded-xl border px-4 py-3 ${
-                            canAfford
-                              ? 'border-[#a88a44] bg-[#4a3b22]'
-                              : 'border-[#8a7c6c] bg-[#8a7c6c]'
-                          }`}
-                          accessibilityRole="button"
-                          accessibilityLabel={`Unlock ${spell.name} spell for ${unlockCost} coins`}
-                          accessibilityState={{ disabled: !canAfford }}
-                        >
-                          <Text className="font-bold text-[#f7ebd0]">{unlockCost} 🪙</Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  </View>
-                );
-              })}
-            </ScrollView>
-
-            <TouchableOpacity
-              onPress={() => {
-                soundManager.playUiClick();
-                setMarketOpen(false);
-              }}
-              className="self-center rounded-xl border border-[#a88a44] bg-[#4a3b22] px-8 py-3 mt-4"
-              accessibilityRole="button"
-              accessibilityLabel="Return to court"
-            >
-              <Text className="text-lg font-bold text-[#f7ebd0]">{t('btn_return_to_court')}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    </View>
+                <span className="text-lg font-bold text-[#f7ebd0]">{t('btn_return_to_court')}</span>
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </Tooltip.Provider>
   );
 }

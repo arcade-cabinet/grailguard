@@ -1,30 +1,22 @@
 {
-  "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "strict": true,
     "target": "ES2020",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "lib": ["ES2020", "DOM"],
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
+    "strict": true,
+    "noEmit": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
-    "noEmit": true,
+    "isolatedModules": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
-    }
+      "@/*": ["src/*"]
+    },
+    "types": ["vite/client", "vitest/globals"]
   },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "app/**/*.ts",
-    "app/**/*.tsx",
-    "e2e/**/*.ts",
-    "expo-env.d.ts",
-    "nativewind-env.d.ts",
-    ".expo/types/**/*.ts"
-  ]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "vite-env.d.ts"]
 }

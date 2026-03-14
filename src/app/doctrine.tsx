@@ -6,8 +6,7 @@
  * Nodes affect starting gold, faith bonuses, unit stats, passive income,
  * and construction costs.
  */
-import { useRouter } from 'expo-router';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { useNavigate } from 'react-router-dom';
 import { purchaseDoctrineNode, useDoctrineNodes, useMetaProgress } from '../db/meta';
 import { t } from '../i18n';
 
@@ -44,25 +43,25 @@ const DOCTRINES = [
   },
 ] as const;
 
-export default function DoctrineScreen() {
-  const router = useRouter();
+export function DoctrineScreen() {
+  const navigate = useNavigate();
   const { coins } = useMetaProgress();
   const nodes = useDoctrineNodes();
   const levelMap = new Map(nodes.map((node) => [node.nodeId, node.level]));
 
   return (
-    <View className="flex-1 bg-[#140d09] px-5 pb-6 pt-14">
-      <View className="rounded-[28px] border border-[#6b4a2f] bg-[#241711]/95 px-5 py-5">
-        <Text className="text-xs font-bold uppercase tracking-[4px] text-[#b98b52]">
+    <div className="flex min-h-screen flex-col bg-[#140d09] px-5 pb-6 pt-14">
+      <div className="rounded-[28px] border border-[#6b4a2f] bg-[#241711]/95 px-5 py-5">
+        <p className="text-xs font-bold uppercase tracking-[4px] text-[#b98b52]">
           {t('doctrine_header')}
-        </Text>
-        <Text className="mt-2 text-4xl font-bold text-[#f0dfbe]">{t('doctrine_title')}</Text>
-        <Text className="mt-2 text-sm text-[#d8c3a2]">
+        </p>
+        <h1 className="mt-2 text-4xl font-bold text-[#f0dfbe]">{t('doctrine_title')}</h1>
+        <p className="mt-2 text-sm text-[#d8c3a2]">
           {t('doctrine_treasury_label')} {coins} 🪙
-        </Text>
-      </View>
+        </p>
+      </div>
 
-      <ScrollView className="mt-4" contentContainerClassName="gap-3 pb-4">
+      <div className="mt-4 flex flex-1 flex-col gap-3 overflow-auto pb-4">
         {DOCTRINES.map((node) => {
           const level = levelMap.get(node.nodeId) ?? 0;
           const cost = node.baseCost * (level + 1);
@@ -70,21 +69,22 @@ export default function DoctrineScreen() {
           const canAfford = coins >= cost;
 
           return (
-            <View
+            <div
               key={node.nodeId}
               className="rounded-2xl border border-[#8a6a44] bg-[#eadcc3] p-4"
             >
-              <Text className="text-xl font-bold text-[#3e2723]">
+              <h3 className="text-xl font-bold text-[#3e2723]">
                 {node.title} (Lv. {level}/5)
-              </Text>
-              <Text className="mt-1 text-sm text-[#6e4e31]">{node.description}</Text>
-              <View className="mt-3 flex-row items-center justify-between">
-                <Text className="text-sm font-semibold text-[#75512d]">
+              </h3>
+              <p className="mt-1 text-sm text-[#6e4e31]">{node.description}</p>
+              <div className="mt-3 flex flex-row items-center justify-between">
+                <span className="text-sm font-semibold text-[#75512d]">
                   {isMaxed ? t('doctrine_max_level') : `${cost} 🪙`}
-                </Text>
-                <TouchableOpacity
+                </span>
+                <button
+                  type="button"
                   disabled={isMaxed || !canAfford}
-                  onPress={() => {
+                  onClick={() => {
                     void purchaseDoctrineNode(node.nodeId, cost);
                   }}
                   className={`rounded-xl border px-4 py-2 ${
@@ -94,36 +94,35 @@ export default function DoctrineScreen() {
                         ? 'border-[#a88a44] bg-[#4a3b22]'
                         : 'border-[#8a7c6c] bg-[#8a7c6c]'
                   }`}
-                  accessibilityRole="button"
-                  accessibilityLabel={
+                  aria-label={
                     isMaxed
                       ? `${node.title} maxed`
                       : `${level > 0 ? 'Upgrade' : 'Consecrate'} ${node.title} for ${cost} coins`
                   }
-                  accessibilityState={{ disabled: isMaxed || !canAfford }}
+                  aria-disabled={isMaxed || !canAfford}
                 >
-                  <Text className="font-bold text-[#f7ebd0]">
+                  <span className="font-bold text-[#f7ebd0]">
                     {isMaxed
                       ? t('doctrine_maxed')
                       : level > 0
                         ? t('doctrine_upgrade')
                         : t('doctrine_consecrate')}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+                  </span>
+                </button>
+              </div>
+            </div>
           );
         })}
-      </ScrollView>
+      </div>
 
-      <TouchableOpacity
-        onPress={() => router.back()}
-        className="self-center rounded-2xl border border-[#a88a44] bg-[#4a3b22] px-8 py-3"
-        accessibilityRole="button"
-        accessibilityLabel="Return to court"
+      <button
+        type="button"
+        onClick={() => navigate(-1)}
+        className="mx-auto rounded-2xl border border-[#a88a44] bg-[#4a3b22] px-8 py-3"
+        aria-label="Return to court"
       >
-        <Text className="text-lg font-bold text-[#f7ebd0]">{t('btn_return_to_court')}</Text>
-      </TouchableOpacity>
-    </View>
+        <span className="text-lg font-bold text-[#f7ebd0]">{t('btn_return_to_court')}</span>
+      </button>
+    </div>
   );
 }

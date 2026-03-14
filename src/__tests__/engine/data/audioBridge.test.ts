@@ -8,7 +8,7 @@ describe('AudioBridge', () => {
   });
 
   it('calls registered listeners when an event is emitted', () => {
-    const listener = jest.fn();
+    const listener = vi.fn();
     bridge.on('combat_hit', listener);
 
     const event: AudioEventPayload = { type: 'combat_hit' };
@@ -19,7 +19,7 @@ describe('AudioBridge', () => {
   });
 
   it('does not call listeners for other event types', () => {
-    const listener = jest.fn();
+    const listener = vi.fn();
     bridge.on('combat_hit', listener);
 
     bridge.emit({ type: 'wave_start' });
@@ -28,8 +28,8 @@ describe('AudioBridge', () => {
   });
 
   it('supports multiple listeners for the same event', () => {
-    const listener1 = jest.fn();
-    const listener2 = jest.fn();
+    const listener1 = vi.fn();
+    const listener2 = vi.fn();
     bridge.on('building_placed', listener1);
     bridge.on('building_placed', listener2);
 
@@ -40,8 +40,8 @@ describe('AudioBridge', () => {
   });
 
   it('supports listeners for different event types', () => {
-    const combatListener = jest.fn();
-    const waveListener = jest.fn();
+    const combatListener = vi.fn();
+    const waveListener = vi.fn();
     bridge.on('combat_hit', combatListener);
     bridge.on('wave_start', waveListener);
 
@@ -52,7 +52,7 @@ describe('AudioBridge', () => {
   });
 
   it('unsubscribe function removes the listener', () => {
-    const listener = jest.fn();
+    const listener = vi.fn();
     const unsub = bridge.on('unit_death', listener);
 
     bridge.emit({ type: 'unit_death' });
@@ -64,7 +64,7 @@ describe('AudioBridge', () => {
   });
 
   it('passes position and detail through the payload', () => {
-    const listener = jest.fn();
+    const listener = vi.fn();
     bridge.on('spell_cast', listener);
 
     const event: AudioEventPayload = {
@@ -81,8 +81,8 @@ describe('AudioBridge', () => {
   });
 
   it('clear() removes all listeners', () => {
-    const listener1 = jest.fn();
-    const listener2 = jest.fn();
+    const listener1 = vi.fn();
+    const listener2 = vi.fn();
     bridge.on('combat_hit', listener1);
     bridge.on('game_over', listener2);
 
@@ -98,10 +98,10 @@ describe('AudioBridge', () => {
   it('listenerCount() returns accurate counts', () => {
     expect(bridge.listenerCount('boss_spawn')).toBe(0);
 
-    const unsub1 = bridge.on('boss_spawn', jest.fn());
+    const unsub1 = bridge.on('boss_spawn', vi.fn());
     expect(bridge.listenerCount('boss_spawn')).toBe(1);
 
-    bridge.on('boss_spawn', jest.fn());
+    bridge.on('boss_spawn', vi.fn());
     expect(bridge.listenerCount('boss_spawn')).toBe(2);
 
     unsub1();
@@ -123,7 +123,7 @@ describe('AudioBridge', () => {
     ] as const;
 
     for (const type of allTypes) {
-      const listener = jest.fn();
+      const listener = vi.fn();
       bridge.on(type, listener);
       bridge.emit({ type });
       expect(listener).toHaveBeenCalledTimes(1);

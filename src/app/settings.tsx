@@ -5,8 +5,7 @@
  * reduced FX, sound effects, and music. Persists changes via the meta-
  * progression database.
  */
-import { useRouter } from 'expo-router';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { useNavigate } from 'react-router-dom';
 import { updateSettings, useMetaProgress } from '../db/meta';
 import { t } from '../i18n';
 
@@ -22,44 +21,45 @@ function SettingRow({
   value: boolean;
 }) {
   return (
-    <View className="rounded-2xl border border-[#8a6a44] bg-[#eadcc3] p-4">
-      <View className="flex-row items-center justify-between gap-4">
-        <View className="flex-1">
-          <Text className="text-lg font-bold text-[#3e2723]">{label}</Text>
-          <Text className="mt-1 text-sm text-[#6e4e31]">{description}</Text>
-        </View>
-        <TouchableOpacity
-          onPress={onToggle}
+    <div className="rounded-2xl border border-[#8a6a44] bg-[#eadcc3] p-4">
+      <div className="flex flex-row items-center justify-between gap-4">
+        <div className="flex-1">
+          <h3 className="text-lg font-bold text-[#3e2723]">{label}</h3>
+          <p className="mt-1 text-sm text-[#6e4e31]">{description}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onToggle}
           className={`rounded-xl border px-4 py-2 ${
             value ? 'border-[#3f6b3d] bg-[#355b31]' : 'border-[#7b5a39] bg-[#4a311f]'
           }`}
-          accessibilityRole="switch"
-          accessibilityLabel={label}
-          accessibilityState={{ checked: value }}
+          role="switch"
+          aria-checked={value}
+          aria-label={label}
         >
-          <Text className="font-bold text-[#f7ebd0]">
+          <span className="font-bold text-[#f7ebd0]">
             {value ? t('settings_on') : t('settings_off')}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+          </span>
+        </button>
+      </div>
+    </div>
   );
 }
 
-export default function SettingsScreen() {
-  const router = useRouter();
+export function SettingsScreen() {
+  const navigate = useNavigate();
   const { settings } = useMetaProgress();
 
   return (
-    <View className="flex-1 bg-[#140d09] px-5 pb-6 pt-14">
-      <View className="rounded-[28px] border border-[#6b4a2f] bg-[#241711]/95 px-5 py-5">
-        <Text className="text-xs font-bold uppercase tracking-[4px] text-[#b98b52]">
+    <div className="flex min-h-screen flex-col bg-[#140d09] px-5 pb-6 pt-14">
+      <div className="rounded-[28px] border border-[#6b4a2f] bg-[#241711]/95 px-5 py-5">
+        <p className="text-xs font-bold uppercase tracking-[4px] text-[#b98b52]">
           {t('settings_header')}
-        </Text>
-        <Text className="mt-2 text-4xl font-bold text-[#f0dfbe]">{t('settings_title')}</Text>
-      </View>
+        </p>
+        <h1 className="mt-2 text-4xl font-bold text-[#f0dfbe]">{t('settings_title')}</h1>
+      </div>
 
-      <View className="mt-4 gap-3">
+      <div className="mt-4 flex flex-col gap-3">
         <SettingRow
           description={t('settings_auto_resume_desc')}
           label={t('settings_auto_resume_label')}
@@ -103,16 +103,16 @@ export default function SettingsScreen() {
           }}
           value={settings?.highContrast ?? false}
         />
-      </View>
+      </div>
 
-      <TouchableOpacity
-        onPress={() => router.back()}
-        className="mt-auto self-center rounded-2xl border border-[#a88a44] bg-[#4a3b22] px-8 py-3"
-        accessibilityRole="button"
-        accessibilityLabel="Return to court"
+      <button
+        type="button"
+        onClick={() => navigate(-1)}
+        className="mx-auto mt-auto rounded-2xl border border-[#a88a44] bg-[#4a3b22] px-8 py-3"
+        aria-label="Return to court"
       >
-        <Text className="text-lg font-bold text-[#f7ebd0]">{t('btn_return_to_court')}</Text>
-      </TouchableOpacity>
-    </View>
+        <span className="text-lg font-bold text-[#f7ebd0]">{t('btn_return_to_court')}</span>
+      </button>
+    </div>
   );
 }

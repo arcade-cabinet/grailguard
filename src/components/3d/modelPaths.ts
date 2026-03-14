@@ -2,8 +2,8 @@
  * @module modelPaths
  *
  * Central registry of GLB asset paths for all building and unit types.
- * Paths are resolved via Metro's `require()` so they work with Expo's
- * asset system. All models are eagerly preloaded at module evaluation time
+ * Paths are URL strings served from the public/ directory via Vite.
+ * All models are eagerly preloaded at module evaluation time
  * using `useGLTF.preload`.
  */
 import { useGLTF } from '@react-three/drei';
@@ -14,49 +14,49 @@ import { useGLTF } from '@react-three/drei';
  * `obelisk`, and `catapult` all use `tower.glb`).
  */
 export const BUILDING_MODEL_PATHS = {
-  wall: require('../../../assets/models/wall.glb'),
-  hut: require('../../../assets/models/hut.glb'),
-  range: require('../../../assets/models/range.glb'),
-  temple: require('../../../assets/models/temple.glb'),
-  keep: require('../../../assets/models/keep.glb'),
-  sentry: require('../../../assets/models/tower.glb'),
-  obelisk: require('../../../assets/models/tower.glb'),
-  lumber: require('../../../assets/models/hut.glb'),
-  mine_ore: require('../../../assets/models/mine_ore.glb'),
-  mine_gem: require('../../../assets/models/mine_gem.glb'),
-  track: require('../../../assets/models/conveyor.glb'),
-  mint: require('../../../assets/models/keep.glb'),
-  catapult: require('../../../assets/models/tower.glb'),
-  sorcerer: require('../../../assets/models/keep.glb'),
-  vault: require('../../../assets/models/temple.glb'),
+  wall: '/assets/models/wall.glb',
+  hut: '/assets/models/hut.glb',
+  range: '/assets/models/range.glb',
+  temple: '/assets/models/temple.glb',
+  keep: '/assets/models/keep.glb',
+  sentry: '/assets/models/tower.glb',
+  obelisk: '/assets/models/tower.glb',
+  lumber: '/assets/models/hut.glb',
+  mine_ore: '/assets/models/mine_ore.glb',
+  mine_gem: '/assets/models/mine_gem.glb',
+  track: '/assets/models/conveyor.glb',
+  mint: '/assets/models/keep.glb',
+  catapult: '/assets/models/tower.glb',
+  sorcerer: '/assets/models/keep.glb',
+  vault: '/assets/models/temple.glb',
 } as const;
 
 /** Map from `UnitType` keys to their resolved GLB asset paths. */
 export const UNIT_MODEL_PATHS = {
-  wall: require('../../../assets/models/wall.glb'),
-  militia: require('../../../assets/models/militia.glb'),
-  archer: require('../../../assets/models/archer.glb'),
-  cleric: require('../../../assets/models/cleric.glb'),
-  knight: require('../../../assets/models/knight.glb'),
-  goblin: require('../../../assets/models/goblin.glb'),
-  orc: require('../../../assets/models/orc.glb'),
-  troll: require('../../../assets/models/troll.glb'),
-  boss: require('../../../assets/models/boss.glb'),
-  flying: require('../../../assets/models/goblin.glb'),
-  shieldBearer: require('../../../assets/models/orc.glb'),
-  summoner: require('../../../assets/models/troll.glb'),
+  wall: '/assets/models/wall.glb',
+  militia: '/assets/models/militia.glb',
+  archer: '/assets/models/archer.glb',
+  cleric: '/assets/models/cleric.glb',
+  knight: '/assets/models/knight.glb',
+  goblin: '/assets/models/goblin.glb',
+  orc: '/assets/models/orc.glb',
+  troll: '/assets/models/troll.glb',
+  boss: '/assets/models/boss.glb',
+  flying: '/assets/models/goblin.glb',
+  shieldBearer: '/assets/models/orc.glb',
+  summoner: '/assets/models/troll.glb',
 } as const;
 
 const ALL_MODEL_PATHS = [
   ...new Set([...Object.values(BUILDING_MODEL_PATHS), ...Object.values(UNIT_MODEL_PATHS)]),
-  require('../../../assets/models/tree.glb'),
-  require('../../../assets/models/rock.glb'),
+  '/assets/models/tree.glb',
+  '/assets/models/rock.glb',
 ];
 
 // Only preload in browser environment
 if (typeof window !== 'undefined') {
   for (const path of ALL_MODEL_PATHS) {
-    useGLTF.preload(path as string);
+    useGLTF.preload(path);
   }
 }
 

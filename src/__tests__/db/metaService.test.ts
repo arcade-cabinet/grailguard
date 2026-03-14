@@ -1,36 +1,35 @@
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 /* ------------------------------------------------------------------ */
 /*  Mock setup                                                         */
 /* ------------------------------------------------------------------ */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const awardCoinsMock = jest.fn<(...args: any[]) => any>();
-const loadPlayerProfileMock = jest.fn<(...args: any[]) => any>();
-const updatePlayerProfileStatsMock = jest.fn<(...args: any[]) => any>();
+const awardCoinsMock = vi.fn<(...args: any[]) => any>();
+const loadPlayerProfileMock = vi.fn<(...args: any[]) => any>();
+const updatePlayerProfileStatsMock = vi.fn<(...args: any[]) => any>();
 
-const archiveActiveRunMock = jest.fn<(...args: any[]) => any>();
-const clearActiveRunMock = jest.fn<(...args: any[]) => any>();
-const loadActiveRunMock = jest.fn<(...args: any[]) => any>();
-const recordRunHistoryMock = jest.fn<(...args: any[]) => any>();
-const saveActiveRunMock = jest.fn<(...args: any[]) => any>();
+const archiveActiveRunMock = vi.fn<(...args: any[]) => any>();
+const clearActiveRunMock = vi.fn<(...args: any[]) => any>();
+const loadActiveRunMock = vi.fn<(...args: any[]) => any>();
+const recordRunHistoryMock = vi.fn<(...args: any[]) => any>();
+const saveActiveRunMock = vi.fn<(...args: any[]) => any>();
 
-const loadSettingsMock = jest.fn<(...args: any[]) => any>();
-const saveSettingsMock = jest.fn<(...args: any[]) => any>();
+const loadSettingsMock = vi.fn<(...args: any[]) => any>();
+const saveSettingsMock = vi.fn<(...args: any[]) => any>();
 
-const ensureSeedDataMock = jest.fn<(...args: any[]) => any>();
-const purchaseDoctrineNodeMock = jest.fn<(...args: any[]) => any>();
-const purchaseUnlockTransactionMock = jest.fn<(...args: any[]) => any>();
-const purchaseSpellUnlockTransactionMock = jest.fn<(...args: any[]) => any>();
-const discoverCodexEntryMock = jest.fn<(...args: any[]) => any>();
+const ensureSeedDataMock = vi.fn<(...args: any[]) => any>();
+const purchaseDoctrineNodeMock = vi.fn<(...args: any[]) => any>();
+const purchaseUnlockTransactionMock = vi.fn<(...args: any[]) => any>();
+const purchaseSpellUnlockTransactionMock = vi.fn<(...args: any[]) => any>();
+const discoverCodexEntryMock = vi.fn<(...args: any[]) => any>();
 
-jest.mock('../../db/repos/profileRepo', () => ({
+vi.mock('../../db/repos/profileRepo', () => ({
   awardCoins: (...args: unknown[]) => awardCoinsMock(...args),
   loadPlayerProfile: (...args: unknown[]) => loadPlayerProfileMock(...args),
   updatePlayerProfileStats: (...args: unknown[]) => updatePlayerProfileStatsMock(...args),
 }));
 
-jest.mock('../../db/repos/runRepo', () => ({
+vi.mock('../../db/repos/runRepo', () => ({
   archiveActiveRun: (...args: unknown[]) => archiveActiveRunMock(...args),
   clearActiveRun: (...args: unknown[]) => clearActiveRunMock(...args),
   loadActiveRun: (...args: unknown[]) => loadActiveRunMock(...args),
@@ -38,35 +37,35 @@ jest.mock('../../db/repos/runRepo', () => ({
   saveActiveRun: (...args: unknown[]) => saveActiveRunMock(...args),
 }));
 
-jest.mock('../../db/repos/settingsRepo', () => ({
+vi.mock('../../db/repos/settingsRepo', () => ({
   loadSettings: (...args: unknown[]) => loadSettingsMock(...args),
   saveSettings: (...args: unknown[]) => saveSettingsMock(...args),
 }));
 
-jest.mock('../../db/repos/bootstrapRepo', () => ({
+vi.mock('../../db/repos/bootstrapRepo', () => ({
   ensureSeedData: (...args: unknown[]) => ensureSeedDataMock(...args),
 }));
 
-jest.mock('../../db/repos/doctrineRepo', () => ({
+vi.mock('../../db/repos/doctrineRepo', () => ({
   purchaseDoctrineNode: (...args: unknown[]) => purchaseDoctrineNodeMock(...args),
 }));
 
-jest.mock('../../db/repos/unlockRepo', () => ({
+vi.mock('../../db/repos/unlockRepo', () => ({
   purchaseUnlockTransaction: (...args: unknown[]) => purchaseUnlockTransactionMock(...args),
   purchaseSpellUnlockTransaction: (...args: unknown[]) =>
     purchaseSpellUnlockTransactionMock(...args),
 }));
 
-jest.mock('../../db/repos/codexRepo', () => ({
+vi.mock('../../db/repos/codexRepo', () => ({
   discoverCodexEntry: (...args: unknown[]) => discoverCodexEntryMock(...args),
 }));
 
-jest.mock('../../db/client', () => ({
+vi.mock('../../db/client', () => ({
   db: {},
 }));
 
-jest.mock('drizzle-orm/expo-sqlite', () => ({
-  useLiveQuery: jest.fn(() => ({ data: [] })),
+vi.mock('drizzle-orm/expo-sqlite', () => ({
+  useLiveQuery: vi.fn(() => ({ data: [] })),
 }));
 
 /* ------------------------------------------------------------------ */

@@ -7,12 +7,12 @@
  * resource carts, and world effects). Also exposes helper functions for
  * projecting between screen coordinates and the ground plane.
  */
-import { Clone, useGLTF } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import type { Entity } from 'koota';
 import { useQuery, useTrait } from 'koota/react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
+import mapConfig from '../../data/mapConfig.json';
 import {
   Building,
   Facing,
@@ -160,67 +160,161 @@ function CameraRig() {
   return null;
 }
 
+const _scatterObj = new THREE.Object3D();
+const _scatterColor = new THREE.Color();
+
+/** Seeded LCG for deterministic scenery placement. */
+function createScatterRng(seed: number) {
+  let state = seed;
+  return () => {
+    state = (state * 16807) % 2147483647;
+    return (state - 1) / 2147483646;
+  };
+}
+
+/**
+ * InstancedMesh scenery: one InstancedMesh for tree canopies (ConeGeometry),
+ * one for tree trunks (CylinderGeometry), one for rocks (DodecahedronGeometry).
+ * All scattered deterministically using the map seed.
+ */
 function EnvironmentScatter() {
   const session = useTrait(gameWorld, GameSession);
-  // We can just use the path as string for useGLTF, assuming it's preloaded or metro resolves it.
-  const treeModel = useGLTF(require('../../../public/assets/models/tree.glb') as string);
-  const rockModel = useGLTF(require('../../../public/assets/models/rock.glb') as string);
+  const treeCanopyRef = useRef<THREE.InstancedMesh>(null);
+  const treeTrunkRef = useRef<THREE.InstancedMesh>(null);
+  const rockRef = useRef<THREE.InstancedMesh>(null);
 
-  const instances = useMemo(() => {
-    let seed = session?.runId ? parseInt(session.runId.substring(0, 8), 16) : 12345;
-    const mapSize = session?.mapSize ?? 100;
-    if (Number.isNaN(seed)) seed = 12345;
-    const random = () => {
-      seed = (seed * 16807) % 2147483647;
-      return (seed - 1) / 2147483646;
-    };
+  const { treeCount, rockCount, scatterRadius, minRoadClearance } =
+    mapConfig.scenery;
+  const mapSize = session?.mapSize ?? mapConfig.size;
 
-    const items = [];
-    const numItems = 150;
+  // Geometries and materials (memoized)
+  const canopyGeo = useMemo(() => new THREE.ConeGeometry(1.5, 3, 6), []);
+  const trunkGeo = useMemo(() => new THREE.CylinderGeometry(0.3, 0.4, 2, 6), []);
+  const rockGeo = useMemo(() => new THREE.DodecahedronGeometry(1.2, 0), []);
+  const canopyMat = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: '#2d6a2e', roughness: 0.85 }),
+    [],
+  );
+  const trunkMat = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: '#5c3a1e', roughness: 0.9 }),
+    [],
+  );
+  const rockMat = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: '#808080', roughness: 0.95 }),
+    [],
+  );
 
-    for (let i = 0; i < numItems; i++) {
-      const x = (random() - 0.5) * mapSize;
-      const z = (random() - 0.5) * mapSize;
-
-      const point = new THREE.Vector3(x, 0, z);
-      let minDistance = Infinity;
-      for (let t = 0; t <= 1; t += 0.05) {
-        const roadPoint = roadSpline.getPoint(t);
-        const dist = point.distanceTo(roadPoint);
-        if (dist < minDistance) {
-          minDistance = dist;
-        }
-      }
-
-      if (minDistance > 5) {
-        items.push({
-          id: i,
-          type: random() > 0.3 ? 'tree' : 'rock',
-          position: [x, 0, z],
-          rotation: [0, random() * Math.PI * 2, 0],
-          scale: 0.8 + random() * 0.4,
-        });
-      }
-    }
-    return items;
+  const initialized = useRef(false);
+  useMemo(() => {
+    initialized.current = false;
   }, [session?.runId, session?.mapSize]);
+
+  useFrame(() => {
+    if (initialized.current) return;
+    if (!treeCanopyRef.current || !treeTrunkRef.current || !rockRef.current) return;
+
+    let seedNum = session?.runId
+      ? Number.parseInt(session.runId.substring(0, 8), 16)
+      : 12345;
+    if (Number.isNaN(seedNum)) seedNum = 12345;
+    const random = createScatterRng(seedNum);
+
+    const halfMap = mapSize * scatterRadius;
+    let treeIdx = 0;
+    let rockIdx = 0;
+
+    const candidates = treeCount + rockCount + 50; // extra to account for road rejection
+    for (let i = 0; i < candidates; i++) {
+      const x = (random() - 0.5) * 2 * halfMap;
+      const z = (random() - 0.5) * 2 * halfMap;
+      const isTree = treeIdx < treeCount && (rockIdx >= rockCount || random() > 0.33);
+
+      // Check road clearance
+      const point = new THREE.Vector3(x, 0, z);
+      let minDist = Number.POSITIVE_INFINITY;
+      for (let t = 0; t <= 1; t += 0.05) {
+        const roadPt = roadSpline.getPoint(t);
+        const d = point.distanceTo(roadPt);
+        if (d < minDist) minDist = d;
+      }
+      if (minDist < minRoadClearance) continue;
+
+      const scale = 0.8 + random() * 0.5;
+      const rotY = random() * Math.PI * 2;
+
+      if (isTree && treeIdx < treeCount) {
+        // Tree canopy (cone on top)
+        _scatterObj.position.set(x, 2 + scale * 1.5, z);
+        _scatterObj.rotation.set(0, rotY, 0);
+        _scatterObj.scale.set(scale, scale, scale);
+        _scatterObj.updateMatrix();
+        treeCanopyRef.current.setMatrixAt(treeIdx, _scatterObj.matrix);
+        // Slight color variation
+        const green = 0.35 + random() * 0.15;
+        _scatterColor.setRGB(0.15, green, 0.15);
+        treeCanopyRef.current.setColorAt(treeIdx, _scatterColor);
+
+        // Tree trunk
+        _scatterObj.position.set(x, scale * 1, z);
+        _scatterObj.rotation.set(0, rotY, 0);
+        _scatterObj.scale.set(scale, scale, scale);
+        _scatterObj.updateMatrix();
+        treeTrunkRef.current.setMatrixAt(treeIdx, _scatterObj.matrix);
+        _scatterColor.set('#5c3a1e');
+        treeTrunkRef.current.setColorAt(treeIdx, _scatterColor);
+
+        treeIdx++;
+      } else if (!isTree && rockIdx < rockCount) {
+        _scatterObj.position.set(x, scale * 0.6, z);
+        _scatterObj.rotation.set(random() * 0.3, rotY, random() * 0.3);
+        _scatterObj.scale.set(scale, scale * 0.7, scale);
+        _scatterObj.updateMatrix();
+        rockRef.current.setMatrixAt(rockIdx, _scatterObj.matrix);
+        const gray = 0.4 + random() * 0.2;
+        _scatterColor.setRGB(gray, gray, gray);
+        rockRef.current.setColorAt(rockIdx, _scatterColor);
+        rockIdx++;
+      }
+
+      if (treeIdx >= treeCount && rockIdx >= rockCount) break;
+    }
+
+    treeCanopyRef.current.instanceMatrix.needsUpdate = true;
+    treeTrunkRef.current.instanceMatrix.needsUpdate = true;
+    rockRef.current.instanceMatrix.needsUpdate = true;
+    if (treeCanopyRef.current.instanceColor)
+      treeCanopyRef.current.instanceColor.needsUpdate = true;
+    if (treeTrunkRef.current.instanceColor)
+      treeTrunkRef.current.instanceColor.needsUpdate = true;
+    if (rockRef.current.instanceColor)
+      rockRef.current.instanceColor.needsUpdate = true;
+
+    initialized.current = true;
+  });
 
   return (
     <>
-      {instances.map((item) => (
-        <group
-          key={item.id}
-          position={item.position as [number, number, number]}
-          rotation={item.rotation as [number, number, number]}
-          scale={item.scale}
-        >
-          <Clone
-            object={item.type === 'tree' ? treeModel.scene : rockModel.scene}
-            castShadow
-            receiveShadow
-          />
-        </group>
-      ))}
+      <instancedMesh
+        ref={treeCanopyRef}
+        args={[canopyGeo, canopyMat, treeCount]}
+        castShadow
+        receiveShadow
+        frustumCulled={false}
+      />
+      <instancedMesh
+        ref={treeTrunkRef}
+        args={[trunkGeo, trunkMat, treeCount]}
+        castShadow
+        receiveShadow
+        frustumCulled={false}
+      />
+      <instancedMesh
+        ref={rockRef}
+        args={[rockGeo, rockMat, rockCount]}
+        castShadow
+        receiveShadow
+        frustumCulled={false}
+      />
     </>
   );
 }

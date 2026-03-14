@@ -5,5 +5,11 @@
   "wallMaxRoadDistance": 4,
   "spawnerMinRoadDistance": 7,
   "roadSplinePointCount": 50,
-  "yukaPathPointCount": 50
+  "yukaPathPointCount": 50,
+  "scenery": {
+    "treeCount": 100,
+    "rockCount": 50,
+    "scatterRadius": 0.9,
+    "minRoadClearance": 6
+  }
 }

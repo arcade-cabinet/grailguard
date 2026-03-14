@@ -1,0 +1,16 @@
+{
+  "weights": {
+    "buildStructure": 1.0,
+    "startWave": 0.8,
+    "smite": 0.9,
+    "repair": 0.2
+  },
+  "thresholds": {
+    "goldForBuild": 200,
+    "buildingsReadyForWave": 2,
+    "buildTimeLeftForWave": 10,
+    "faithForSmite": 25,
+    "enemyNearSanctuaryForSmite": 1,
+    "healthForRepair": 10
+  }
+}

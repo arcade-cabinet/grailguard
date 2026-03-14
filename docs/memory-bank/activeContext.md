@@ -3,7 +3,7 @@ title: "Grailguard Active Context"
 domain: status
 audience: all-agents
 reads-before: [projectbrief.md, systemPatterns.md, techContext.md]
-last-updated: 2026-03-13
+last-updated: 2026-03-14
 status: active
 summary: "Current work focus, recent changes, active decisions, and next steps"
 ---
@@ -12,7 +12,7 @@ summary: "Current work focus, recent changes, active decisions, and next steps"
 
 ## Current Branch
 
-`feat/poc-reset` -- Complete rewrite of the game engine and architecture.
+`feat/production-release` -- Production release preparation with UX improvements.
 
 ## Recent Changes (This Branch)
 
@@ -37,6 +37,7 @@ The branch represents a ground-up rebuild from the original prototype:
 17. **CodeRabbit Fixes** -- Fixed 5 broken auto-fix references
 18. **PR Review Resolution** -- All 99/100 PR review threads resolved
 19. **Branch Gap Analysis** -- Comprehensive comparison with `initial-release` branch; all unique value (GOAP governor, wave director, siege targeting, road templates, particle pooling, flocking behaviors, audio bridge, data-driven config, upgrade formulas, viewport presets, bezel UI) documented into existing docs
+20. **Radial Context Menu** -- Replaced bottom Toychest toolbar with diegetic radial menu at click position (framer-motion spring animations, context-aware items based on road distance/existing buildings, affordability checks)
 
 ## Active Decisions
 
@@ -44,6 +45,7 @@ The branch represents a ground-up rebuild from the original prototype:
 - **No Zustand** -- All runtime state in ECS; DB repos handle persistence
 - **Snapshot serialization** -- Active runs saved as versioned JSON blobs, not decomposed tables
 - **Grid snapping** -- Buildings snap to 5-unit grid for clean placement
+- **Radial menu replaces Toychest** -- Context-aware building at click position; near road shows walls, far shows spawners/turrets, any shows resources; existing buildings show upgrade/sell
 
 ## Next Steps
 

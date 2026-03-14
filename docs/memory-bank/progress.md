@@ -3,7 +3,7 @@ title: "Grailguard Progress"
 domain: status
 audience: all-agents
 reads-before: [projectbrief.md, activeContext.md]
-last-updated: 2026-03-13
+last-updated: 2026-03-14
 status: active
 summary: "Implementation status, what works, what's left, known issues"
 ---
@@ -61,7 +61,7 @@ summary: "Implementation status, what works, what's left, known issues"
 - [x] Terrain plane with grass/ground materials
 - [x] Procedural tree and rock scenery placement
 - [x] Screen-to-world raycasting for placement
-- [x] HUD overlay with toychest, stats, spell bar, wave info
+- [x] HUD overlay with radial context menu, stats, spell bar, wave info
 
 ### Audio
 - [x] Tone.js procedural synthesis engine
@@ -93,13 +93,14 @@ summary: "Implementation status, what works, what's left, known issues"
 
 ## Test Coverage (current)
 
-486 tests across 38 suites covering:
+497 tests across 39 suites covering:
 - **Engine subsystems:** waveSystem, combatSystem, buildingSystem, logisticsSystem, projectileSystem, vfxSystem, spellSystem, codexSystem (116 tests)
 - **Data configs:** All 12 JSON config files validated (101 tests)
 - **DB repos:** profileRepo, unlockRepo, runRepo, settingsRepo, doctrineRepo, codexRepo, bootstrapRepo (130 tests)
 - **Meta service:** bankRunRewards, settings, unlocks, run lifecycle (30 tests)
 - **AI:** enemyBrain flocking, playerGovernor GOAP, biomeSystem (44 tests)
 - **Integration:** gameEngine wave progression, serialize/hydrate, GOAP auto-play (3 tests)
+- **UI:** RadialMenu component rendering, dismiss, disabled state, context scenarios (10 tests)
 - **E2E framework:** Playwright specs (gameFlow, metaScreens) + Maestro ready
 
 ## Known Issues

@@ -17,7 +17,9 @@ import { getAllModelPaths } from '../components/3d/modelPaths';
 import { getArenaRenderer } from '../components/3d/rendererSwitch';
 import { DebugOverlay } from '../components/ui/DebugOverlay';
 import { HUD } from '../components/ui/HUD';
+import { RadialMenu } from '../components/ui/RadialMenu';
 import { Tutorial } from '../components/ui/Tutorial';
+import { useRadialMenu } from '../components/ui/useRadialMenu';
 import {
   abandonActiveRun,
   bankRunRewards,
@@ -42,7 +44,6 @@ import {
   finalizeRun,
   GameSession,
   gameWorld,
-  getSelectableEntityAtPosition,
   hydrateRunWorld,
   isPlacementValid,
   Position,
@@ -369,33 +370,18 @@ function RunPersistenceBridge() {
 
 function GameContent({
   onCancelPlacement,
-  onClearSelection,
   onExit,
-  onSelectPlacement,
-  unlocked,
 }: {
   onCancelPlacement: () => void;
-  onClearSelection: () => void;
   onExit: () => void;
-  onSelectPlacement: (type: BuildingType) => void;
-  unlocked: Record<BuildingType, boolean>;
 }) {
   const session = useTrait(gameWorld, GameSession);
-  const selectedEntity = getSelectedEntity();
   const activePlacement = getActivePlacement();
 
   if (!session) return null;
 
   return (
-    <HUD
-      activePlacement={activePlacement}
-      onCancelPlacement={onCancelPlacement}
-      onClearSelection={onClearSelection}
-      onExit={onExit}
-      onSelectPlacement={onSelectPlacement}
-      selectedEntity={selectedEntity}
-      unlocked={unlocked}
-    />
+    <HUD activePlacement={activePlacement} onCancelPlacement={onCancelPlacement} onExit={onExit} />
   );
 }
 
@@ -584,6 +570,7 @@ function LiveGameView({
   const gestureStart = useRef({ x: 0, y: 0 });
   const ArenaRenderer = useMemo(() => getArenaRenderer(), []);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { state: radialState, openMenu, closeMenu } = useRadialMenu(unlocks);
 
   const clearPlacement = () => {
     queueWorldCommand({
@@ -621,9 +608,8 @@ function LiveGameView({
   };
 
   const handlePointerDown = (e: React.PointerEvent) => {
-    if (session?.phase !== 'build') return;
     gestureStart.current = { x: e.clientX, y: e.clientY };
-    if (activePlacement) {
+    if (session?.phase === 'build' && activePlacement) {
       updatePreview(e.clientX, e.clientY);
     }
   };
@@ -635,6 +621,7 @@ function LiveGameView({
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
+    // If placing a building, confirm or cancel placement
     if (activePlacement && placementPreview?.valid) {
       queueWorldCommand({
         type: 'build',
@@ -643,6 +630,7 @@ function LiveGameView({
       });
       clearSelection();
       clearPlacement();
+      closeMenu();
       return;
     }
 
@@ -651,12 +639,14 @@ function LiveGameView({
       return;
     }
 
+    // Ignore drags
     const movement = Math.hypot(
       e.clientX - gestureStart.current.x,
       e.clientY - gestureStart.current.y,
     );
     if (movement > 10) return;
 
+    // Raycast to ground
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const localX = e.clientX - rect.left;
@@ -667,16 +657,12 @@ function LiveGameView({
     const hit = projectScreenPointToGround(ndcX, ndcY);
     if (!hit) {
       clearSelection();
+      closeMenu();
       return;
     }
 
-    const snapped = snapPlacementPosition(hit);
-    const entity = getSelectableEntityAtPosition({ x: snapped.x, z: snapped.z });
-    if (!entity) {
-      clearSelection();
-      return;
-    }
-    queueWorldCommand({ type: 'selectEntity', entityId: entity.id() });
+    // Open radial menu at click position
+    openMenu({ x: e.clientX, y: e.clientY }, hit);
   };
 
   const handleResize = useCallback(() => {
@@ -721,25 +707,21 @@ function LiveGameView({
 
         {!isBootstrapping ? (
           <div className="pointer-events-auto">
-            <GameContent
-              onCancelPlacement={clearPlacement}
-              onClearSelection={clearSelection}
-              onExit={onExit}
-              onSelectPlacement={(type) => {
-                clearSelection();
-                queueWorldCommand({
-                  type: 'setPlacementPreview',
-                  buildingType: type,
-                  preview: null,
-                });
-              }}
-              unlocked={unlocks}
-            />
+            <GameContent onCancelPlacement={clearPlacement} onExit={onExit} />
           </div>
         ) : null}
 
         {!isBootstrapping ? <FloatingTextLayer viewportSize={viewportSize} /> : null}
       </div>
+
+      {/* Radial context menu overlay */}
+      {radialState.isOpen ? (
+        <RadialMenu
+          items={radialState.items}
+          position={radialState.screenPos}
+          onClose={closeMenu}
+        />
+      ) : null}
 
       <LoadingOverlay forceVisible={isBootstrapping} label={bootLabel} />
       {!isBootstrapping ? <EndOfRunModal /> : null}

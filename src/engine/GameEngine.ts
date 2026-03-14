@@ -45,6 +45,7 @@ import {
   calculateStatMultiplier,
   calculateUpgradeCost,
   canAffordBuilding,
+  getRoadDistancePure,
   isPlacementValidPure,
   snapToGrid,
 } from './systems/buildingSystem';
@@ -1696,6 +1697,14 @@ export function isPlacementValid(type: BuildingType, position: { x: number; z: n
     existingBuildings,
     wallPositions,
   );
+}
+
+/**
+ * Returns the distance from a world position to the nearest road sample point.
+ * Used by the radial menu to determine context (near road vs far from road).
+ */
+export function getRoadDistance(position: { x: number; z: number }): number {
+  return getRoadDistancePure(position, roadSamples.map((s) => ({ x: s.x, z: s.z })));
 }
 
 export function buildStructure(type: BuildingType, position: { x: number; y: number; z: number }) {

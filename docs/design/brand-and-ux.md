@@ -59,32 +59,49 @@ This metaphor should inform every UI decision: the game isn't a sterile strategy
 
 ## UI Component Design System
 
-### 1. The Toychest (Building Selector)
+### 1. Radial Context Menu (Building & Interaction)
 
-**Metaphor:** A craftsman's chest of miniatures — each building is a carved figurine you place on the battlefield.
+**Metaphor:** A commander's seal — tap the battlefield and a ring of options radiates outward like a royal decree emanating from a signet stamp.
 
-**Design pattern:** Horizontal dock with magnification on hover/press (inspired by macOS dock pattern from 21st.dev). The dock sits in the bottom bezel and responds to finger proximity.
+**Design pattern:** Radial menu appearing at the click/tap position on the 3D terrain. Items animate outward from center using spring physics with staggered timing (inspired by Kingdom Rush). Replaces the old bottom-docked Toychest toolbar with diegetic, context-aware interaction.
 
 ```
-┌─────────────────────────────────────────────┐
-│                 3D Arena                     │
-│                                             │
-├─────────────────────────────────────────────┤
-│  ┌──┐ ┌──┐ ┌────┐ ┌──┐ ┌──┐ ┌──┐ ┌──┐    │
-│  │🏠│ │🏹│ │⛪️  │ │🏰│ │🗼│ │⚗│ │🧱│    │
-│  └──┘ └──┘ └────┘ └──┘ └──┘ └──┘ └──┘    │
-│  Hut  Range Temple Keep  Sentry Obelisk Wall│
-└─────────────────────────────────────────────┘
+              ┌──┐
+         ┌──┐ │🏹│ ┌──┐
+         │⛪│ └──┘ │🏰│
+         └──┘       └──┘
+    ┌──┐      [.]      ┌──┐
+    │🪵│   (center)    │🗼│
+    └──┘               └──┘
+         ┌──┐       ┌──┐
+         │⛏│       │💎│
+         └──┘ ┌──┐ └──┘
+              │🛤│
+              └──┘
 ```
+
+**Context rules:**
+- **Near road (distance <= 4):** Shows wall placement + resource/logistics buildings
+- **Far from road (distance >= 7):** Shows spawner buildings + turrets + resource/logistics
+- **Any terrain (4 < distance < 7):** Shows only resource/logistics buildings
+- **Existing building:** Shows upgrade (spawn + stats), targeting mode (turrets), sell
+- **Existing wall:** Shows scrap/sell
+- **Defend phase:** No build menu (radial menu does not open)
 
 **Behaviors:**
-- Icons at rest: 48x48px with 2px golden border, parchment background
-- Hovered/pressed: scales to 72x72px with tooltip ribbon unfurling above
-- Unaffordable: 50% opacity, grayscale filter, cost shown in red
-- Locked: silhouette with lock icon, "Market" link
-- Active placement: icon lifts with golden glow, ghost mesh follows finger
+- Items: 56px circular buttons with 2px golden border, dark medieval background
+- Open animation: spring physics (stiffness: 260, damping: 20), stagger 0.05s per item
+- Tooltip: label + cost shown below each item on hover
+- Unaffordable: 50% opacity, `aria-disabled`, non-interactive but visible
+- Locked buildings: hidden entirely (not shown in menu)
+- Dismiss: ESC key, click outside the ring, or select an item
+- Menu clamped to viewport edges to prevent clipping
+- Works with both mouse click and touch tap
 
-**Tooltip ribbon:** Unfurls like a parchment scroll — name in Cinzel, stats in JetBrains Mono, role description in Inter. Gold/wood cost shown with resource icons.
+**Files:**
+- `src/components/ui/RadialMenu.tsx` — Presentational component (framer-motion)
+- `src/components/ui/useRadialMenu.ts` — State/logic hook (context detection, item building)
+- Integration in `src/app/game.tsx` via `LiveGameView`
 
 ### 2. Resource Bar (Top Bezel)
 
@@ -289,8 +306,8 @@ Each run is a **pilgrimage to defend the Grail**:
 
 ## Planned Work
 
+- [x] Replace Toychest toolbar with radial context menu (RadialMenu + useRadialMenu)
 - [ ] Create NativeWind theme tokens matching the color palette above
-- [ ] Design Toychest dock component with magnification animation
 - [ ] Implement wave banner with spring physics animation
 - [ ] Create parchment-styled tooltip component
 - [ ] Design game over modal with wax seal and stat layout

@@ -7,7 +7,7 @@
  * resource carts, and world effects). Also exposes helper functions for
  * projecting between screen coordinates and the ground plane.
  */
-import { useFrame, useThree } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import type { Entity } from 'koota';
 import { useQuery, useTrait } from 'koota/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -33,12 +33,12 @@ import { ProjectileMesh } from './Entities/ProjectileMesh';
 import { ResourceCartMesh } from './Entities/ResourceCartMesh';
 import { UnitMesh } from './Entities/UnitMesh';
 import { WorldEffectMesh } from './Entities/WorldEffectMesh';
+import { CameraController, getActiveCamera } from './CameraController';
 import { DayNightCycle } from './DayNightCycle';
 import { ParticlePool } from './ParticlePool';
 import { Sanctuary } from './Sanctuary';
 import { TerrainGrid } from './TerrainGrid';
 
-let activeCamera: THREE.Camera | null = null;
 const placementPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const placementRaycaster = new THREE.Raycaster();
 const placementPointer = new THREE.Vector2();
@@ -53,9 +53,10 @@ const placementPointer = new THREE.Vector2();
  *   active or the ray does not intersect the ground plane.
  */
 export function projectScreenPointToGround(x: number, y: number) {
-  if (!activeCamera) return null;
+  const cam = getActiveCamera();
+  if (!cam) return null;
   placementPointer.set(x, y);
-  placementRaycaster.setFromCamera(placementPointer, activeCamera);
+  placementRaycaster.setFromCamera(placementPointer, cam);
   const hit = new THREE.Vector3();
   if (!placementRaycaster.ray.intersectPlane(placementPlane, hit)) {
     return null;
@@ -76,9 +77,10 @@ export function projectWorldPointToScreen(
   worldPosition: { x: number; y: number; z: number },
   viewport: { width: number; height: number },
 ) {
-  if (!activeCamera) return null;
+  const cam = getActiveCamera();
+  if (!cam) return null;
   const projected = new THREE.Vector3(worldPosition.x, worldPosition.y, worldPosition.z).project(
-    activeCamera,
+    cam,
   );
 
   return {
@@ -103,48 +105,6 @@ function GameLoop() {
 }
 
 
-function CameraRig() {
-  const { camera, size } = useThree();
-  const session = useTrait(gameWorld, GameSession);
-
-  useEffect(() => {
-    activeCamera = camera;
-    return () => {
-      if (activeCamera === camera) {
-        activeCamera = null;
-      }
-    };
-  }, [camera]);
-
-  useEffect(() => {
-    if (camera.type === 'OrthographicCamera') {
-      const mapSize = session?.mapSize ?? 100;
-      const aspect = size.width / size.height;
-      let viewSize = mapSize * 1.2;
-      if (aspect < 1) viewSize = (mapSize * 1.2) / aspect; // Scale to fit width on vertical screens
-
-      const ortho = camera as THREE.OrthographicCamera;
-      ortho.left = (-viewSize * aspect) / 2;
-      ortho.right = (viewSize * aspect) / 2;
-      ortho.top = viewSize / 2;
-      ortho.bottom = -viewSize / 2;
-      ortho.updateProjectionMatrix();
-    }
-  }, [camera, size, session?.mapSize]);
-
-  useFrame(() => {
-    const shake = gameWorld.get(GameSession)?.cameraShake ?? 0;
-    if (shake > 0) {
-      camera.position.x = (Math.random() - 0.5) * shake;
-      camera.position.y = 100 + (Math.random() - 0.5) * shake;
-    } else {
-      camera.position.lerp(new THREE.Vector3(0, 100, 70), 0.1);
-    }
-    camera.lookAt(0, 0, 0);
-  });
-
-  return null;
-}
 
 const _scatterObj = new THREE.Object3D();
 const _scatterColor = new THREE.Color();
@@ -390,7 +350,7 @@ export function Arena({
     <ParticlePool>
       <DayNightCycle wave={session?.wave ?? 1} />
       <EnvironmentScatter />
-      <CameraRig />
+      <CameraController />
       <GameLoop />
       <TerrainGrid biome={session?.biome} seed={session?.runId ?? session?.seed} />
       <Road />

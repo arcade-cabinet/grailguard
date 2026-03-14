@@ -119,16 +119,18 @@ function ParticlePoolBridge() {
       if (!p || !pos) continue;
 
       const colorStr = typeof p.color === 'string' ? p.color : '#ffffff';
-      pool.spawnBurst([{
-        x: pos.x,
-        y: pos.y,
-        z: pos.z,
-        vx: p.vx,
-        vy: p.vy,
-        vz: p.vz,
-        life: p.life,
-        color: colorStr,
-      }]);
+      pool.spawnBurst([
+        {
+          x: pos.x,
+          y: pos.y,
+          z: pos.z,
+          vx: p.vx,
+          vy: p.vy,
+          vz: p.vz,
+          life: p.life,
+          color: colorStr,
+        },
+      ]);
     }
 
     // Clean up processed set for entities no longer alive
@@ -326,10 +328,7 @@ function PBRTerrain() {
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]} receiveShadow>
       <planeGeometry args={[200, 200, 64, 64]} />
-      <meshStandardMaterial
-        {...textures}
-        displacementScale={0.5}
-      />
+      <meshStandardMaterial {...textures} displacementScale={0.5} />
     </mesh>
   );
 }
@@ -372,10 +371,7 @@ function PBRRoad() {
 
   return (
     <mesh geometry={tubeGeo} receiveShadow>
-      <meshStandardMaterial
-        {...roadTextures}
-        displacementScale={0.1}
-      />
+      <meshStandardMaterial {...roadTextures} displacementScale={0.1} />
     </mesh>
   );
 }

@@ -242,9 +242,7 @@ function LoadingOverlay({
       <div className="h-14 w-14 animate-spin rounded-full border-4 border-[#d4af37]/20 border-t-[#d4af37]" />
       <h1 className="mt-6 text-5xl font-bold text-[#d4af37]">{t('app_title')}</h1>
       <p className="mt-2 text-lg text-[#d7c6af]">{t('game_loading_blessing')}</p>
-      <p className="mt-3 text-sm font-semibold tracking-[2px] text-[#f7ebd0]">
-        {progressLabel}
-      </p>
+      <p className="mt-3 text-sm font-semibold tracking-[2px] text-[#f7ebd0]">{progressLabel}</p>
     </div>
   );
 }
@@ -695,10 +693,7 @@ function LiveGameView({
   }, [handleResize]);
 
   return (
-    <div
-      ref={containerRef}
-      className="relative h-screen w-screen overflow-hidden"
-    >
+    <div ref={containerRef} className="relative h-screen w-screen overflow-hidden">
       {/* Full-viewport 3D Canvas (position: absolute via rendererSwitch.web) */}
       <GestureOverlay>
         <div

@@ -428,7 +428,7 @@ export function Arena({
   return (
     <ParticlePool>
       <ParticlePoolBridge />
-      <Environment files="/assets/hdri/approaching_storm_1k.hdr" background />
+      <Environment files="/assets/hdri/alps_field_1k.hdr" background environmentIntensity={0.8} />
       <DayNightCycle wave={session?.wave ?? 1} />
       <EnvironmentScatter />
       <CameraController />

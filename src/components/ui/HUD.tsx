@@ -72,6 +72,9 @@ function BuildingCard({ entity, treasury, phase }: { entity: Entity; treasury: n
                 })
               }
               className={`flex-1 rounded border p-2 ${building.targeting === t ? 'border-[#3b82f6] bg-[#1e3a8a]' : 'border-[#8f6a43] bg-[#3a281d]'}`}
+              accessibilityRole="button"
+              accessibilityLabel={`Target ${t} enemy`}
+              accessibilityState={{ selected: building.targeting === t }}
             >
               <Text className="text-center text-xs font-bold text-[#f5e8cc] uppercase">{t}</Text>
             </TouchableOpacity>
@@ -89,6 +92,9 @@ function BuildingCard({ entity, treasury, phase }: { entity: Entity; treasury: n
           className={`flex-1 rounded-xl border px-3 py-2 ${
             canUpgradeSpawn ? 'border-[#3f6b3d] bg-[#355b31]' : 'border-[#b8ab97] bg-[#d7ccba]'
           }`}
+          accessibilityRole="button"
+          accessibilityLabel={`Upgrade ${config.isTurret ? 'rate' : 'spawn'} for ${costs.spawn.gold} gold`}
+          accessibilityState={{ disabled: !canUpgradeSpawn }}
         >
           <Text className="text-center font-bold text-[#f7ebd0]">
             {config.isTurret ? 'Rate' : 'Spawn'} {costs.spawn.gold}g
@@ -103,6 +109,9 @@ function BuildingCard({ entity, treasury, phase }: { entity: Entity; treasury: n
           className={`flex-1 rounded-xl border px-3 py-2 ${
             canUpgradeStats ? 'border-[#35627d] bg-[#22455c]' : 'border-[#b8ab97] bg-[#d7ccba]'
           }`}
+          accessibilityRole="button"
+          accessibilityLabel={`Upgrade ${config.isTurret ? 'damage' : 'stats'} for ${costs.stats.gold} gold`}
+          accessibilityState={{ disabled: !canUpgradeStats }}
         >
           <Text className="text-center font-bold text-[#f7ebd0]">
             {config.isTurret ? 'Dmg' : 'Stats'} {costs.stats.gold}g
@@ -117,6 +126,8 @@ function BuildingCard({ entity, treasury, phase }: { entity: Entity; treasury: n
             queueWorldCommand({ type: 'sellBuilding', entityId: entity.id() });
           }}
           className="mt-2 rounded-xl border px-3 py-2 border-[#8b3026] bg-[#6d241c]"
+          accessibilityRole="button"
+          accessibilityLabel={`Sell ${config.name} for ${costs.sell} gold`}
         >
           <Text className="text-center font-bold text-[#f7ebd0]">
             Sell for {costs.sell}g {Math.floor((config.woodCost ?? 0) * 0.5)}w
@@ -143,6 +154,8 @@ function WallCard({ entity }: { entity: Entity }) {
       <TouchableOpacity
         onPress={() => queueWorldCommand({ type: 'sellWall', entityId: entity.id() })}
         className={`mt-3 rounded-xl border px-3 py-2 border-[#8b3026] bg-[#6d241c]`}
+        accessibilityRole="button"
+        accessibilityLabel="Scrap barricade for wood"
       >
         <Text className="text-center font-bold text-[#f7ebd0]">
           Scrap for {Math.floor((BUILDINGS.wall.woodCost ?? 0) * 0.5)}w
@@ -305,6 +318,8 @@ export function HUD({
             <TouchableOpacity
               onPress={() => queueWorldCommand({ type: 'skipBuildPhase' })}
               className="rounded-xl border border-[#b03d2e] bg-[#7a1f17] px-4 py-2"
+              accessibilityRole="button"
+              accessibilityLabel="Call wave early"
             >
               <Text className="font-bold text-[#fff0ec]">{t('btn_call_wave')}</Text>
             </TouchableOpacity>
@@ -364,7 +379,11 @@ export function HUD({
           <View className="flex-row items-center justify-between gap-3">
             <Popover.Root>
               <Popover.Trigger asChild>
-                <Toolbar.Button className="rounded-2xl border border-[#8f6a43] bg-[#4c321e] px-5 py-4">
+                <Toolbar.Button
+                  className="rounded-2xl border border-[#8f6a43] bg-[#4c321e] px-5 py-4"
+                  accessibilityRole="button"
+                  accessibilityLabel="Open building selection toychest"
+                >
                   <Text className="text-lg font-bold text-[#f5e8cc]">{t('hud_toychest')}</Text>
                 </Toolbar.Button>
               </Popover.Trigger>
@@ -408,6 +427,9 @@ export function HUD({
                                       ? 'border-[#8c6a43] bg-[#f6ebd8]'
                                       : 'border-[#c6b59d] bg-[#eadcc9]'
                                 }`}
+                                accessibilityRole="button"
+                                accessibilityLabel={`Place ${building.name}, cost ${costLabel}`}
+                                accessibilityState={{ disabled: !affordable }}
                               >
                                 <Text className="text-base font-bold text-[#3e2723]">
                                   {building.icon} {building.name} • {costLabel}
@@ -434,7 +456,11 @@ export function HUD({
             <View className="flex-1 flex-row justify-end gap-3">
               <Popover.Root>
                 <Popover.Trigger asChild>
-                  <Toolbar.Button className="rounded-2xl border border-[#8f6a43] bg-[#4b2b1d] px-4 py-4">
+                  <Toolbar.Button
+                    className="rounded-2xl border border-[#8f6a43] bg-[#4b2b1d] px-4 py-4"
+                    accessibilityRole="button"
+                    accessibilityLabel={`Garrison, ${buildingEntities.length + wallEntities.length} structures`}
+                  >
                     <Text className="font-bold text-[#f5e8cc]">
                       {t('hud_garrison')} {buildingEntities.length + wallEntities.length}
                     </Text>
@@ -499,6 +525,8 @@ export function HUD({
                         ? 'border-[#3b82f6] bg-[#1e3a8a]'
                         : 'border-[#475569] bg-[#334155]'
                     }`}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Cast ${spellName}${cd > 0 ? `, cooldown ${Math.ceil(cd)} seconds` : `, costs ${cost} faith`}`}
                   >
                     <Text className="font-bold text-[#dcecff]">
                       {spellName} {cd > 0 ? `(${Math.ceil(cd)}s)` : `(${cost}f)`}
@@ -510,6 +538,8 @@ export function HUD({
               <Toolbar.Button
                 onPress={() => queueWorldCommand({ type: 'toggleGameSpeed' })}
                 className="rounded-2xl border border-[#8f6a43] bg-[#352418] px-4 py-4"
+                accessibilityRole="button"
+                accessibilityLabel={`Game speed ${session.gameSpeed}x, tap to change`}
               >
                 <Text className="font-bold text-[#f5e8cc]">{session.gameSpeed}x</Text>
               </Toolbar.Button>
@@ -521,6 +551,8 @@ export function HUD({
                     onCancelPlacement();
                   }}
                   className="rounded-2xl border border-[#8f6a43] bg-[#3a281d] px-4 py-4"
+                  accessibilityRole="button"
+                  accessibilityLabel={activePlacement ? `Cancel placing ${BUILDINGS[activePlacement].name}` : 'Cancel tool'}
                 >
                   <Text className="font-bold text-[#f5e8cc]">
                     {activePlacement ? `Placing ${BUILDINGS[activePlacement].name}` : t('btn_cancel_tool')}
@@ -534,6 +566,8 @@ export function HUD({
                   onExit();
                 }}
                 className="rounded-2xl border border-[#7d5d3f] bg-[#1e1410] px-4 py-4"
+                accessibilityRole="button"
+                accessibilityLabel="Leave game and return to main menu"
               >
                 <Text className="font-bold text-[#f5e8cc]">{t('btn_leave')}</Text>
               </Toolbar.Button>
@@ -551,6 +585,8 @@ export function HUD({
                   onClearSelection();
                 }}
                 className="rounded-xl border border-[#8f6a43] bg-[#3a281d] px-3 py-2"
+                accessibilityRole="button"
+                accessibilityLabel="Close selection panel"
               >
                 <Text className="font-bold text-[#f5e8cc]">{t('btn_close')}</Text>
               </TouchableOpacity>
@@ -615,6 +651,8 @@ export function HUD({
                   key={relic.id}
                   onPress={() => queueWorldCommand({ type: 'draftRelic', relicId: relic.id })}
                   className="w-[30%] rounded-xl border border-[#8a6a44] bg-[#3a281d] p-4"
+                  accessibilityRole="button"
+                  accessibilityLabel={`Draft relic: ${relic.name}. ${relic.desc}`}
                 >
                   <Text className="text-center text-lg font-bold text-[#f5e8cc]">{relic.name}</Text>
                   <Text className="mt-2 text-center text-sm text-[#b8ab97]">{relic.desc}</Text>

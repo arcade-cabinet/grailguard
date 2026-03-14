@@ -12,7 +12,7 @@ import { Canvas } from '@react-three/fiber/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useTrait, WorldProvider } from 'koota/react';
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, PanResponder, Text, TouchableOpacity, View } from 'react-native';
+import { AccessibilityInfo, AppState, PanResponder, Text, TouchableOpacity, View } from 'react-native';
 import {
   Arena,
   projectScreenPointToGround,
@@ -55,6 +55,41 @@ import {
 } from '../engine/GameEngine';
 import { soundManager } from '../engine/SoundManager';
 import { getActivePlacement, getPlacementPreview, getSelectedEntity } from '../engine/selectors';
+
+function AccessibilityAnnouncementBridge() {
+  const session = useTrait(gameWorld, GameSession);
+  const prevPhaseRef = useRef<string>('');
+  const prevGameOverRef = useRef(false);
+
+  useEffect(() => {
+    if (!session) return;
+
+    // Announce phase changes
+    if (session.phase !== prevPhaseRef.current) {
+      prevPhaseRef.current = session.phase;
+      if (session.phase === 'build') {
+        AccessibilityInfo.announceForAccessibility(t('a11y_phase_build'));
+      } else if (session.phase === 'defend') {
+        const composition = session.announcement || 'Battle Phase';
+        AccessibilityInfo.announceForAccessibility(
+          t('a11y_wave_start', { wave: session.wave, composition }),
+        );
+      }
+    }
+
+    // Announce game over
+    if (session.gameOver && !prevGameOverRef.current) {
+      prevGameOverRef.current = true;
+      if (session.announcement === 'Victory Achieved!') {
+        AccessibilityInfo.announceForAccessibility(t('a11y_game_over_victory'));
+      } else {
+        AccessibilityInfo.announceForAccessibility(t('a11y_game_over_defeat'));
+      }
+    }
+  }, [session?.phase, session?.gameOver, session?.announcement, session?.wave, session]);
+
+  return null;
+}
 
 function CodexDiscoveryBridge() {
   const session = useTrait(gameWorld, GameSession);
@@ -210,6 +245,8 @@ function EndOfRunModal() {
           className={`mt-10 rounded-2xl border-2 border-[#b98b52] px-8 py-4 ${
             isBanking ? 'bg-[#3a2211]' : 'bg-[#5a371f]'
           }`}
+          accessibilityRole="button"
+          accessibilityLabel={isBanking ? 'Banking spoils' : 'Return to court'}
         >
           <Text className="text-center text-2xl font-bold text-[#f7ebd0]">
             {isBanking ? t('game_end_banking') : t('btn_return_to_court')}
@@ -427,6 +464,7 @@ export default function GameScreen() {
     <WorldProvider world={gameWorld}>
       {!isBootstrapping ? <RunPersistenceBridge /> : null}
       {!isBootstrapping ? <CodexDiscoveryBridge /> : null}
+      {!isBootstrapping ? <AccessibilityAnnouncementBridge /> : null}
       <LiveGameView
         bootLabel={bootLabel}
         isBootstrapping={isBootstrapping}

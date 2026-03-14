@@ -120,6 +120,8 @@ export default function MainMenuScreen() {
                   setEmbarkOpen(true);
                 }}
                 className="rounded-2xl border border-[#b98b52] bg-[#5a371f] px-10 py-4"
+                accessibilityRole="button"
+                accessibilityLabel="Embark on a new run"
               >
                 <Text className="text-2xl font-bold text-[#f6e6c7]">{t('btn_embark')}</Text>
               </TouchableOpacity>
@@ -143,6 +145,8 @@ export default function MainMenuScreen() {
                 router.push('/game?mode=resume');
               }}
               className="rounded-2xl border border-[#8b6b45] bg-[#3c2818] px-8 py-4"
+              accessibilityRole="button"
+              accessibilityLabel="Continue active run"
             >
               <Text className="text-xl font-bold text-[#e8d099]">{t('btn_continue_run')}</Text>
             </TouchableOpacity>
@@ -154,6 +158,8 @@ export default function MainMenuScreen() {
               setMarketOpen(true);
             }}
             className="rounded-2xl border border-[#8b6b45] bg-[#2d2118] px-8 py-4"
+            accessibilityRole="button"
+            accessibilityLabel="Open Royal Market"
           >
             <Text className="text-xl font-bold text-[#e8d099]">{t('btn_royal_market')}</Text>
           </TouchableOpacity>
@@ -164,6 +170,8 @@ export default function MainMenuScreen() {
               router.push('/codex' as never);
             }}
             className="rounded-2xl border border-[#8b6b45] bg-[#2d2118] px-8 py-4"
+            accessibilityRole="button"
+            accessibilityLabel="Open Codex"
           >
             <Text className="text-xl font-bold text-[#e8d099]">{t('btn_codex')}</Text>
           </TouchableOpacity>
@@ -171,6 +179,8 @@ export default function MainMenuScreen() {
           <TouchableOpacity
             onPress={() => router.push('/doctrine' as never)}
             className="rounded-2xl border border-[#8b6b45] bg-[#2d2118] px-8 py-4"
+            accessibilityRole="button"
+            accessibilityLabel="Open Doctrine skill tree"
           >
             <Text className="text-xl font-bold text-[#e8d099]">{t('btn_doctrine')}</Text>
           </TouchableOpacity>
@@ -181,6 +191,8 @@ export default function MainMenuScreen() {
               router.push('/history' as never);
             }}
             className="rounded-2xl border border-[#8b6b45] bg-[#2d2118] px-8 py-4"
+            accessibilityRole="button"
+            accessibilityLabel="View run history"
           >
             <Text className="text-xl font-bold text-[#e8d099]">History</Text>
           </TouchableOpacity>
@@ -188,6 +200,8 @@ export default function MainMenuScreen() {
           <TouchableOpacity
             onPress={() => router.push('/settings' as never)}
             className="rounded-2xl border border-[#8b6b45] bg-[#2d2118] px-8 py-4"
+            accessibilityRole="button"
+            accessibilityLabel="Open Settings"
           >
             <Text className="text-xl font-bold text-[#e8d099]">{t('btn_settings')}</Text>
           </TouchableOpacity>
@@ -212,6 +226,9 @@ export default function MainMenuScreen() {
                   key={b.id}
                   onPress={() => setSelectedBiome(b.id)}
                   className={`flex-1 rounded-xl border p-3 ${selectedBiome === b.id ? 'border-[#8b6b45] bg-[#cda97e]' : 'border-[#8a7c6c] bg-[#e1d0b7]'}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Select biome: ${b.name}`}
+                  accessibilityState={{ selected: selectedBiome === b.id }}
                 >
                   <Text className="font-bold text-[#3e2723]">{b.name}</Text>
                   <Text className="text-xs text-[#5c4033] mt-1">{b.desc}</Text>
@@ -226,6 +243,9 @@ export default function MainMenuScreen() {
                   key={c.id}
                   onPress={() => setSelectedChallenge(c.id)}
                   className={`flex-1 rounded-xl border p-3 ${selectedChallenge === c.id ? 'border-[#8b6b45] bg-[#cda97e]' : 'border-[#8a7c6c] bg-[#e1d0b7]'}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Select challenge: ${c.name}`}
+                  accessibilityState={{ selected: selectedChallenge === c.id }}
                 >
                   <Text className="font-bold text-[#3e2723]">{c.name}</Text>
                   <Text className="text-xs text-[#5c4033] mt-1">{c.desc}</Text>
@@ -242,6 +262,9 @@ export default function MainMenuScreen() {
                       key={s.id}
                       onPress={() => setSelectedSize(s.id)}
                       className={`flex-1 items-center justify-center rounded-xl border p-3 ${selectedSize === s.id ? 'border-[#8b6b45] bg-[#cda97e]' : 'border-[#8a7c6c] bg-[#e1d0b7]'}`}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Map size: ${s.name}`}
+                      accessibilityState={{ selected: selectedSize === s.id }}
                     >
                       <Text className="font-bold text-[#3e2723]">{s.name}</Text>
                     </TouchableOpacity>
@@ -271,6 +294,9 @@ export default function MainMenuScreen() {
                     key={spellId}
                     onPress={() => toggleSpell(spellId)}
                     className={`rounded-xl border p-3 ${isSelected ? 'border-[#8b6b45] bg-[#cda97e]' : 'border-[#8a7c6c] bg-[#e1d0b7]'}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${isSelected ? 'Deselect' : 'Select'} spell: ${spell.name}`}
+                    accessibilityState={{ selected: isSelected }}
                   >
                     <Text className="font-bold text-[#3e2723]">
                       {spell.icon} {spell.name}
@@ -284,6 +310,8 @@ export default function MainMenuScreen() {
               <TouchableOpacity
                 onPress={() => setEmbarkOpen(false)}
                 className="rounded-xl border border-[#a88a44] bg-transparent px-6 py-3"
+                accessibilityRole="button"
+                accessibilityLabel="Cancel embark"
               >
                 <Text className="font-bold text-[#4a3b22]">{t('btn_cancel')}</Text>
               </TouchableOpacity>
@@ -298,6 +326,8 @@ export default function MainMenuScreen() {
                   );
                 }}
                 className="rounded-xl border border-[#a88a44] bg-[#4a3b22] px-8 py-3"
+                accessibilityRole="button"
+                accessibilityLabel="Start run"
               >
                 <Text className="text-lg font-bold text-[#f7ebd0]">{t('btn_start_run')}</Text>
               </TouchableOpacity>
@@ -363,6 +393,9 @@ export default function MainMenuScreen() {
                               ? 'border-[#a88a44] bg-[#4a3b22]'
                               : 'border-[#8a7c6c] bg-[#8a7c6c]'
                           }`}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Unlock ${building.name} for ${unlockCost} coins`}
+                          accessibilityState={{ disabled: !canAfford }}
                         >
                           <Text className="font-bold text-[#f7ebd0]">{unlockCost} 🪙</Text>
                         </TouchableOpacity>
@@ -406,6 +439,9 @@ export default function MainMenuScreen() {
                               ? 'border-[#a88a44] bg-[#4a3b22]'
                               : 'border-[#8a7c6c] bg-[#8a7c6c]'
                           }`}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Unlock ${spell.name} spell for ${unlockCost} coins`}
+                          accessibilityState={{ disabled: !canAfford }}
                         >
                           <Text className="font-bold text-[#f7ebd0]">{unlockCost} 🪙</Text>
                         </TouchableOpacity>
@@ -422,6 +458,8 @@ export default function MainMenuScreen() {
                 setMarketOpen(false);
               }}
               className="self-center rounded-xl border border-[#a88a44] bg-[#4a3b22] px-8 py-3 mt-4"
+              accessibilityRole="button"
+              accessibilityLabel="Return to court"
             >
               <Text className="text-lg font-bold text-[#f7ebd0]">{t('btn_return_to_court')}</Text>
             </TouchableOpacity>

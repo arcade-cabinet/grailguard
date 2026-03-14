@@ -33,6 +33,9 @@ function SettingRow({
           className={`rounded-xl border px-4 py-2 ${
             value ? 'border-[#3f6b3d] bg-[#355b31]' : 'border-[#7b5a39] bg-[#4a311f]'
           }`}
+          accessibilityRole="switch"
+          accessibilityLabel={label}
+          accessibilityState={{ checked: value }}
         >
           <Text className="font-bold text-[#f7ebd0]">{value ? t('settings_on') : t('settings_off')}</Text>
         </TouchableOpacity>
@@ -90,11 +93,21 @@ export default function SettingsScreen() {
           }}
           value={settings?.musicEnabled ?? true}
         />
+        <SettingRow
+          description={t('settings_high_contrast_desc')}
+          label={t('settings_high_contrast_label')}
+          onToggle={() => {
+            void updateSettings({ highContrast: !(settings?.highContrast ?? false) });
+          }}
+          value={settings?.highContrast ?? false}
+        />
       </View>
 
       <TouchableOpacity
         onPress={() => router.back()}
         className="mt-auto self-center rounded-2xl border border-[#a88a44] bg-[#4a3b22] px-8 py-3"
+        accessibilityRole="button"
+        accessibilityLabel="Return to court"
       >
         <Text className="text-lg font-bold text-[#f7ebd0]">{t('btn_return_to_court')}</Text>
       </TouchableOpacity>

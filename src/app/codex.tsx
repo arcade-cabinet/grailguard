@@ -56,6 +56,8 @@ export default function CodexScreen() {
       <TouchableOpacity
         onPress={() => router.back()}
         className="self-center rounded-2xl border border-[#a88a44] bg-[#4a3b22] px-8 py-3"
+        accessibilityRole="button"
+        accessibilityLabel="Return to court"
       >
         <Text className="text-lg font-bold text-[#f7ebd0]">{t('btn_return_to_court')}</Text>
       </TouchableOpacity>

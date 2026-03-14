@@ -68,7 +68,11 @@ export default function HistoryScreen() {
         ) : null}
 
         {sortedRuns.map((run) => (
-          <View key={run.runId} className="rounded-2xl border border-[#8a6a44] bg-[#f3e8d5] p-4">
+          <View
+            key={run.runId}
+            className="rounded-2xl border border-[#8a6a44] bg-[#f3e8d5] p-4"
+            accessibilityLabel={`Run: Wave ${run.waveReached}, ${run.result === 'defeat' ? 'Defeated' : 'Abandoned'}, ${run.coinsEarned} coins earned, ${run.biome} biome`}
+          >
             <View className="flex-row items-start justify-between">
               <View className="flex-1">
                 <Text className="text-lg font-bold text-[#3e2723]">
@@ -108,6 +112,8 @@ export default function HistoryScreen() {
           router.back();
         }}
         className="mt-4 self-center rounded-xl border border-[#a88a44] bg-[#4a3b22] px-8 py-3"
+        accessibilityRole="button"
+        accessibilityLabel="Return to court"
       >
         <Text className="text-lg font-bold text-[#f7ebd0]">Return to Court</Text>
       </TouchableOpacity>

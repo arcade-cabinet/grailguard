@@ -92,6 +92,9 @@ export default function DoctrineScreen() {
                         ? 'border-[#a88a44] bg-[#4a3b22]'
                         : 'border-[#8a7c6c] bg-[#8a7c6c]'
                   }`}
+                  accessibilityRole="button"
+                  accessibilityLabel={isMaxed ? `${node.title} maxed` : `${level > 0 ? 'Upgrade' : 'Consecrate'} ${node.title} for ${cost} coins`}
+                  accessibilityState={{ disabled: isMaxed || !canAfford }}
                 >
                   <Text className="font-bold text-[#f7ebd0]">
                     {isMaxed ? t('doctrine_maxed') : level > 0 ? t('doctrine_upgrade') : t('doctrine_consecrate')}
@@ -106,6 +109,8 @@ export default function DoctrineScreen() {
       <TouchableOpacity
         onPress={() => router.back()}
         className="self-center rounded-2xl border border-[#a88a44] bg-[#4a3b22] px-8 py-3"
+        accessibilityRole="button"
+        accessibilityLabel="Return to court"
       >
         <Text className="text-lg font-bold text-[#f7ebd0]">{t('btn_return_to_court')}</Text>
       </TouchableOpacity>

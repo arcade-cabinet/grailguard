@@ -7,6 +7,18 @@
  *
  * The database is persisted to localStorage on every write and
  * restored from localStorage on startup.
+ *
+ * ## Future: @capacitor-community/sqlite migration
+ *
+ * `@capacitor-community/sqlite` is installed as a dependency. On native
+ * Capacitor platforms (iOS/Android) it provides a native SQLite driver
+ * via `CapacitorSQLite.open()`, `.execute()`, `.query()`, `.close()`.
+ * On web it uses sql.js internally, so behavior is equivalent.
+ *
+ * Currently we use the sql.js Drizzle adapter directly for simplicity.
+ * Migrating to the capacitor-sqlite API is a future optimization that
+ * will unlock native SQLite performance on iOS/Android while keeping
+ * web parity via its built-in sql.js fallback.
  */
 import { drizzle } from 'drizzle-orm/sql-js';
 import initSqlJs, { type Database } from 'sql.js';

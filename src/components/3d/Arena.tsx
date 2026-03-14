@@ -9,6 +9,7 @@
  * for projecting between screen coordinates and the ground plane.
  */
 import { Environment, useGLTF, useTexture } from '@react-three/drei';
+import { HDRI_PATH, PBR_TEXTURE_PATHS } from './modelPaths';
 import { useFrame } from '@react-three/fiber';
 import type { Entity } from 'koota';
 import { useQuery, useTrait } from 'koota/react';
@@ -171,8 +172,9 @@ function createScatterRng(seed: number) {
  */
 function EnvironmentScatter() {
   const session = useTrait(gameWorld, GameSession);
-  const treeGltf = useGLTF('/assets/models/tree.glb');
-  const boulderGltf = useGLTF('/assets/models/boulder.glb');
+  const BASE = import.meta.env.BASE_URL;
+  const treeGltf = useGLTF(`${BASE}assets/models/tree.glb`);
+  const boulderGltf = useGLTF(`${BASE}assets/models/boulder.glb`);
 
   const treeRef = useRef<THREE.InstancedMesh>(null);
   const rockRef = useRef<THREE.InstancedMesh>(null);
@@ -300,13 +302,7 @@ function EnvironmentScatter() {
  * default perspective angle.
  */
 function PBRTerrain() {
-  const textures = useTexture({
-    map: '/assets/pbr/grass/Grass004_1K-JPG_Color.jpg',
-    normalMap: '/assets/pbr/grass/Grass004_1K-JPG_NormalGL.jpg',
-    roughnessMap: '/assets/pbr/grass/Grass004_1K-JPG_Roughness.jpg',
-    aoMap: '/assets/pbr/grass/Grass004_1K-JPG_AmbientOcclusion.jpg',
-    displacementMap: '/assets/pbr/grass/Grass004_1K-JPG_Displacement.jpg',
-  });
+  const textures = useTexture(PBR_TEXTURE_PATHS.grass);
 
   useMemo(() => {
     for (const tex of Object.values(textures)) {
@@ -335,12 +331,7 @@ function PBRRoad() {
   const [tubeGeo, setTubeGeo] = useState<THREE.TubeGeometry | null>(null);
   const [edgeGeo, setEdgeGeo] = useState<THREE.TubeGeometry | null>(null);
 
-  const roadTextures = useTexture({
-    map: '/assets/pbr/road/PavingStones003_1K-JPG_Color.jpg',
-    normalMap: '/assets/pbr/road/PavingStones003_1K-JPG_NormalGL.jpg',
-    roughnessMap: '/assets/pbr/road/PavingStones003_1K-JPG_Roughness.jpg',
-    displacementMap: '/assets/pbr/road/PavingStones003_1K-JPG_Displacement.jpg',
-  });
+  const roadTextures = useTexture(PBR_TEXTURE_PATHS.road);
 
   useMemo(() => {
     for (const tex of Object.values(roadTextures)) {
@@ -445,7 +436,7 @@ export function Arena({
       <ParticlePoolBridge />
       {/* Alps Field HDRI as quarter-dome backdrop: rotated so mountains appear back-left */}
       <Environment
-        files="/assets/hdri/alps_field_1k.hdr"
+        files={HDRI_PATH}
         background
         environmentIntensity={0.8}
         environmentRotation={[0, -Math.PI / 4, 0]}

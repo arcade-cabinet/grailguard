@@ -37,7 +37,7 @@ export async function initDatabase(): Promise<void> {
   if (sqliteDb) return;
 
   const SQL = await initSqlJs({
-    locateFile: (file: string) => `/${file}`,
+    locateFile: (file: string) => `${import.meta.env.BASE_URL}${file}`,
   });
 
   // Try to restore from localStorage

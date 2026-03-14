@@ -66,6 +66,7 @@ export default function MainMenuScreen() {
   const [selectedSpells, setSelectedSpells] = useState<string[]>(['smite']);
   const [selectedSize, setSelectedSize] = useState(100);
   const [seedInput, setSeedInput] = useState('');
+  const [governorEnabled, setGovernorEnabled] = useState(false);
 
   const marketItems = Object.entries(BUILDINGS) as [
     BuildingType,
@@ -304,6 +305,18 @@ export default function MainMenuScreen() {
               })}
             </View>
 
+            <View className="mt-6 flex-row items-center gap-3">
+              <TouchableOpacity
+                onPress={() => setGovernorEnabled(!governorEnabled)}
+                className={`rounded-xl border p-3 ${governorEnabled ? 'border-[#8b6b45] bg-[#cda97e]' : 'border-[#8a7c6c] bg-[#e1d0b7]'}`}
+                accessibilityRole="switch"
+                accessibilityLabel="Enable AI Governor auto-play"
+                accessibilityState={{ checked: governorEnabled }}
+              >
+                <Text className="font-bold text-[#3e2723]">{t('embark_governor')}</Text>
+              </TouchableOpacity>
+            </View>
+
             <View className="mt-8 flex-row justify-end gap-4">
               <TouchableOpacity
                 onPress={() => setEmbarkOpen(false)}
@@ -319,8 +332,9 @@ export default function MainMenuScreen() {
                   const seedParam = seedInput.trim()
                     ? `&seed=${encodeURIComponent(seedInput.trim())}`
                     : '';
+                  const governorParam = governorEnabled ? '&governor=1' : '';
                   router.push(
-                    `/game?mode=fresh&biome=${selectedBiome}&challenge=${selectedChallenge}&spells=${selectedSpells.join(',')}&mapSize=${selectedSize}${seedParam}`,
+                    `/game?mode=fresh&biome=${selectedBiome}&challenge=${selectedChallenge}&spells=${selectedSpells.join(',')}&mapSize=${selectedSize}${seedParam}${governorParam}`,
                   );
                 }}
                 className="rounded-xl border border-[#a88a44] bg-[#4a3b22] px-8 py-3"

@@ -127,5 +127,6 @@
   "history_coins": "{coins} coins",
   "history_biome": "Biome: {biome}",
   "history_difficulty": "Difficulty: {difficulty}",
-  "history_duration": "Duration: {duration}"
+  "history_duration": "Duration: {duration}",
+  "embark_governor": "AI Governor (Auto-Play)"
 }

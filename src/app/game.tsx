@@ -406,6 +406,7 @@ export default function GameScreen() {
     spells?: string;
     mapSize?: string;
     seed?: string;
+    governor?: string;
   }>();
   const { settings, unlocks } = useMetaProgress();
   const doctrineNodes = useDoctrineNodes();
@@ -454,12 +455,12 @@ export default function GameScreen() {
           if (savedRun) {
             await abandonActiveRun();
           }
-          createRunWorld({ preferredSpeed, doctrines, spells, biome, difficulty, mapSize, seed });
+          createRunWorld({ preferredSpeed, doctrines, spells, biome, difficulty, mapSize, seed, governorEnabled: params.governor === '1', reducedFx: settings?.reducedFx ?? false });
         } else {
           if (autoResume && savedRun) {
             hydrateRunWorld(JSON.parse(savedRun.snapshotJson));
           } else {
-            createRunWorld({ preferredSpeed, doctrines, spells, biome, difficulty, mapSize, seed });
+            createRunWorld({ preferredSpeed, doctrines, spells, biome, difficulty, mapSize, seed, governorEnabled: params.governor === '1', reducedFx: settings?.reducedFx ?? false });
           }
         }
         bootedRef.current = true;
@@ -486,6 +487,8 @@ export default function GameScreen() {
     params.mapSize,
     params.seed,
     params.spells,
+    params.governor,
+    settings?.reducedFx,
   ]);
 
   const handleExit = async () => {

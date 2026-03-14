@@ -1495,6 +1495,8 @@ export function createRunWorld(options?: {
   spells?: string[];
   seed?: string;
   mapSize?: number;
+  governorEnabled?: boolean;
+  reducedFx?: boolean;
 }) {
   gameWorld.reset();
   clearEntityIndex();
@@ -1544,6 +1546,8 @@ export function createRunWorld(options?: {
     activePlacement: '',
     placementValid: false,
     roadPoints: rawRoadPoints,
+    governorEnabled: options?.governorEnabled ?? false,
+    reducedFx: options?.reducedFx ?? false,
   });
   // Apply biome modifiers
   const biomeId = options?.biome ?? 'kings-road';

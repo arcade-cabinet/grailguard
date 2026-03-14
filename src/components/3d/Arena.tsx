@@ -351,19 +351,19 @@ function PBRRoad() {
   }, [roadTextures]);
 
   useEffect(() => {
-    // Main road surface -- slightly raised above terrain
-    const geometry = new THREE.TubeGeometry(roadSpline, 128, 3.5, 8, false);
+    // Main road surface -- raised clearly above terrain
+    const geometry = new THREE.TubeGeometry(roadSpline, 128, 4.0, 8, false);
     const positions = geometry.attributes.position;
     for (let index = 0; index < positions.count; index += 1) {
-      positions.setY(index, 0.05);
+      positions.setY(index, 0.3);
     }
     setTubeGeo(geometry);
 
-    // Edge border -- wider, darker strip underneath for definition
-    const edgeGeometry = new THREE.TubeGeometry(roadSpline, 128, 4.2, 8, false);
+    // Edge border -- wider, darker strip underneath for clear definition
+    const edgeGeometry = new THREE.TubeGeometry(roadSpline, 128, 5.5, 8, false);
     const edgePositions = edgeGeometry.attributes.position;
     for (let index = 0; index < edgePositions.count; index += 1) {
-      edgePositions.setY(index, 0.01);
+      edgePositions.setY(index, 0.15);
     }
     setEdgeGeo(edgeGeometry);
 
@@ -380,7 +380,7 @@ function PBRRoad() {
       {/* Dark edge border strip for road definition */}
       {edgeGeo && (
         <mesh geometry={edgeGeo} receiveShadow>
-          <meshStandardMaterial color="#3a3028" roughness={0.95} />
+          <meshStandardMaterial color="#2a1e15" roughness={0.9} metalness={0.1} />
         </mesh>
       )}
       {/* Main road surface */}

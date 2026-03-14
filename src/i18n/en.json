@@ -116,5 +116,16 @@
   "a11y_phase_defend": "Defend Phase",
   "a11y_wave_start": "Wave {wave}: {composition}",
   "a11y_game_over_defeat": "The Grail Has Fallen",
-  "a11y_game_over_victory": "The Grail Endures"
+  "a11y_game_over_victory": "The Grail Endures",
+  "history_header": "Chronicles",
+  "history_title": "Run History",
+  "history_count": "{count} campaigns recorded",
+  "history_empty": "No campaigns yet. Embark on your first run!",
+  "history_wave_label": "Wave {wave}",
+  "history_result_defeat": "Defeated",
+  "history_result_abandoned": "Abandoned",
+  "history_coins": "{coins} coins",
+  "history_biome": "Biome: {biome}",
+  "history_difficulty": "Difficulty: {difficulty}",
+  "history_duration": "Duration: {duration}"
 }

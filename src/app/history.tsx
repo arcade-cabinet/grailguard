@@ -9,6 +9,7 @@ import { useRouter } from 'expo-router';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useRunHistory } from '../db/meta';
 import { soundManager } from '../engine/SoundManager';
+import { t } from '../i18n';
 
 /**
  * Formats a duration in milliseconds to a human-readable "Xm Ys" string.
@@ -50,11 +51,11 @@ export default function HistoryScreen() {
     <View className="flex-1 bg-[#140d09] px-5 pb-6 pt-14">
       <View className="rounded-[28px] border border-[#6b4a2f] bg-[#241711]/95 px-5 py-5">
         <Text className="text-xs font-bold uppercase tracking-[4px] text-[#b98b52]">
-          Chronicles
+          {t('history_header')}
         </Text>
-        <Text className="mt-2 text-4xl font-bold text-[#f0dfbe]">Run History</Text>
+        <Text className="mt-2 text-4xl font-bold text-[#f0dfbe]">{t('history_title')}</Text>
         <Text className="mt-2 text-sm text-[#d8c3a2]">
-          {sortedRuns.length} {sortedRuns.length === 1 ? 'campaign' : 'campaigns'} recorded
+          {t('history_count', { count: sortedRuns.length })}
         </Text>
       </View>
 
@@ -62,7 +63,7 @@ export default function HistoryScreen() {
         {sortedRuns.length === 0 ? (
           <View className="rounded-2xl border border-[#8a6a44] bg-[#f3e8d5] p-6">
             <Text className="text-center text-lg text-[#6e4e31]">
-              No campaigns yet. Embark on your first run!
+              {t('history_empty')}
             </Text>
           </View>
         ) : null}
@@ -76,26 +77,26 @@ export default function HistoryScreen() {
             <View className="flex-row items-start justify-between">
               <View className="flex-1">
                 <Text className="text-lg font-bold text-[#3e2723]">
-                  Wave {run.waveReached} — {run.result === 'defeat' ? 'Defeated' : 'Abandoned'}
+                  {t('history_wave_label', { wave: run.waveReached })} — {run.result === 'defeat' ? t('history_result_defeat') : t('history_result_abandoned')}
                 </Text>
                 <Text className="mt-1 text-sm text-[#6e4e31]">{formatDate(run.createdAt)}</Text>
               </View>
               <View className="items-end">
-                <Text className="text-xl font-bold text-[#c38115]">{run.coinsEarned} coins</Text>
+                <Text className="text-xl font-bold text-[#c38115]">{t('history_coins', { coins: run.coinsEarned })}</Text>
               </View>
             </View>
 
             <View className="mt-3 flex-row justify-between">
               <View className="flex-row gap-4">
                 <Text className="text-xs uppercase tracking-[2px] text-[#75512d]">
-                  Biome: {run.biome}
+                  {t('history_biome', { biome: run.biome })}
                 </Text>
                 <Text className="text-xs uppercase tracking-[2px] text-[#75512d]">
-                  Difficulty: {run.difficulty}
+                  {t('history_difficulty', { difficulty: run.difficulty })}
                 </Text>
               </View>
               <Text className="text-xs uppercase tracking-[2px] text-[#75512d]">
-                Duration: {formatDuration(run.durationMs)}
+                {t('history_duration', { duration: formatDuration(run.durationMs) })}
               </Text>
             </View>
           </View>
@@ -109,9 +110,9 @@ export default function HistoryScreen() {
         }}
         className="mt-4 self-center rounded-xl border border-[#a88a44] bg-[#4a3b22] px-8 py-3"
         accessibilityRole="button"
-        accessibilityLabel="Return to court"
+        accessibilityLabel={t('btn_return_to_court')}
       >
-        <Text className="text-lg font-bold text-[#f7ebd0]">Return to Court</Text>
+        <Text className="text-lg font-bold text-[#f7ebd0]">{t('btn_return_to_court')}</Text>
       </TouchableOpacity>
     </View>
   );

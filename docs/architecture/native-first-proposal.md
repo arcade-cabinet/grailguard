@@ -100,13 +100,51 @@ Remove web target entirely. Focus on iOS + Android with native GPU rendering.
 
 Everything else — ECS engine, DB layer, all game logic, all configs, HUD, screens, i18n, accessibility, haptics, telemetry. The rendering layer is the only thing that touches the GPU.
 
-## Recommendation
+## Decision: Option B — React Native WebGPU + Three.js (CHOSEN)
 
-**Option A (Filament) for a future major version.** Filament's Metal+Vulkan rendering is objectively superior to Three.js's deprecated OpenGL path. The separate render thread alone would solve our 60 FPS goal.
+Filament requires a full rendering layer rewrite with a different scene graph API.
+WebGPU keeps our existing R3F/Three.js code with ~90% reuse while getting Metal/Vulkan.
 
-**For immediate release: Option C (keep web with known limitations).** The web issues are documented, the COI service worker handles production, and the rendering layer works. Ship what we have on native, accept web as beta.
+### Migration Checklist
 
-**For v2: Option A or B.** Evaluate Filament vs WebGPU based on the state of both projects in Q2 2026.
+1. **Install:** `pnpm add react-native-wgpu` (requires RN 0.81+, we have 0.83)
+2. **Remove:** `expo-gl` dependency (deprecated OpenGL ES path)
+3. **Metro config:** Add resolver to map `three` → `three/webgpu` build
+   ```js
+   config.resolver.resolveRequest = (context, moduleName, platform) => {
+     if (moduleName === 'three') {
+       return context.resolveRequest(context, 'three/webgpu', platform);
+     }
+     return context.resolveRequest(context, moduleName, platform);
+   };
+   ```
+4. **Patch R3F:** Use `patch-package` to change `@react-three/fiber/package.json` — resolve the WebGPU entry instead of the React Native bundle
+5. **Canvas swap:** R3F Canvas gets an async `gl` prop factory that creates `WebGPURenderer`
+6. **Expo prebuild:** Required (no Expo Go support) — already required for expo-sqlite
+7. **Remove web hacks:** Delete `+html.tsx`, `coi-serviceworker.js`, metro COEP middleware, app.json header plugin
+8. **Optional:** Move render loop to Reanimated worklet thread for guaranteed 60fps
+
+### What Changes in Code
+
+| File | Change |
+|------|--------|
+| `metro.config.js` | Add `three` → `three/webgpu` resolver, remove COEP/COOP middleware |
+| `package.json` | Add `react-native-wgpu`, remove `expo-gl` |
+| `src/components/3d/Arena.tsx` | Canvas prop change for WebGPU renderer |
+| `src/app/+html.tsx` | Delete (web-only) |
+| `public/coi-serviceworker.js` | Delete (web-only) |
+| `app.json` | Remove expo-router COEP/COOP headers plugin |
+| `.github/workflows/cd.yml` | Remove web export, add EAS build instead |
+
+### What Does NOT Change
+
+Everything else: all 9 engine subsystem modules, all 21 JSON configs, all DB repos, all screens, HUD, i18n, accessibility, haptics, telemetry, tutorial, tests. The rendering components (entity meshes, particle pool, terrain grid, sanctuary, etc.) keep their R3F/drei APIs — Three.js's WebGPU renderer is API-compatible with the WebGL renderer.
+
+### Production Validation
+
+- Three.js r171+ (Sept 2025): WebGPU production-ready with zero-config imports
+- React Native WebGPU shipped at Expo 2025 Osaka (million-particle installation)
+- Margelo uses it in production apps with millions of users
 
 ## Sources
 

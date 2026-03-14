@@ -8,7 +8,7 @@
  * particles, resource carts, and world effects). Also exposes helper functions
  * for projecting between screen coordinates and the ground plane.
  */
-import { Environment, useTexture } from '@react-three/drei';
+import { Environment, useGLTF, useTexture } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import type { Entity } from 'koota';
 import { useQuery, useTrait } from 'koota/react';
@@ -164,35 +164,49 @@ function createScatterRng(seed: number) {
 }
 
 /**
- * InstancedMesh scenery: one InstancedMesh for tree canopies (ConeGeometry),
- * one for tree trunks (CylinderGeometry), one for rocks (DodecahedronGeometry).
- * All scattered deterministically using the map seed.
+ * GLB-model environment scatter: uses real tree.glb and boulder.glb models
+ * via InstancedMesh for performant rendering of 100+ trees and 50+ rocks.
+ * Positions are deterministically seeded from the run ID to ensure
+ * reproducible scenery across sessions. Each instance gets slight scale
+ * and rotation variation for a natural look.
  */
 function EnvironmentScatter() {
   const session = useTrait(gameWorld, GameSession);
-  const treeCanopyRef = useRef<THREE.InstancedMesh>(null);
-  const treeTrunkRef = useRef<THREE.InstancedMesh>(null);
+  const treeGltf = useGLTF('/assets/models/tree.glb');
+  const boulderGltf = useGLTF('/assets/models/boulder.glb');
+
+  const treeRef = useRef<THREE.InstancedMesh>(null);
   const rockRef = useRef<THREE.InstancedMesh>(null);
 
   const { treeCount, rockCount, scatterRadius, minRoadClearance } = mapConfig.scenery;
   const mapSize = session?.mapSize ?? mapConfig.size;
 
-  // Geometries and materials (memoized)
-  const canopyGeo = useMemo(() => new THREE.ConeGeometry(1.5, 3, 6), []);
-  const trunkGeo = useMemo(() => new THREE.CylinderGeometry(0.3, 0.4, 2, 6), []);
-  const rockGeo = useMemo(() => new THREE.DodecahedronGeometry(1.2, 0), []);
-  const canopyMat = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: '#2d6a2e', roughness: 0.85 }),
-    [],
-  );
-  const trunkMat = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: '#5c3a1e', roughness: 0.9 }),
-    [],
-  );
-  const rockMat = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: '#808080', roughness: 0.95 }),
-    [],
-  );
+  // Extract the first mesh geometry and material from each GLB
+  const treeData = useMemo(() => {
+    let geo: THREE.BufferGeometry | null = null;
+    let mat: THREE.Material | null = null;
+    treeGltf.scene.traverse((child) => {
+      if (!geo && (child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        geo = mesh.geometry;
+        mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+      }
+    });
+    return { geo: geo as THREE.BufferGeometry, mat: mat as THREE.Material };
+  }, [treeGltf]);
+
+  const boulderData = useMemo(() => {
+    let geo: THREE.BufferGeometry | null = null;
+    let mat: THREE.Material | null = null;
+    boulderGltf.scene.traverse((child) => {
+      if (!geo && (child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        geo = mesh.geometry;
+        mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+      }
+    });
+    return { geo: geo as THREE.BufferGeometry, mat: mat as THREE.Material };
+  }, [boulderGltf]);
 
   const initialized = useRef(false);
   useMemo(() => {
@@ -201,7 +215,8 @@ function EnvironmentScatter() {
 
   useFrame(() => {
     if (initialized.current) return;
-    if (!treeCanopyRef.current || !treeTrunkRef.current || !rockRef.current) return;
+    if (!treeRef.current || !rockRef.current) return;
+    if (!treeData.geo || !boulderData.geo) return;
 
     let seedNum = session?.runId ? Number.parseInt(session.runId.substring(0, 8), 16) : 12345;
     if (Number.isNaN(seedNum)) seedNum = 12345;
@@ -211,7 +226,7 @@ function EnvironmentScatter() {
     let treeIdx = 0;
     let rockIdx = 0;
 
-    const candidates = treeCount + rockCount + 50; // extra to account for road rejection
+    const candidates = treeCount + rockCount + 80;
     for (let i = 0; i < candidates; i++) {
       const x = (random() - 0.5) * 2 * halfMap;
       const z = (random() - 0.5) * 2 * halfMap;
@@ -227,75 +242,49 @@ function EnvironmentScatter() {
       }
       if (minDist < minRoadClearance) continue;
 
-      const scale = 0.8 + random() * 0.5;
       const rotY = random() * Math.PI * 2;
 
       if (isTree && treeIdx < treeCount) {
-        // Tree canopy (cone on top)
-        _scatterObj.position.set(x, 2 + scale * 1.5, z);
+        const scale = 1.5 + random() * 1.5;
+        _scatterObj.position.set(x, 0, z);
         _scatterObj.rotation.set(0, rotY, 0);
         _scatterObj.scale.set(scale, scale, scale);
         _scatterObj.updateMatrix();
-        treeCanopyRef.current.setMatrixAt(treeIdx, _scatterObj.matrix);
-        // Slight color variation
-        const green = 0.35 + random() * 0.15;
-        _scatterColor.setRGB(0.15, green, 0.15);
-        treeCanopyRef.current.setColorAt(treeIdx, _scatterColor);
-
-        // Tree trunk
-        _scatterObj.position.set(x, scale * 1, z);
-        _scatterObj.rotation.set(0, rotY, 0);
-        _scatterObj.scale.set(scale, scale, scale);
-        _scatterObj.updateMatrix();
-        treeTrunkRef.current.setMatrixAt(treeIdx, _scatterObj.matrix);
-        _scatterColor.set('#5c3a1e');
-        treeTrunkRef.current.setColorAt(treeIdx, _scatterColor);
-
+        treeRef.current.setMatrixAt(treeIdx, _scatterObj.matrix);
         treeIdx++;
       } else if (!isTree && rockIdx < rockCount) {
-        _scatterObj.position.set(x, scale * 0.6, z);
+        const scale = 0.6 + random() * 0.8;
+        _scatterObj.position.set(x, scale * 0.2, z);
         _scatterObj.rotation.set(random() * 0.3, rotY, random() * 0.3);
         _scatterObj.scale.set(scale, scale * 0.7, scale);
         _scatterObj.updateMatrix();
         rockRef.current.setMatrixAt(rockIdx, _scatterObj.matrix);
-        const gray = 0.4 + random() * 0.2;
-        _scatterColor.setRGB(gray, gray, gray);
-        rockRef.current.setColorAt(rockIdx, _scatterColor);
         rockIdx++;
       }
 
       if (treeIdx >= treeCount && rockIdx >= rockCount) break;
     }
 
-    treeCanopyRef.current.instanceMatrix.needsUpdate = true;
-    treeTrunkRef.current.instanceMatrix.needsUpdate = true;
+    treeRef.current.instanceMatrix.needsUpdate = true;
     rockRef.current.instanceMatrix.needsUpdate = true;
-    if (treeCanopyRef.current.instanceColor) treeCanopyRef.current.instanceColor.needsUpdate = true;
-    if (treeTrunkRef.current.instanceColor) treeTrunkRef.current.instanceColor.needsUpdate = true;
-    if (rockRef.current.instanceColor) rockRef.current.instanceColor.needsUpdate = true;
 
     initialized.current = true;
   });
 
+  if (!treeData.geo || !boulderData.geo) return null;
+
   return (
     <>
       <instancedMesh
-        ref={treeCanopyRef}
-        args={[canopyGeo, canopyMat, treeCount]}
-        castShadow
-        receiveShadow
-        frustumCulled={false}
-      />
-      <instancedMesh
-        ref={treeTrunkRef}
-        args={[trunkGeo, trunkMat, treeCount]}
+        ref={treeRef}
+        args={[treeData.geo, treeData.mat, treeCount]}
         castShadow
         receiveShadow
         frustumCulled={false}
       />
       <instancedMesh
         ref={rockRef}
-        args={[rockGeo, rockMat, rockCount]}
+        args={[boulderData.geo, boulderData.mat, rockCount]}
         castShadow
         receiveShadow
         frustumCulled={false}
@@ -306,7 +295,10 @@ function EnvironmentScatter() {
 
 /**
  * PBR grass terrain -- a large plane with tiled grass textures (color, normal,
- * roughness, AO, displacement) for photorealistic ground rendering.
+ * roughness, AO, displacement) for photorealistic ground rendering. The plane
+ * extends well beyond the play area so the horizon shows grass, not void.
+ * Dense tiling (30x30) avoids visible pattern repetition at the camera's
+ * default perspective angle.
  */
 function PBRTerrain() {
   const textures = useTexture({
@@ -321,14 +313,14 @@ function PBRTerrain() {
     for (const tex of Object.values(textures)) {
       (tex as THREE.Texture).wrapS = THREE.RepeatWrapping;
       (tex as THREE.Texture).wrapT = THREE.RepeatWrapping;
-      (tex as THREE.Texture).repeat.set(20, 20);
+      (tex as THREE.Texture).repeat.set(30, 30);
     }
   }, [textures]);
 
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]} receiveShadow>
-      <planeGeometry args={[200, 200, 64, 64]} />
-      <meshStandardMaterial {...textures} displacementScale={0.5} />
+      <planeGeometry args={[400, 400, 128, 128]} />
+      <meshStandardMaterial {...textures} displacementScale={0.4} />
     </mesh>
   );
 }
@@ -428,7 +420,16 @@ export function Arena({
   return (
     <ParticlePool>
       <ParticlePoolBridge />
-      <Environment files="/assets/hdri/alps_field_1k.hdr" background environmentIntensity={0.8} />
+      {/* Alps Field HDRI as quarter-dome backdrop: rotated so mountains appear back-left */}
+      <Environment
+        files="/assets/hdri/alps_field_1k.hdr"
+        background
+        environmentIntensity={0.8}
+        environmentRotation={[0, -Math.PI / 4, 0]}
+        backgroundRotation={[0, -Math.PI / 4, 0]}
+      />
+      {/* Depth fog — green-tinted to match grass, fades distant terrain */}
+      <fog attach="fog" args={['#5a7247', 60, 200]} />
       <DayNightCycle wave={session?.wave ?? 1} />
       <EnvironmentScatter />
       <CameraController />

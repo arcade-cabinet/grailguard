@@ -1,12 +1,14 @@
 /**
  * @module CameraController
  *
- * Camera controller that reads game phase from ECS and smoothly transitions
- * between viewport presets (overview for build, action for defend).
- * Camera shake still applies on top of preset zoom levels.
+ * Perspective camera controller that reads game phase from ECS and smoothly
+ * transitions between viewport presets (overview for build, action for defend).
+ * Camera is positioned at a ~30-degree angle from horizontal for a
+ * Kingdom-Rush-style bird's-eye view with visible horizon and HDRI sky.
+ * Camera shake still applies on top of preset positions.
  *
- * Replaces the inline CameraRig from Arena.tsx with a more capable controller
- * that supports zoom presets and pan/zoom offsets.
+ * Gesture zoom works by adjusting the camera distance (dolly) rather than
+ * orthographic zoom factor, giving a natural diorama feel.
  */
 import { useFrame, useThree } from '@react-three/fiber';
 import { useTrait } from 'koota/react';
@@ -60,14 +62,23 @@ export const cameraState: CameraControllerState = {
 };
 
 /**
- * Camera controller component. Manages orthographic camera sizing,
- * zoom transitions between presets, camera shake, and gesture offsets.
+ * Base camera height and forward offset define the viewing angle.
+ * With height=120 and z-offset=140, the camera looks down at roughly
+ * 40 degrees from horizontal, showing the horizon at screen top ~20%.
+ */
+const BASE_HEIGHT = 120;
+const BASE_Z_OFFSET = 140;
+
+/**
+ * Camera controller component. Manages perspective camera distance
+ * (dolly zoom), smooth transitions between presets, camera shake,
+ * and gesture pan/zoom offsets.
  */
 export function CameraController() {
-  const { camera, size } = useThree();
+  const { camera } = useThree();
   const session = useTrait(gameWorld, GameSession);
   const currentZoom = useRef(viewportPresets.overview.zoom);
-  const basePosition = useRef(new THREE.Vector3(0, 100, 70));
+  const basePosition = useRef(new THREE.Vector3(0, BASE_HEIGHT, BASE_Z_OFFSET));
 
   // Register active camera
   useEffect(() => {
@@ -78,23 +89,6 @@ export function CameraController() {
       }
     };
   }, [camera]);
-
-  // Set up orthographic projection
-  useEffect(() => {
-    if (camera.type === 'OrthographicCamera') {
-      const mapSize = session?.mapSize ?? 100;
-      const aspect = size.width / size.height;
-      let viewSize = mapSize * 1.2;
-      if (aspect < 1) viewSize = (mapSize * 1.2) / aspect;
-
-      const ortho = camera as THREE.OrthographicCamera;
-      ortho.left = (-viewSize * aspect) / 2;
-      ortho.right = (viewSize * aspect) / 2;
-      ortho.top = viewSize / 2;
-      ortho.bottom = -viewSize / 2;
-      ortho.updateProjectionMatrix();
-    }
-  }, [camera, size, session?.mapSize]);
 
   useFrame((_state, delta) => {
     const phase = session?.phase ?? 'build';
@@ -113,12 +107,12 @@ export function CameraController() {
       Math.min(renderConfig.camera.zoomMax, currentZoom.current),
     );
 
-    // Apply zoom to ortho camera
-    if (camera.type === 'OrthographicCamera') {
-      const ortho = camera as THREE.OrthographicCamera;
-      ortho.zoom = clampedZoom / 50; // normalize: 50 = 1x zoom
-      ortho.updateProjectionMatrix();
-    }
+    // Perspective dolly: zoom factor scales camera distance inversely.
+    // At zoom=50 the camera sits at the base distance; lower zooms pull
+    // further back, higher zooms push closer.
+    const distanceFactor = 50 / Math.max(1, clampedZoom);
+    const height = BASE_HEIGHT * distanceFactor;
+    const zOffset = BASE_Z_OFFSET * distanceFactor;
 
     // Base position with pan offset
     const shake = gameWorld.get(GameSession)?.cameraShake ?? 0;
@@ -127,10 +121,10 @@ export function CameraController() {
 
     if (shake > 0) {
       camera.position.x = targetX + (Math.random() - 0.5) * shake;
-      camera.position.y = 100 + (Math.random() - 0.5) * shake;
-      camera.position.z = 70 + targetZ;
+      camera.position.y = height + (Math.random() - 0.5) * shake;
+      camera.position.z = zOffset + targetZ;
     } else {
-      basePosition.current.set(targetX, 100, 70 + targetZ);
+      basePosition.current.set(targetX, height, zOffset + targetZ);
       camera.position.lerp(basePosition.current, renderConfig.camera.shakeLerp);
     }
     camera.lookAt(targetX, 0, targetZ);

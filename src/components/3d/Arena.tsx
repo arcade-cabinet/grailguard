@@ -18,6 +18,7 @@ import {
   Facing,
   GameSession,
   gameWorld,
+  Particle,
   Position,
   Projectile,
   ResourceCart,
@@ -35,7 +36,7 @@ import { ProjectileMesh } from './Entities/ProjectileMesh';
 import { ResourceCartMesh } from './Entities/ResourceCartMesh';
 import { UnitMesh } from './Entities/UnitMesh';
 import { WorldEffectMesh } from './Entities/WorldEffectMesh';
-import { ParticlePool } from './ParticlePool';
+import { ParticlePool, useParticlePool } from './ParticlePool';
 import { Sanctuary } from './Sanctuary';
 import { TerrainGrid } from './TerrainGrid';
 
@@ -94,6 +95,49 @@ export function projectWorldPointToScreen(
       projected.y >= -1.2 &&
       projected.y <= 1.2,
   };
+}
+
+/**
+ * Bridges ECS Particle entities into the ParticlePool InstancedMesh.
+ * Each frame, reads new ECS Particle entities, spawns them into the pool,
+ * and destroys the ECS entity so the pool owns the lifecycle.
+ */
+function ParticlePoolBridge() {
+  const pool = useParticlePool();
+  const particles = useQuery(Particle, Position);
+  const processedRef = useRef(new Set<number>());
+
+  useFrame(() => {
+    for (const entity of particles) {
+      const id = entity.id() as number;
+      if (processedRef.current.has(id)) continue;
+      processedRef.current.add(id);
+
+      const p = entity.get(Particle);
+      const pos = entity.get(Position);
+      if (!p || !pos) continue;
+
+      const colorStr = typeof p.color === 'string' ? p.color : '#ffffff';
+      pool.spawnBurst([{
+        x: pos.x,
+        y: pos.y,
+        z: pos.z,
+        vx: p.vx,
+        vy: p.vy,
+        vz: p.vz,
+        life: p.life,
+        color: colorStr,
+      }]);
+    }
+
+    // Clean up processed set for entities no longer alive
+    const aliveIds = new Set(particles.map((e) => e.id() as number));
+    for (const id of processedRef.current) {
+      if (!aliveIds.has(id)) processedRef.current.delete(id);
+    }
+  });
+
+  return null;
 }
 
 function GameLoop() {
@@ -340,6 +384,7 @@ export function Arena({
 
   return (
     <ParticlePool>
+      <ParticlePoolBridge />
       <DayNightCycle wave={session?.wave ?? 1} />
       <EnvironmentScatter />
       <CameraController />

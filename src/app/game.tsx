@@ -61,7 +61,42 @@ import {
 } from '../engine/GameEngine';
 import { soundManager } from '../engine/SoundManager';
 import { getActivePlacement, getPlacementPreview, getSelectedEntity } from '../engine/selectors';
+import { audioBus } from '../engine/audio/audioBridge';
+import { createAmbienceManager, type AmbienceManager } from '../engine/audio/ambienceManager';
+import { GestureOverlay } from '../components/3d/GestureOverlay';
+import { DebugOverlay } from '../components/ui/DebugOverlay';
+import { impactMedium, impactHeavy, impactLight, notificationSuccess, notificationWarning } from '../engine/haptics';
 import { t } from '../i18n';
+
+function HapticsBridge({ hapticsEnabled }: { hapticsEnabled: boolean }) {
+  useEffect(() => {
+    const unsubs = [
+      audioBus.on('building_placed', () => impactMedium(hapticsEnabled)),
+      audioBus.on('boss_spawn', () => impactHeavy(hapticsEnabled)),
+      audioBus.on('wave_complete', () => notificationSuccess(hapticsEnabled)),
+      audioBus.on('game_over', () => notificationWarning(hapticsEnabled)),
+      audioBus.on('spell_cast', () => impactLight(hapticsEnabled)),
+    ];
+    return () => { for (const unsub of unsubs) unsub(); };
+  }, [hapticsEnabled]);
+  return null;
+}
+
+function AmbienceManagerBridge({ biome }: { biome: string }) {
+  const managerRef = useRef<AmbienceManager | null>(null);
+
+  useEffect(() => {
+    const manager = createAmbienceManager(biome, audioBus);
+    manager.start();
+    managerRef.current = manager;
+    return () => {
+      manager.dispose();
+      managerRef.current = null;
+    };
+  }, [biome]);
+
+  return null;
+}
 
 function AccessibilityAnnouncementBridge() {
   const session = useTrait(gameWorld, GameSession);
@@ -385,6 +420,13 @@ export default function GameScreen() {
     void soundManager.init(settings?.soundEnabled ?? true, settings?.musicEnabled ?? true);
   }, [settings?.soundEnabled, settings?.musicEnabled]);
 
+  // Fix 20: Play biome ambience when run starts
+  useEffect(() => {
+    if (!isBootstrapping) {
+      soundManager.playAmbience(params.biome ?? 'kings-road');
+    }
+  }, [isBootstrapping, params.biome]);
+
   useEffect(() => {
     if (bootedRef.current) return;
 
@@ -472,6 +514,8 @@ export default function GameScreen() {
       {!isBootstrapping ? <RunPersistenceBridge /> : null}
       {!isBootstrapping ? <CodexDiscoveryBridge /> : null}
       {!isBootstrapping ? <AccessibilityAnnouncementBridge /> : null}
+      {!isBootstrapping ? <HapticsBridge hapticsEnabled={settings?.hapticsEnabled ?? true} /> : null}
+      {!isBootstrapping ? <AmbienceManagerBridge biome={params.biome ?? 'kings-road'} /> : null}
       <LiveGameView
         bootLabel={bootLabel}
         isBootstrapping={isBootstrapping}
@@ -604,6 +648,7 @@ function LiveGameView({
         setViewportSize({ width, height });
       }}
     >
+      <GestureOverlay>
       <View {...panResponder.panHandlers} className="flex-1">
         <Canvas
           orthographic
@@ -627,6 +672,7 @@ function LiveGameView({
           </View>
         ) : null}
       </View>
+      </GestureOverlay>
 
       {!isBootstrapping ? (
         <>
@@ -650,6 +696,7 @@ function LiveGameView({
 
       <LoadingOverlay forceVisible={isBootstrapping} label={bootLabel} />
       {!isBootstrapping ? <EndOfRunModal /> : null}
+      {!isBootstrapping ? <DebugOverlay /> : null}
     </View>
   );
 }

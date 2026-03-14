@@ -14,6 +14,7 @@ import * as Tooltip from '@rn-primitives/tooltip';
 import type { Entity } from 'koota';
 import { useQuery, useTrait } from 'koota/react';
 import { Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { useMetaProgress } from '../../db/meta';
 import { BUILDINGS, type BuildingType } from '../../engine/constants';
 import {
   Building,
@@ -26,6 +27,18 @@ import {
 } from '../../engine/GameEngine';
 import { soundManager } from '../../engine/SoundManager';
 import { t } from '../../i18n';
+
+/** Returns high-contrast border styles when enabled. */
+function highContrastStyle(enabled: boolean) {
+  if (!enabled) return {};
+  return { borderWidth: 2, borderColor: '#fff' };
+}
+
+/** Returns high-contrast text opacity when enabled. */
+function highContrastTextStyle(enabled: boolean) {
+  if (!enabled) return {};
+  return { opacity: 1 };
+}
 
 function BuildingCard({
   entity,
@@ -251,6 +264,8 @@ export function HUD({
   const waveState = useTrait(gameWorld, WaveState);
   const buildingEntities = useQuery(Building);
   const wallEntities = useQuery(Unit).filter((entity) => entity.get(Unit)?.type === 'wall');
+  const { settings: metaSettings } = useMetaProgress();
+  const hc = metaSettings?.highContrast ?? false;
 
   if (!session) return null;
 
@@ -324,6 +339,7 @@ export function HUD({
             <TouchableOpacity
               onPress={() => queueWorldCommand({ type: 'skipBuildPhase' })}
               className="rounded-xl border border-[#b03d2e] bg-[#7a1f17] px-4 py-2"
+              style={highContrastStyle(hc)}
               accessibilityRole="button"
               accessibilityLabel="Call wave early"
             >
@@ -387,10 +403,11 @@ export function HUD({
               <Popover.Trigger asChild>
                 <Toolbar.Button
                   className="rounded-2xl border border-[#8f6a43] bg-[#4c321e] px-5 py-4"
+                  style={highContrastStyle(hc)}
                   accessibilityRole="button"
                   accessibilityLabel="Open building selection toychest"
                 >
-                  <Text className="text-lg font-bold text-[#f5e8cc]">{t('hud_toychest')}</Text>
+                  <Text className="text-lg font-bold text-[#f5e8cc]" style={highContrastTextStyle(hc)}>{t('hud_toychest')}</Text>
                 </Toolbar.Button>
               </Popover.Trigger>
               <Popover.Portal>
@@ -585,6 +602,7 @@ export function HUD({
                   onExit();
                 }}
                 className="rounded-2xl border border-[#7d5d3f] bg-[#1e1410] px-4 py-4"
+                style={highContrastStyle(hc)}
                 accessibilityRole="button"
                 accessibilityLabel="Leave game and return to main menu"
               >

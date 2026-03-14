@@ -1,0 +1,7 @@
+appId: com.arcadecabinet.grailguard
+---
+- launchApp:
+    arguments:
+      EXDevLauncherURL: "http://localhost:8081"
+- waitForAnimationToEnd
+- takeScreenshot: e2e/maestro/screenshots/01-launch

@@ -1,0 +1,11 @@
+appId: com.arcadecabinet.grailguard
+---
+- launchApp:
+    arguments:
+      EXDevLauncherURL: "http://localhost:8081"
+    clearState: false
+- runScript:
+    script: |
+      // Wait 60 seconds for the bundle to fully load
+      java.lang.Thread.sleep(60000)
+- takeScreenshot: e2e/maestro/screenshots/03-after-wait

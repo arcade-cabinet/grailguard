@@ -620,6 +620,22 @@ function LiveGameView({
     }
   };
 
+  /**
+   * Handles single-click interactions on the game canvas: building
+   * placement confirmation and radial menu opening.
+   *
+   * Event propagation:
+   *   Canvas -> this div (game handler) -> GestureOverlay div (gesture handler)
+   *
+   * Because this handler is on a child of the GestureOverlay, it fires
+   * BEFORE the gesture handler via normal DOM bubbling. The GestureOverlay
+   * never calls stopPropagation(), and only acts on multi-touch (2+ pointers),
+   * so single clicks always reach this handler unimpeded.
+   *
+   * The raycast uses ray.intersectPlane(y=0) which works identically for
+   * both perspective and orthographic cameras -- setFromCamera produces a
+   * correct ray from NDC coordinates in either projection mode.
+   */
   const handlePointerUp = (e: React.PointerEvent) => {
     // If placing a building, confirm or cancel placement
     if (activePlacement && placementPreview?.valid) {

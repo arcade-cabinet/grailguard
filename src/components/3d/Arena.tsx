@@ -18,7 +18,6 @@ import {
   Facing,
   GameSession,
   gameWorld,
-  Particle,
   Position,
   Projectile,
   ResourceCart,
@@ -29,11 +28,11 @@ import {
 } from '../../engine/GameEngine';
 import { soundManager } from '../../engine/SoundManager';
 import { BuildingMesh } from './Entities/BuildingMesh';
-import { ParticleMesh } from './Entities/ParticleMesh';
 import { ProjectileMesh } from './Entities/ProjectileMesh';
 import { ResourceCartMesh } from './Entities/ResourceCartMesh';
 import { UnitMesh } from './Entities/UnitMesh';
 import { WorldEffectMesh } from './Entities/WorldEffectMesh';
+import { ParticlePool } from './ParticlePool';
 
 let activeCamera: THREE.Camera | null = null;
 const placementPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
@@ -310,7 +309,6 @@ export function Arena({
 }) {
   const unitEntities = useQuery(Unit, Position, Facing);
   const buildingEntities = useQuery(Building, Position);
-  const particleEntities = useQuery(Particle, Position);
   const effectEntities = useQuery(WorldEffect, Position);
   const projectileEntities = useQuery(Projectile, Position);
   const cartEntities = useQuery(ResourceCart, Position);
@@ -323,7 +321,7 @@ export function Arena({
   }, [session?.phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <>
+    <ParticlePool>
       <Environment />
       <EnvironmentScatter />
       <CameraRig />
@@ -356,13 +354,9 @@ export function Arena({
         <ResourceCartMesh key={entity.id()} entity={entity} />
       ))}
 
-      {particleEntities.map((entity) => (
-        <ParticleMesh key={entity.id()} entity={entity} />
-      ))}
-
       {effectEntities.map((entity) => (
         <WorldEffectMesh key={entity.id()} entity={entity} />
       ))}
-    </>
+    </ParticlePool>
   );
 }

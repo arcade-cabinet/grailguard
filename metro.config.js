@@ -13,29 +13,24 @@ for (const ext of newAssetExts) {
 }
 config.resolver.sourceExts.push('glsl');
 
-// expo-sqlite web support: treat .wasm as an asset (not source)
+// expo-sqlite native: treat .wasm as asset (still needed for sqlite WASM worker)
 if (!config.resolver.assetExts.includes('wasm')) {
   config.resolver.assetExts.push('wasm');
 }
 config.resolver.sourceExts = (config.resolver.sourceExts || []).filter((ext) => ext !== 'wasm');
 
-// COEP/COOP headers for dev server — enables SharedArrayBuffer for expo-sqlite web
-config.server.enhanceMiddleware = (middleware) => {
-  return (req, res, next) => {
-    res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
-    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
-    middleware(req, res, next);
-  };
-};
-
-// Apply NativeWind, then fix tslib resolution for Tone.js ESM compatibility
+// Apply NativeWind first
 const finalConfig = withNativeWind(config, { input: './global.css' });
 
-// Tone.js ESM build imports tslib which Metro resolves to the ESM wrapper.
-// Metro's CJS runner can't destructure from that wrapper. Redirect to CJS build.
+// Custom resolver chain: three → three/webgpu, tslib → CJS build
 const tslibCJS = path.resolve(__dirname, 'node_modules/tslib/tslib.js');
 const _nativeWindResolveRequest = finalConfig.resolver.resolveRequest;
 finalConfig.resolver.resolveRequest = (context, moduleName, platform) => {
+  // Three.js WebGPU: resolve 'three' to the WebGPU build (Metal on iOS, Vulkan on Android)
+  if (moduleName === 'three') {
+    return context.resolveRequest(context, 'three/webgpu', platform);
+  }
+  // Tone.js ESM: redirect tslib to CJS build (Metro can't handle ESM wrapper)
   if (moduleName === 'tslib') {
     return { filePath: tslibCJS, type: 'sourceFile' };
   }

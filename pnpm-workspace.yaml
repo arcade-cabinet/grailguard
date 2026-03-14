@@ -2,3 +2,5 @@ allowBuilds:
   better-sqlite3: true
   esbuild: true
   unrs-resolver: true
+patchedDependencies:
+  '@react-three/fiber': patches/@react-three__fiber.patch

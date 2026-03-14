@@ -32,6 +32,7 @@ import { ProjectileMesh } from './Entities/ProjectileMesh';
 import { ResourceCartMesh } from './Entities/ResourceCartMesh';
 import { UnitMesh } from './Entities/UnitMesh';
 import { WorldEffectMesh } from './Entities/WorldEffectMesh';
+import { DayNightCycle } from './DayNightCycle';
 import { ParticlePool } from './ParticlePool';
 import { TerrainGrid } from './TerrainGrid';
 
@@ -99,23 +100,6 @@ function GameLoop() {
   return null;
 }
 
-function Environment() {
-  return (
-    <>
-      <hemisphereLight args={['#ffffff', '#444444', 0.7]} />
-      <directionalLight
-        position={[40, 100, -40]}
-        intensity={1.4}
-        castShadow
-        shadow-mapSize={[4096, 4096]}
-        shadow-camera-left={-100}
-        shadow-camera-right={100}
-        shadow-camera-top={100}
-        shadow-camera-bottom={-100}
-      />
-    </>
-  );
-}
 
 function CameraRig() {
   const { camera, size } = useThree();
@@ -402,7 +386,7 @@ export function Arena({
 
   return (
     <ParticlePool>
-      <Environment />
+      <DayNightCycle wave={session?.wave ?? 1} />
       <EnvironmentScatter />
       <CameraRig />
       <GameLoop />

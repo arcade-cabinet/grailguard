@@ -1,0 +1,29 @@
+{
+  "presets": {
+    "dawn": {
+      "ambientColor": "#ff9944",
+      "ambientIntensity": 0.5,
+      "directionalColor": "#ffaa55",
+      "directionalIntensity": 1.0
+    },
+    "day": {
+      "ambientColor": "#ffffff",
+      "ambientIntensity": 0.7,
+      "directionalColor": "#ffffff",
+      "directionalIntensity": 1.4
+    },
+    "dusk": {
+      "ambientColor": "#cc6699",
+      "ambientIntensity": 0.45,
+      "directionalColor": "#dd7744",
+      "directionalIntensity": 0.9
+    },
+    "night": {
+      "ambientColor": "#223366",
+      "ambientIntensity": 0.3,
+      "directionalColor": "#4466aa",
+      "directionalIntensity": 0.5
+    }
+  },
+  "transitionSpeed": 2.0
+}

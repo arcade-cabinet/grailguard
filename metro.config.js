@@ -4,6 +4,12 @@ const { withNativeWind } = require('nativewind/metro');
 
 const config = getDefaultConfig(__dirname);
 
+// CRITICAL: Prevent Metro from resolving modules from sibling projects
+// in the parent arcade-cabinet/ directory. Without this, Metro walks up
+// to the parent and finds will-it-blow, otter-river-rush, etc.
+config.watchFolders = [__dirname];
+config.resolver.nodeModulesPaths = [path.resolve(__dirname, 'node_modules')];
+
 // Support 3D assets and textures
 const newAssetExts = ['glsl', 'glb', 'gltf'];
 for (const ext of newAssetExts) {

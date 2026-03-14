@@ -101,5 +101,20 @@
   "spell_haste": "Haste",
   "spell_quake": "Quake",
   "spell_meteor": "Meteor",
-  "spell_shield": "Shield"
+  "spell_shield": "Shield",
+  "tutorial_step_1": "Place a wall on the road to block enemy paths.",
+  "tutorial_step_2": "Place a militia hut nearby to spawn defenders.",
+  "tutorial_step_3": "Start the wave and defend the Grail!",
+  "tutorial_step_4": "Gold is earned from kills. Spend it wisely.",
+  "tutorial_step_5": "Build a lumber camp and lay track for resources.",
+  "tutorial_btn_next": "Next",
+  "tutorial_btn_skip": "Skip Tutorial",
+  "tutorial_btn_done": "Got It!",
+  "settings_high_contrast_label": "High Contrast",
+  "settings_high_contrast_desc": "Increase text opacity and add visible borders to interactive elements.",
+  "a11y_phase_build": "Build Phase",
+  "a11y_phase_defend": "Defend Phase",
+  "a11y_wave_start": "Wave {wave}: {composition}",
+  "a11y_game_over_defeat": "The Grail Has Fallen",
+  "a11y_game_over_victory": "The Grail Endures"
 }

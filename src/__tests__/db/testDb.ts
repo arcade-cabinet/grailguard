@@ -38,7 +38,9 @@ const MIGRATION_STATEMENTS = [
     music_enabled INTEGER NOT NULL DEFAULT 1,
     haptics_enabled INTEGER NOT NULL DEFAULT 1,
     camera_intensity REAL NOT NULL DEFAULT 1,
-    theme TEXT NOT NULL DEFAULT 'holy-grail'
+    theme TEXT NOT NULL DEFAULT 'holy-grail',
+    tutorial_complete INTEGER NOT NULL DEFAULT 0,
+    high_contrast INTEGER NOT NULL DEFAULT 0
   )`,
   `CREATE TABLE IF NOT EXISTS unlocks (
     domain TEXT NOT NULL,

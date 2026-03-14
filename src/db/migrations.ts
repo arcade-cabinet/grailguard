@@ -32,6 +32,12 @@ export const migrations: {
         tag: '0001_multi_tier',
         breakpoints: true,
       },
+      {
+        idx: 2,
+        when: 202603130100,
+        tag: '0002_tutorial_highcontrast',
+        breakpoints: true,
+      },
     ],
   },
   migrations: {
@@ -110,6 +116,10 @@ export const migrations: {
     `,
     '0001_multi_tier': `
       ALTER TABLE doctrine_nodes ADD COLUMN level INTEGER NOT NULL DEFAULT 0;
+    `,
+    '0002_tutorial_highcontrast': `
+      ALTER TABLE settings ADD COLUMN tutorial_complete INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE settings ADD COLUMN high_contrast INTEGER NOT NULL DEFAULT 0;
     `,
   },
 };

@@ -265,6 +265,8 @@ export async function updateSettings(
     hapticsEnabled: boolean;
     cameraIntensity: number;
     theme: string;
+    tutorialComplete: boolean;
+    highContrast: boolean;
   }>,
 ) {
   await saveSettings(patch);

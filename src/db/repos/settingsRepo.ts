@@ -22,6 +22,8 @@ export async function ensureSettings() {
       hapticsEnabled: true,
       cameraIntensity: 1,
       theme: 'holy-grail',
+      tutorialComplete: false,
+      highContrast: false,
     })
     .onConflictDoNothing();
 }
@@ -50,6 +52,8 @@ export async function saveSettings(
     hapticsEnabled: boolean;
     cameraIntensity: number;
     theme: string;
+    tutorialComplete: boolean;
+    highContrast: boolean;
   }>,
 ) {
   await db.update(settings).set(patch).where(eq(settings.id, 1));

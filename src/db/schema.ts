@@ -48,6 +48,8 @@ export const settings = sqliteTable('settings', {
   hapticsEnabled: integer('haptics_enabled', { mode: 'boolean' }).notNull().default(true),
   cameraIntensity: real('camera_intensity').notNull().default(1),
   theme: text('theme').notNull().default('holy-grail'),
+  tutorialComplete: integer('tutorial_complete', { mode: 'boolean' }).notNull().default(false),
+  highContrast: integer('high_contrast', { mode: 'boolean' }).notNull().default(false),
 });
 
 /**

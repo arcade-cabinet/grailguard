@@ -20,6 +20,7 @@ import {
 } from '../components/3d/Arena';
 import { getAllModelPaths } from '../components/3d/modelPaths';
 import { HUD } from '../components/ui/HUD';
+import { Tutorial } from '../components/ui/Tutorial';
 import {
   abandonActiveRun,
   bankRunRewards,
@@ -419,6 +420,9 @@ export default function GameScreen() {
     router.replace('/');
   };
 
+  const showTutorial = settings?.tutorialComplete === false;
+  const [tutorialDismissed, setTutorialDismissed] = useState(false);
+
   return (
     <WorldProvider world={gameWorld}>
       {!isBootstrapping ? <RunPersistenceBridge /> : null}
@@ -431,6 +435,9 @@ export default function GameScreen() {
         }}
         unlocks={unlocks}
       />
+      {!isBootstrapping && showTutorial && !tutorialDismissed ? (
+        <Tutorial visible onDismiss={() => setTutorialDismissed(true)} />
+      ) : null}
     </WorldProvider>
   );
 }

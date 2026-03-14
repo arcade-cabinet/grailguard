@@ -33,6 +33,7 @@ import { ResourceCartMesh } from './Entities/ResourceCartMesh';
 import { UnitMesh } from './Entities/UnitMesh';
 import { WorldEffectMesh } from './Entities/WorldEffectMesh';
 import { ParticlePool } from './ParticlePool';
+import { TerrainGrid } from './TerrainGrid';
 
 let activeCamera: THREE.Camera | null = null;
 const placementPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
@@ -224,22 +225,7 @@ function EnvironmentScatter() {
   );
 }
 
-function Terrain() {
-  const session = useTrait(gameWorld, GameSession);
-  const color =
-    session?.biome === 'dark-forest'
-      ? '#2f4f4f'
-      : session?.biome === 'desert-wastes'
-        ? '#d2b48c'
-        : '#4a8f46';
-  const mapSize = session?.mapSize ?? 100;
-  return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-      <planeGeometry args={[mapSize, mapSize, 128, 128]} />
-      <meshStandardMaterial color={color} />
-    </mesh>
-  );
-}
+/** @deprecated Replaced by TerrainGrid InstancedMesh implementation. */
 
 function Road() {
   const session = useTrait(gameWorld, GameSession);
@@ -326,7 +312,7 @@ export function Arena({
       <EnvironmentScatter />
       <CameraRig />
       <GameLoop />
-      <Terrain />
+      <TerrainGrid biome={session?.biome} seed={session?.runId ?? session?.seed} />
       <Road />
       <PlacementGhost preview={placementPreview} />
 

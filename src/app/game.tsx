@@ -2,16 +2,15 @@
  * @module game
  *
  * Game screen for Grailguard. Bootstraps or resumes an ECS game world,
- * renders the R3F Canvas with the Arena scene, overlays the HUD and
+ * renders the 3D scene (Filament on native, R3F on web), overlays the HUD and
  * floating-text layer, and manages run persistence (autosave on phase
  * transitions, periodic snapshots during defend phase, and save-on-background).
  * Handles touch/pan gestures for building placement and entity selection.
  */
 import { useProgress } from '@react-three/drei';
-import { Canvas } from '@react-three/fiber/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useTrait, WorldProvider } from 'koota/react';
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
   AppState,
@@ -20,12 +19,11 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import {
-  Arena,
-  projectScreenPointToGround,
-  projectWorldPointToScreen,
-} from '../components/3d/Arena';
+import { projectScreenPointToGround, projectWorldPointToScreen } from '../components/3d/Arena';
+import { GestureOverlay } from '../components/3d/GestureOverlay';
 import { getAllModelPaths } from '../components/3d/modelPaths';
+import { getArenaRenderer } from '../components/3d/rendererSwitch';
+import { DebugOverlay } from '../components/ui/DebugOverlay';
 import { HUD } from '../components/ui/HUD';
 import { Tutorial } from '../components/ui/Tutorial';
 import {
@@ -41,6 +39,8 @@ import {
   useDoctrineNodes,
   useMetaProgress,
 } from '../db/meta';
+import { type AmbienceManager, createAmbienceManager } from '../engine/audio/ambienceManager';
+import { audioBus } from '../engine/audio/audioBridge';
 import { BUILDINGS, type BuildingType } from '../engine/constants';
 import {
   AutosaveState,
@@ -59,13 +59,15 @@ import {
   serializeRunWorld,
   snapPlacementPosition,
 } from '../engine/GameEngine';
+import {
+  impactHeavy,
+  impactLight,
+  impactMedium,
+  notificationSuccess,
+  notificationWarning,
+} from '../engine/haptics';
 import { soundManager } from '../engine/SoundManager';
 import { getActivePlacement, getPlacementPreview, getSelectedEntity } from '../engine/selectors';
-import { audioBus } from '../engine/audio/audioBridge';
-import { createAmbienceManager, type AmbienceManager } from '../engine/audio/ambienceManager';
-import { GestureOverlay } from '../components/3d/GestureOverlay';
-import { DebugOverlay } from '../components/ui/DebugOverlay';
-import { impactMedium, impactHeavy, impactLight, notificationSuccess, notificationWarning } from '../engine/haptics';
 import { t } from '../i18n';
 
 function HapticsBridge({ hapticsEnabled }: { hapticsEnabled: boolean }) {
@@ -77,7 +79,9 @@ function HapticsBridge({ hapticsEnabled }: { hapticsEnabled: boolean }) {
       audioBus.on('game_over', () => notificationWarning(hapticsEnabled)),
       audioBus.on('spell_cast', () => impactLight(hapticsEnabled)),
     ];
-    return () => { for (const unsub of unsubs) unsub(); };
+    return () => {
+      for (const unsub of unsubs) unsub();
+    };
   }, [hapticsEnabled]);
   return null;
 }
@@ -413,7 +417,7 @@ export default function GameScreen() {
   const [bootLabel, setBootLabel] = useState(t('game_loading_default'));
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const bootedRef = useRef(false);
-  const finalizingRef = useRef<Promise<void> | null>(null);
+  const _finalizingRef = useRef<Promise<void> | null>(null);
 
   const bootMode = useMemo(() => (params.mode === 'resume' ? 'resume' : 'fresh'), [params.mode]);
 
@@ -455,12 +459,32 @@ export default function GameScreen() {
           if (savedRun) {
             await abandonActiveRun();
           }
-          createRunWorld({ preferredSpeed, doctrines, spells, biome, difficulty, mapSize, seed, governorEnabled: params.governor === '1', reducedFx: settings?.reducedFx ?? false });
+          createRunWorld({
+            preferredSpeed,
+            doctrines,
+            spells,
+            biome,
+            difficulty,
+            mapSize,
+            seed,
+            governorEnabled: params.governor === '1',
+            reducedFx: settings?.reducedFx ?? false,
+          });
         } else {
           if (autoResume && savedRun) {
             hydrateRunWorld(JSON.parse(savedRun.snapshotJson));
           } else {
-            createRunWorld({ preferredSpeed, doctrines, spells, biome, difficulty, mapSize, seed, governorEnabled: params.governor === '1', reducedFx: settings?.reducedFx ?? false });
+            createRunWorld({
+              preferredSpeed,
+              doctrines,
+              spells,
+              biome,
+              difficulty,
+              mapSize,
+              seed,
+              governorEnabled: params.governor === '1',
+              reducedFx: settings?.reducedFx ?? false,
+            });
           }
         }
         bootedRef.current = true;
@@ -517,7 +541,9 @@ export default function GameScreen() {
       {!isBootstrapping ? <RunPersistenceBridge /> : null}
       {!isBootstrapping ? <CodexDiscoveryBridge /> : null}
       {!isBootstrapping ? <AccessibilityAnnouncementBridge /> : null}
-      {!isBootstrapping ? <HapticsBridge hapticsEnabled={settings?.hapticsEnabled ?? true} /> : null}
+      {!isBootstrapping ? (
+        <HapticsBridge hapticsEnabled={settings?.hapticsEnabled ?? true} />
+      ) : null}
       {!isBootstrapping ? <AmbienceManagerBridge biome={params.biome ?? 'kings-road'} /> : null}
       <LiveGameView
         bootLabel={bootLabel}
@@ -552,6 +578,7 @@ function LiveGameView({
   const selectedEntity = getSelectedEntity();
   const [viewportSize, setViewportSize] = useState({ width: 1, height: 1 });
   const gestureStart = useRef({ x: 0, y: 0 });
+  const ArenaRenderer = useMemo(() => getArenaRenderer(), []);
 
   const clearPlacement = () => {
     queueWorldCommand({
@@ -652,29 +679,20 @@ function LiveGameView({
       }}
     >
       <GestureOverlay>
-      <View {...panResponder.panHandlers} className="flex-1">
-        <Canvas
-          orthographic
-          camera={{ position: [0, 100, 70], zoom: 1, near: 0.1, far: 1000 }}
-          shadows
-          style={{ flex: 1 }}
-        >
-          <Suspense fallback={null}>
-            <Arena placementPreview={placementPreview} selectedEntity={selectedEntity} />
-          </Suspense>
-        </Canvas>
+        <View {...panResponder.panHandlers} className="flex-1">
+          <ArenaRenderer placementPreview={placementPreview} selectedEntity={selectedEntity} />
 
-        {activePlacement ? (
-          <View className="absolute bottom-40 left-4 right-4 rounded-2xl border border-[#d4af37] bg-[#1f140f]/90 px-4 py-3">
-            <Text className="text-center text-sm font-semibold tracking-[2px] text-[#f7ebd0]">
-              {t('game_placement_hint', { building: BUILDINGS[activePlacement].name })}
-            </Text>
-            <Text className="mt-1 text-center text-xs uppercase tracking-[2px] text-[#c9b18b]">
-              {t('game_placement_rules')}
-            </Text>
-          </View>
-        ) : null}
-      </View>
+          {activePlacement ? (
+            <View className="absolute bottom-40 left-4 right-4 rounded-2xl border border-[#d4af37] bg-[#1f140f]/90 px-4 py-3">
+              <Text className="text-center text-sm font-semibold tracking-[2px] text-[#f7ebd0]">
+                {t('game_placement_hint', { building: BUILDINGS[activePlacement].name })}
+              </Text>
+              <Text className="mt-1 text-center text-xs uppercase tracking-[2px] text-[#c9b18b]">
+                {t('game_placement_rules')}
+              </Text>
+            </View>
+          ) : null}
+        </View>
       </GestureOverlay>
 
       {!isBootstrapping ? (

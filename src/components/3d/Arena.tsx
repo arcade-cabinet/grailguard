@@ -152,7 +152,6 @@ function GameLoop() {
 }
 
 const _scatterObj = new THREE.Object3D();
-const _scatterColor = new THREE.Color();
 
 /** Seeded LCG for deterministic scenery placement. */
 function createScatterRng(seed: number) {
@@ -183,8 +182,8 @@ function EnvironmentScatter() {
 
   // Extract the first mesh geometry and material from each GLB
   const treeData = useMemo(() => {
-    let geo: THREE.BufferGeometry | null = null;
-    let mat: THREE.Material | null = null;
+    let geo: THREE.BufferGeometry | undefined;
+    let mat: THREE.Material | undefined;
     treeGltf.scene.traverse((child) => {
       if (!geo && (child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
@@ -192,12 +191,12 @@ function EnvironmentScatter() {
         mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
       }
     });
-    return { geo: geo as THREE.BufferGeometry, mat: mat as THREE.Material };
+    return { geo, mat };
   }, [treeGltf]);
 
   const boulderData = useMemo(() => {
-    let geo: THREE.BufferGeometry | null = null;
-    let mat: THREE.Material | null = null;
+    let geo: THREE.BufferGeometry | undefined;
+    let mat: THREE.Material | undefined;
     boulderGltf.scene.traverse((child) => {
       if (!geo && (child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
@@ -205,7 +204,7 @@ function EnvironmentScatter() {
         mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
       }
     });
-    return { geo: geo as THREE.BufferGeometry, mat: mat as THREE.Material };
+    return { geo, mat };
   }, [boulderGltf]);
 
   const initialized = useRef(false);
@@ -327,11 +326,14 @@ function PBRTerrain() {
 
 /**
  * PBR stone road -- applies PavingStones textures to the road TubeGeometry
- * that follows the procedural CatmullRom spline path.
+ * that follows the procedural CatmullRom spline path. Road is raised above
+ * the terrain (y=0.05) for clear visual separation, and includes darker
+ * edge border strips for definition against the grass.
  */
 function PBRRoad() {
   const session = useTrait(gameWorld, GameSession);
   const [tubeGeo, setTubeGeo] = useState<THREE.TubeGeometry | null>(null);
+  const [edgeGeo, setEdgeGeo] = useState<THREE.TubeGeometry | null>(null);
 
   const roadTextures = useTexture({
     map: '/assets/pbr/road/PavingStones003_1K-JPG_Color.jpg',
@@ -344,27 +346,48 @@ function PBRRoad() {
     for (const tex of Object.values(roadTextures)) {
       (tex as THREE.Texture).wrapS = THREE.RepeatWrapping;
       (tex as THREE.Texture).wrapT = THREE.RepeatWrapping;
-      (tex as THREE.Texture).repeat.set(10, 1);
+      (tex as THREE.Texture).repeat.set(12, 1);
     }
   }, [roadTextures]);
 
   useEffect(() => {
+    // Main road surface -- slightly raised above terrain
     const geometry = new THREE.TubeGeometry(roadSpline, 128, 3.5, 8, false);
     const positions = geometry.attributes.position;
     for (let index = 0; index < positions.count; index += 1) {
-      positions.setY(index, 0.2);
+      positions.setY(index, 0.05);
     }
     setTubeGeo(geometry);
 
-    return () => geometry.dispose();
+    // Edge border -- wider, darker strip underneath for definition
+    const edgeGeometry = new THREE.TubeGeometry(roadSpline, 128, 4.2, 8, false);
+    const edgePositions = edgeGeometry.attributes.position;
+    for (let index = 0; index < edgePositions.count; index += 1) {
+      edgePositions.setY(index, 0.01);
+    }
+    setEdgeGeo(edgeGeometry);
+
+    return () => {
+      geometry.dispose();
+      edgeGeometry.dispose();
+    };
   }, [session?.runId]);
 
   if (!tubeGeo) return null;
 
   return (
-    <mesh geometry={tubeGeo} receiveShadow>
-      <meshStandardMaterial {...roadTextures} displacementScale={0.1} />
-    </mesh>
+    <>
+      {/* Dark edge border strip for road definition */}
+      {edgeGeo && (
+        <mesh geometry={edgeGeo} receiveShadow>
+          <meshStandardMaterial color="#3a3028" roughness={0.95} />
+        </mesh>
+      )}
+      {/* Main road surface */}
+      <mesh geometry={tubeGeo} receiveShadow>
+        <meshStandardMaterial {...roadTextures} displacementScale={0.08} />
+      </mesh>
+    </>
   );
 }
 

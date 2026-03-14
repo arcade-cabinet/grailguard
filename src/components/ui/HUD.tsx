@@ -301,7 +301,7 @@ export function HUD({
           </div>
         ) : null}
 
-        <div className="pointer-events-auto rounded-[26px] border border-[#6b4a2f] bg-[#2b1b14]/95 px-4 py-4">
+        <div className="pointer-events-auto rounded-[26px] border border-[#6b4a2f] bg-[#2b1b14]/80 px-4 py-4 backdrop-blur-md">
           <div className="flex flex-row items-center justify-between gap-4">
             <div className="flex-1">
               <p className="text-[11px] font-bold uppercase tracking-[4px] text-[#b98b52]">
@@ -372,7 +372,7 @@ export function HUD({
         </div>
 
         <div className="pointer-events-auto flex flex-col gap-3">
-          <Toolbar.Root className="rounded-[24px] border border-[#6b4a2f] bg-[#241711]/95 p-3">
+          <Toolbar.Root className="rounded-[24px] border border-[#6b4a2f] bg-[#241711]/85 p-3 shadow-lg backdrop-blur-md">
             <div className="flex flex-row items-center justify-between gap-3">
               <Popover.Root>
                 <Popover.Trigger asChild>
@@ -580,7 +580,7 @@ export function HUD({
           </Toolbar.Root>
 
           {selectedEntity?.isAlive() && !session.gameOver ? (
-            <div className="rounded-[24px] border border-[#8b6a44] bg-[#ead9bc]/95 px-4 py-4">
+            <div className="rounded-[24px] border border-[#8b6a44] bg-[#ead9bc]/90 px-4 py-4 shadow-lg backdrop-blur-sm">
               <div className="mb-3 flex flex-row items-center justify-between">
                 <h3 className="text-lg font-bold text-[#3e2723]">{t('hud_selected_defense')}</h3>
                 <button

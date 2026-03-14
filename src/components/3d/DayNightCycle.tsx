@@ -96,16 +96,21 @@ export function DayNightCycle({ wave }: DayNightCycleProps) {
   return (
     <>
       <hemisphereLight ref={ambientRef} args={['#ffffff', '#444444', 0.7]} />
+      {/* Sun light positioned at an angle for dramatic shadows with warm tint */}
       <directionalLight
         ref={directionalRef}
-        position={[40, 100, -40]}
-        intensity={1.4}
+        position={[50, 80, 30]}
+        color="#fff5e0"
+        intensity={1.5}
         castShadow
-        shadow-mapSize={[4096, 4096]}
-        shadow-camera-left={-100}
-        shadow-camera-right={100}
-        shadow-camera-top={100}
-        shadow-camera-bottom={-100}
+        shadow-mapSize={[2048, 2048]}
+        shadow-camera-left={-120}
+        shadow-camera-right={120}
+        shadow-camera-top={120}
+        shadow-camera-bottom={-120}
+        shadow-camera-near={1}
+        shadow-camera-far={300}
+        shadow-bias={-0.001}
       />
     </>
   );

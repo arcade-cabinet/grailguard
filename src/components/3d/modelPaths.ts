@@ -51,6 +51,7 @@ const ALL_MODEL_PATHS = [
   ...new Set([...Object.values(BUILDING_MODEL_PATHS), ...Object.values(UNIT_MODEL_PATHS)]),
   '/assets/models/tree.glb',
   '/assets/models/rock.glb',
+  '/assets/models/boulder.glb',
 ];
 
 /** PBR texture paths for terrain, road, and ground materials. */

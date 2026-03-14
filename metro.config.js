@@ -19,7 +19,7 @@ if (!config.resolver.assetExts.includes('wasm')) {
 }
 config.resolver.sourceExts = (config.resolver.sourceExts || []).filter((ext) => ext !== 'wasm');
 
-// Apply NativeWind first
+// Apply NativeWind v4.1
 const finalConfig = withNativeWind(config, { input: './global.css', inlineRem: 16 });
 
 // Tone.js ESM: redirect tslib to CJS build (Metro can't handle ESM wrapper)

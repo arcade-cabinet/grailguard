@@ -13,24 +13,19 @@ for (const ext of newAssetExts) {
 }
 config.resolver.sourceExts.push('glsl');
 
-// expo-sqlite native: treat .wasm as asset (still needed for sqlite WASM worker)
+// expo-sqlite: treat .wasm as asset (not source)
 if (!config.resolver.assetExts.includes('wasm')) {
   config.resolver.assetExts.push('wasm');
 }
 config.resolver.sourceExts = (config.resolver.sourceExts || []).filter((ext) => ext !== 'wasm');
 
 // Apply NativeWind first
-const finalConfig = withNativeWind(config, { input: './global.css' });
+const finalConfig = withNativeWind(config, { input: './global.css', inlineRem: 16 });
 
-// Custom resolver chain: three → three/webgpu, tslib → CJS build
+// Tone.js ESM: redirect tslib to CJS build (Metro can't handle ESM wrapper)
 const tslibCJS = path.resolve(__dirname, 'node_modules/tslib/tslib.js');
 const _nativeWindResolveRequest = finalConfig.resolver.resolveRequest;
 finalConfig.resolver.resolveRequest = (context, moduleName, platform) => {
-  // Three.js WebGPU: resolve 'three' to the WebGPU build (Metal on iOS, Vulkan on Android)
-  if (moduleName === 'three') {
-    return context.resolveRequest(context, 'three/webgpu', platform);
-  }
-  // Tone.js ESM: redirect tslib to CJS build (Metro can't handle ESM wrapper)
   if (moduleName === 'tslib') {
     return { filePath: tslibCJS, type: 'sourceFile' };
   }

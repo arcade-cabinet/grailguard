@@ -16,7 +16,7 @@
 |------|---------|
 | No `useState` for animation | Use `useFrame` + `useRef` for per-frame position/rotation/scale |
 | Engine logic in `src/engine/` | Never put simulation logic in React components |
-| DB access via `src/db/` | Never query SQLite directly from UI code |
+| DB access via `src/db/` | Never query sql.js directly from UI code |
 | pnpm only | Never npm or yarn |
 | Biome only | Never ESLint or Prettier |
 | Named exports | Prefer named over `export default` |
@@ -32,9 +32,9 @@
 | AI | Yuka 0.7 |
 | Audio | Tone.js 15 |
 | DB | sql.js (WASM) + drizzle-orm |
-| Styling | Tailwind CSS 3 |
+| Styling | Tailwind CSS 3 + DaisyUI |
 | Testing | Vitest 4 |
-| Native | Capacitor (web-dir: dist) |
+| Native | Capacitor 8 (web-dir: dist) |
 
 ### Common Commands
 

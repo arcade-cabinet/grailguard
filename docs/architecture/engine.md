@@ -3,14 +3,14 @@ title: "Game Engine Architecture"
 domain: architecture
 audience: engine-agents
 reads-before: [../memory-bank/systemPatterns.md]
-last-updated: 2026-03-13
+last-updated: 2026-03-14
 status: stable
 summary: "ECS world structure, trait definitions, simulation systems, and game loop"
 ---
 
 # Game Engine Architecture
 
-`src/engine/GameEngine.ts` is the simulation core. It owns all live game state via Koota ECS traits and runs all game systems each frame.
+`src/engine/GameEngine.ts` is the orchestration layer. It owns all live game state via Koota ECS traits and delegates simulation logic to 9 decomposed subsystem modules under `src/engine/systems/`.
 
 ## ECS Traits (Components)
 
@@ -30,20 +30,41 @@ summary: "ECS world structure, trait definitions, simulation systems, and game l
 | `Facing` | Rotation | y (radians) |
 | `CodexId` | Discovery tag | id (unit/building type string) |
 
+## Engine Decomposition
+
+The engine is decomposed into 9 subsystem modules under `src/engine/systems/`:
+
+| Module | Responsibility |
+|--------|---------------|
+| `waveSystem.ts` | Wave spawning, build timer, wave completion |
+| `combatSystem.ts` | Melee/ranged combat, targeting, damage |
+| `buildingSystem.ts` | Resource generation, turret firing, unit spawning |
+| `logisticsSystem.ts` | ResourceCart movement, track routing, delivery |
+| `projectileSystem.ts` | Projectile movement, impact effects |
+| `spellSystem.ts` | Spell casting, cooldowns, faith cost |
+| `vfxSystem.ts` | Particles, floating text, world effects |
+| `codexSystem.ts` | Auto-discovery encyclopedia scanning |
+| `biomeSystem.ts` | Biome modifiers and visual adaptation |
+| `rng.ts` | Seeded deterministic PRNG (mulberry32) |
+
+Additional modules:
+- `src/engine/ai/enemyBrain.ts` -- Enemy steering with flocking behaviors (alignment, cohesion, separation, evasion)
+- `src/engine/ai/playerGovernor.ts` -- GOAP autonomous play AI
+- `src/engine/audio/audioBridge.ts` -- Typed event bus decoupling engine from audio
+- `src/engine/audio/ambienceManager.ts` -- Environmental audio management
+
 ## Simulation Systems
 
 Called each frame by `updateGameWorld(dt)` in this order:
 
 1. **Yuka AI update** -- `yukaManager.update(dt)` moves vehicles along paths
-2. **Wave State** -- Build timer countdown, enemy spawning from queue, wave completion detection
-3. **Buildings** -- Resource generation (lumber/mine), turret targeting + firing, unit spawning
-4. **Logistics** -- ResourceCart movement along track paths, delivery to sinks
-5. **Units** -- Poison/regen ticks, Yuka position sync, combat targeting, attack execution
-6. **Projectiles** -- Move toward target, apply damage/effects on impact
-7. **Floating Text** -- Rise and fade
-8. **Particles** -- Physics simulation (gravity, drag)
-9. **World Effects** -- Lifetime countdown
-10. **Codex Discovery** -- Scan for new entity types to record
+2. **Wave State** -- Build timer countdown, enemy spawning from queue, wave completion detection (`waveSystem`)
+3. **Buildings** -- Resource generation (lumber/mine), turret targeting + firing, unit spawning (`buildingSystem`)
+4. **Logistics** -- ResourceCart movement along track paths, delivery to sinks (`logisticsSystem`)
+5. **Units** -- Poison/regen ticks, Yuka position sync, combat targeting, attack execution (`combatSystem`)
+6. **Projectiles** -- Move toward target, apply damage/effects on impact (`projectileSystem`)
+7. **VFX** -- Floating text rise/fade, particles physics, world effect lifetime (`vfxSystem`)
+8. **Codex Discovery** -- Scan for new entity types to record (`codexSystem`)
 
 ### AI & Pathfinding
 
@@ -112,19 +133,19 @@ disposeRunWorld()          -- Reset ECS world on unmount
 |----------|--------|-----------|
 | Runtime authority | Koota ECS | Zustand was considered but rejected -- ECS provides trait-based queries and avoids React state churn for 60+ entities updating per frame |
 | AI framework | Yuka | Provides `FollowPathBehavior` and `SeparationBehavior` out of the box; GOAP (Goal-Oriented Action Planning) considered for future complex unit AI |
-| State bridge | Command queue | UI cannot mutate ECS directly; `queueWorldCommand()` prevents React-bridge congestion (60 FPS * N entities would overwhelm the RN bridge) |
+| State bridge | Command queue | UI cannot mutate ECS directly; `queueWorldCommand()` decouples UI event timing from simulation frame timing |
 | Save format | JSON snapshot | Full ECS state serialized as single JSON blob rather than decomposed SQL rows -- simpler, versioned, and avoids schema coupling |
-| Engine structure | Monolithic | All simulation code in single `GameEngine.ts` (~2200 LOC). initial-release used modular files (~15 engine modules). Monolith is simpler to reason about but harder to test in isolation. Decomposition is planned. |
-| Game config | Hardcoded constants | feat/poc-reset uses `constants.ts` dictionaries. initial-release used external `gameConfig.json` for data-driven balancing. JSON config enables balance iteration without code changes — planned for future. |
+| Engine structure | Decomposed subsystems | Orchestration in `GameEngine.ts`; logic in 9 pure-function modules under `src/engine/systems/`. Each system is independently testable. |
+| Game config | 23 JSON data files | All balance parameters externalized to `src/data/*.json`. Enables balance iteration without code changes, swappable test configs, and clean data/logic separation. |
 
-### Audio Bridge Pattern (from initial-release)
+### Audio Bridge Pattern
 
-Initial-release separated audio into three decoupled layers:
-1. **SoundManager** — Low-level Tone.js synthesis (oscillators, envelopes, effects)
-2. **AudioBridge** — Event bus translating game events to audio commands
-3. **AmbienceManager** — Environmental audio (wind, forest, biome-specific loops)
+Audio is separated into three decoupled layers:
+1. **SoundManager** (`src/engine/SoundManager.ts`) — Low-level Tone.js synthesis (oscillators, envelopes, effects)
+2. **AudioBridge** (`src/engine/audio/audioBridge.ts`) — Typed event bus translating game events to audio commands
+3. **AmbienceManager** (`src/engine/audio/ambienceManager.ts`) — Environmental audio (wind, forest, biome-specific loops)
 
-This decoupling means the simulation layer never imports audio directly — it emits events that the bridge translates. feat/poc-reset has a simpler `SoundManager.ts` that could benefit from this separation as audio complexity grows.
+The simulation layer never imports audio directly — it emits typed events that the bridge translates to SoundManager calls.
 
 ### Road Template System (from initial-release)
 
@@ -135,19 +156,21 @@ Initial-release implemented pre-designed road templates (`src/engine/roads/templ
 
 Each template defined tile-level placement with lane offsets, enabling wider enemy fronts and more strategic placement decisions. feat/poc-reset uses procedural CatmullRom spline generation instead, which is more varied but less strategically designed.
 
+## Completed Work (formerly Planned)
+
+- [x] Decompose `GameEngine.ts` into 9 subsystem modules
+- [x] Replace `Math.random()` with seeded PRNG (mulberry32 in `rng.ts`)
+- [x] GOAP PlayerGovernorBrain for autonomous play (`playerGovernor.ts`)
+- [x] Data-driven JSON configs (23 files in `src/data/`)
+- [x] Audio bridge pattern (`audioBridge.ts` + `ambienceManager.ts`)
+- [x] Enemy flocking behaviors (alignment, cohesion, separation, evasion in `enemyBrain.ts`)
+- [x] Telemetry interface (`telemetry.ts`)
+
 ## Planned Work
 
-- [ ] Decompose `GameEngine.ts` into subsystem modules (combat, logistics, wave, etc.)
-- [ ] Replace `Math.random()` calls with seeded PRNG for deterministic replay
 - [ ] Add reduced-FX path (skip particles/floating text when setting enabled)
-- [ ] GOAP (Goal-Oriented Action Planning) for advanced unit AI -- clerics dynamically plan heal routes, knights prioritize boss targets
-- [ ] Seeded PRNG for deterministic replay (enables competitive replays, debugging, bug reproduction)
-- [ ] GOAP PlayerGovernorBrain for autonomous play / demo mode / balance testing
-- [ ] Data-driven `gameConfig.json` for balance tuning without code changes
-- [ ] Audio bridge pattern: decouple SoundManager from simulation via event bus
+- [ ] GOAP for advanced unit AI -- clerics dynamically plan heal routes, knights prioritize boss targets
 - [ ] Road template system: curated multi-lane layouts alongside procedural generation
-- [ ] Enemy flocking behaviors: alignment, cohesion, evasion steering
-- [ ] GrailGuardTelemetry interface for runtime performance metrics (FPS, entity count, memory)
 
 ## Testing Expectations
 

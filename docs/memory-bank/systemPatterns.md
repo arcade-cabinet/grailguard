@@ -3,7 +3,7 @@ title: "Grailguard System Patterns"
 domain: architecture
 audience: all-agents
 reads-before: [projectbrief.md, productContext.md]
-last-updated: 2026-03-13
+last-updated: 2026-03-14
 status: stable
 summary: "Architecture decisions, data flow, ECS patterns, and component relationships"
 ---
@@ -15,25 +15,28 @@ summary: "Architecture decisions, data flow, ECS patterns, and component relatio
 Grailguard enforces a strict three-layer split:
 
 ```
-┌─────────────────────────────────────────────────┐
-│  Rendering Layer (React Three Fiber + React Native) │
-│  src/components/3d/  -- 3D meshes, arena, camera  │
-│  src/components/ui/  -- HUD, toychest, modals      │
-│  src/app/            -- Expo Router screens         │
-├─────────────────────────────────────────────────┤
-│  Simulation Layer (Koota ECS + Yuka AI)            │
-│  src/engine/GameEngine.ts  -- world, traits, systems│
-│  src/engine/constants.ts   -- data dictionaries     │
-│  src/engine/mapGenerator.ts -- procedural road      │
-│  src/engine/selectors.ts   -- ECS query helpers     │
-│  src/engine/SoundManager.ts -- Tone.js audio        │
-├─────────────────────────────────────────────────┤
-│  Persistence Layer (SQLite + Drizzle ORM)          │
-│  src/db/schema.ts      -- table definitions         │
-│  src/db/repos/*.ts     -- repository functions      │
-│  src/db/meta.ts        -- service facade            │
-│  src/db/migrations.ts  -- schema migrations         │
-└─────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────┐
+│  Rendering Layer (Vite + React + React Three Fiber)     │
+│  src/components/3d/   -- R3F scene, camera, terrain     │
+│  src/components/ui/   -- HUD, radial menu, overlays     │
+│  src/app/             -- react-router-dom screens       │
+├──────────────────────────────────────────────────────┤
+│  Simulation Layer (Koota ECS + Yuka AI)                 │
+│  src/engine/GameEngine.ts    -- world, traits, orchestr.│
+│  src/engine/systems/*.ts     -- 9 decomposed subsystems │
+│  src/engine/ai/*.ts          -- enemy brain, GOAP gov.  │
+│  src/engine/audio/*.ts       -- audio bridge, ambience  │
+│  src/data/*.json             -- 23 data-driven configs  │
+├──────────────────────────────────────────────────────┤
+│  Persistence Layer (sql.js WASM + Drizzle ORM)          │
+│  src/db/schema.ts     -- table definitions              │
+│  src/db/repos/*.ts    -- repository functions            │
+│  src/db/meta.ts       -- service facade                 │
+│  src/db/migrations.ts -- schema migrations              │
+├──────────────────────────────────────────────────────┤
+│  Native Layer (Capacitor 8)                             │
+│  Wraps web build (dist/) for iOS + Android deployment   │
+└──────────────────────────────────────────────────────┘
 ```
 
 ## Key Design Decisions
@@ -59,9 +62,9 @@ Command types: `build`, `upgrade`, `sellBuilding`, `startWave`, `castSpell`, `to
 
 Enemy pathfinding uses Yuka's `FollowPathBehavior` along the road spline. Allied units use `SeekBehavior` to intercept enemies and `SeparationBehavior` for spacing. Each non-wall unit has a Yuka `Vehicle` linked by entity ID.
 
-### 4. SQLite for Durable State
+### 4. sql.js (WASM) for Durable State
 
-All persistent data goes through Drizzle ORM repositories:
+All persistent data goes through Drizzle ORM repositories backed by sql.js:
 - `profileRepo` -- player coins, stats, highest wave
 - `unlockRepo` -- building/spell unlocks (purchase transactions)
 - `runRepo` -- active run snapshots (versioned JSON), run history
@@ -75,12 +78,12 @@ Active runs serialize the ECS world to a JSON snapshot (`ActiveRunSnapshotV1`) s
 ### 5. Rendering Rules
 
 - **No React state for per-frame updates.** Use `useFrame` + `useRef` for position/rotation.
-- **InstancedMesh** for high-volume effects (particles, scenery).
+- **InstancedMesh** for high-volume effects (particles via ParticlePool, scenery via TerrainGrid).
 - **Preload all GLBs** via `useGLTF.preload()` before gameplay.
-- **React Native primitives only** for 2D UI -- no DOM APIs.
+- **PBR terrain** with tiled grass textures, HDRI environment sky, and depth fog.
 
 ### Why ECS Over Zustand
-Zustand was initially considered for runtime state (as discussed in the original Gemini brainstorming). It was rejected because storing unit positions in React `useState` sends updates across the React Native bridge 60 times per second per entity. With 50+ units, the bridge would be saturated. Koota ECS keeps all per-frame data outside React entirely, only crossing the bridge for UI-relevant reads via `useTrait`.
+Zustand was initially considered for runtime state. It was rejected because storing unit positions in React state triggers re-renders 60 times per second per entity. With 50+ units, React reconciliation would be saturated. Koota ECS keeps all per-frame data outside React entirely, only surfacing UI-relevant reads via `useTrait`.
 
 ### Why Polynomial Wave Scaling
 Logarithmic difficulty curves flatten out, making late-game trivially easy. The wave budget formula `B(W) = floor(50 * 1.15^W + 2W²)` combines exponential and quadratic growth to ensure the player is eventually overwhelmed, creating natural run endings.
@@ -88,11 +91,11 @@ Logarithmic difficulty curves flatten out, making late-game trivially easy. The 
 ### Why JSON Snapshot Over SQL Decomposition
 Active run persistence uses a single JSON blob (`ActiveRunSnapshotV1`) rather than decomposing ECS entities into SQL rows. This avoids tight coupling between the ECS trait schema and the database schema, simplifies versioning, and makes save/load a single atomic operation.
 
-### Why Monolithic Engine (and Why It Should Change)
-feat/poc-reset consolidates all simulation logic into a single `GameEngine.ts` (~2200 LOC). Initial-release used ~15 modular engine files (`BuildingSystem.ts`, `CombatSystem.ts`, `waveDirector.ts`, `EnemyBrain.ts`, etc.) as pure-function subsystems. The monolith is simpler to reason about during rapid prototyping, but sacrifices testability — initial-release could unit-test individual systems in isolation, while feat/poc-reset can only integration-test the entire engine. Decomposition is planned.
+### Decomposed Engine Subsystems
+The engine has been decomposed from a monolithic `GameEngine.ts` into 9 pure-function subsystem modules under `src/engine/systems/` (waveSystem, combatSystem, buildingSystem, logisticsSystem, projectileSystem, spellSystem, vfxSystem, codexSystem, biomeSystem) plus a seeded PRNG (`rng.ts`). `GameEngine.ts` remains as the orchestration layer that wires traits, the command queue, and the per-frame system execution order.
 
-### Data-Driven Configuration Pattern
-Initial-release used an external `gameConfig.json` with all balance parameters (wave budget coefficients, unit stats, building costs, spawn timers). feat/poc-reset uses `constants.ts` TypeScript dictionaries. The JSON approach enables balance iteration without code changes — game designers can tune values, QA can swap configs for testing, and A/B testing becomes trivial. This pattern should be adopted as the game matures past prototyping.
+### Data-Driven Configuration
+All game balance and configuration is externalized to 23 JSON files under `src/data/` (buildingConfig, unitConfig, waveConfig, combatConfig, spellConfig, relicConfig, doctrineConfig, biomeConfig, etc.). This enables balance iteration without code changes, swappable configs for testing, and clean separation of data from logic.
 
 ### Audio Event Bus Pattern
 Initial-release decoupled audio from simulation via a 3-layer architecture: SoundManager (synthesis) → AudioBridge (event translator) → AmbienceManager (environmental). The simulation emits typed events; the bridge maps them to audio commands. This prevents import coupling between engine and audio, makes audio testable in isolation, and allows swapping audio backends (e.g., Tone.js → native audio on mobile). feat/poc-reset's direct `SoundManager` imports work but will need this decoupling as audio complexity grows.

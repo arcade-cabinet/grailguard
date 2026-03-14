@@ -41,7 +41,7 @@ summary: "Implementation status, what works, what's left, known issues"
 - [x] Victory at wave 20 with bonus coins
 
 ### Persistence
-- [x] SQLite schema with 8 tables via Drizzle ORM
+- [x] sql.js (WASM) schema with 8 tables via Drizzle ORM
 - [x] Player profile (coins, highest wave, lifetime stats)
 - [x] Settings persistence (speed, FX, audio, haptics, camera)
 - [x] Building and spell unlock system with purchase transactions
@@ -79,16 +79,13 @@ summary: "Implementation status, what works, what's left, known issues"
 ## What's Left to Build
 
 ### Immediate (next session)
-- [ ] Verify iOS UI rendering with NativeWind on default port 8081
-- [ ] Verify WebGPU Canvas rendering on native device
-- [ ] Migrate expo-sqlite to op-sqlite (JSI, no WASM)
-- [ ] Add react-native-rapier for physics (replace Yuka collision)
-- [ ] Migrate UI animations to Reanimated worklets (reactnativereusables.com patterns)
-- [ ] Port Playwright E2E tests to Maestro flows
+- [ ] Capacitor iOS/Android build verification
+- [ ] LOD system for distant buildings/units
+- [ ] Balance tuning pass (wave budgets, building costs, upgrade scaling)
+- [ ] Content expansion (additional biomes, enemy types beyond wave 20)
 
 ### Future
-- [ ] App store builds via EAS
-- [ ] LOD system for distant buildings/units
+- [ ] App store builds via Capacitor
 - [ ] Multiplayer exploration (if demand exists)
 
 ## Test Coverage (current)
@@ -103,9 +100,10 @@ summary: "Implementation status, what works, what's left, known issues"
 - **UI:** RadialMenu component rendering, dismiss, disabled state, context scenarios (10 tests)
 - **E2E framework:** Playwright specs (gameFlow, metaScreens) + Maestro ready
 
-## Known Issues
+## Architecture Notes
 
-- GameEngine.ts still 2000 LOC (down from 2473) — orchestration layer, logic extracted to pure modules
-- iOS dev client connectivity fails on non-default port (8082) — works on 8081
-- WebGPU rendering not yet visually confirmed on iOS (port conflict blocked testing)
-- expo-sqlite web requires COEP/COOP — plan to migrate to op-sqlite (JSI) eliminates this
+- **Web-first with Capacitor native wrapper** -- Vite builds a standard web app; Capacitor wraps it for iOS/Android
+- **sql.js (WASM) persistence** -- Replaced expo-sqlite; runs identically on web and Capacitor native shells
+- **Engine decomposed** -- GameEngine.ts is now an orchestration layer; logic extracted to 9 subsystem modules under `src/engine/systems/`
+- **23 JSON data configs** -- Fully data-driven balance and configuration under `src/data/`
+- **Audio bridge pattern** -- Engine emits events via typed bus; audioBridge + ambienceManager handle synthesis

@@ -3,7 +3,7 @@ title: "Grailguard Tech Context"
 domain: technology
 audience: all-agents
 reads-before: [projectbrief.md]
-last-updated: 2026-03-13
+last-updated: 2026-03-14
 status: stable
 summary: "Tech stack, dependencies, dev setup, tooling, and constraints"
 ---
@@ -14,18 +14,20 @@ summary: "Tech stack, dependencies, dev setup, tooling, and constraints"
 
 | Layer | Technology | Version |
 |-------|-----------|---------|
-| Framework | Expo SDK | 55 |
-| Runtime | React + React Native | 19.2 / 0.83 |
+| Build | Vite | 8.0 |
+| Framework | React + react-router-dom | 19.2 / 7.13 |
 | 3D Rendering | React Three Fiber + drei | 9.5 / 10.7 |
 | ECS | Koota | 0.6 |
 | AI/Pathfinding | Yuka | 0.7 |
 | Audio | Tone.js | 15.1 |
-| Database | expo-sqlite + drizzle-orm | 55.0 / 0.45 |
-| UI Components | RN Primitives (popover, progress, toolbar, tooltip) | 1.x |
-| Styling | NativeWind + Tailwind CSS | 4.2 / 3.4 |
+| Database | sql.js (WASM) + drizzle-orm | 1.14 / 0.45 |
+| UI Components | Radix UI (dialog, popover, progress, toolbar, tooltip) | 1.x |
+| Styling | Tailwind CSS + DaisyUI | 3.4 / 5.5 |
+| Animation | Framer Motion | 12.36 |
 | Language | TypeScript (strict) | 5.9 |
 | Lint/Format | Biome | 2.4 |
-| Testing | Jest + Playwright | 29.7 / 1.58 |
+| Testing | Vitest | 4.1 |
+| Native | Capacitor (iOS + Android) | 8.2 |
 | Package Manager | pnpm | 10.32 |
 | 3D Format | GLB (embedded textures) | -- |
 
@@ -33,35 +35,69 @@ summary: "Tech stack, dependencies, dev setup, tooling, and constraints"
 
 ```
 grailguard/
-├── app/                    # Expo Router entry points (re-exports from src/app/)
 ├── src/
-│   ├── app/                # Screen components (index, game, codex, doctrine, settings)
+│   ├── main.tsx                    # Vite entry point
+│   ├── global.css                  # Tailwind base styles
+│   ├── app/                        # Route components (index, game, codex, doctrine, settings, history)
 │   ├── components/
-│   │   ├── 3d/             # R3F scene components
-│   │   │   ├── Arena.tsx           # Main 3D scene (camera, terrain, entities)
+│   │   ├── 3d/                     # R3F scene components
+│   │   │   ├── Arena.tsx           # Main 3D scene (PBR terrain, HDRI sky, fog, entities)
+│   │   │   ├── CameraController.tsx # Orthographic camera rig
+│   │   │   ├── DayNightCycle.tsx   # Lighting cycle
+│   │   │   ├── Sanctuary.tsx       # Holy Grail model
+│   │   │   ├── TerrainGrid.tsx     # InstancedMesh terrain tiles
+│   │   │   ├── ParticlePool.tsx    # InstancedMesh particle system
+│   │   │   ├── GestureOverlay.tsx  # Touch gesture handling
 │   │   │   ├── Entities/           # Per-entity-type mesh components
 │   │   │   └── modelPaths.ts       # GLB asset path registry
 │   │   └── ui/
-│   │       └── HUD.tsx             # In-game overlay (toychest, stats, spells)
+│   │       ├── HUD.tsx             # In-game overlay (stats, spells, wave info)
+│   │       ├── RadialMenu.tsx      # Context-aware radial building menu
+│   │       ├── DebugOverlay.tsx    # Development debug panel
+│   │       └── Tutorial.tsx        # Onboarding tutorial
 │   ├── engine/
-│   │   ├── GameEngine.ts           # ECS world, traits, simulation systems (~2200 LOC)
-│   │   ├── constants.ts            # Type definitions + data dictionaries (buildings, units)
+│   │   ├── GameEngine.ts           # ECS world, traits, orchestration layer
+│   │   ├── constants.ts            # Type definitions
 │   │   ├── mapGenerator.ts         # Seeded procedural road generation
 │   │   ├── selectors.ts            # ECS query helpers for UI
-│   │   └── SoundManager.ts         # Tone.js procedural audio engine
+│   │   ├── SoundManager.ts         # Tone.js procedural audio engine
+│   │   ├── haptics.ts              # Haptic feedback
+│   │   ├── telemetry.ts            # Runtime performance metrics
+│   │   ├── systems/                # Decomposed engine subsystems
+│   │   │   ├── waveSystem.ts       # Wave spawning + progression
+│   │   │   ├── combatSystem.ts     # Melee/ranged combat
+│   │   │   ├── buildingSystem.ts   # Building logic + turrets
+│   │   │   ├── logisticsSystem.ts  # Minecart track routing
+│   │   │   ├── projectileSystem.ts # Projectile movement + impact
+│   │   │   ├── spellSystem.ts      # Spell casting + cooldowns
+│   │   │   ├── vfxSystem.ts        # Particles + floating text
+│   │   │   ├── codexSystem.ts      # Auto-discovery encyclopedia
+│   │   │   ├── biomeSystem.ts      # Biome modifiers
+│   │   │   └── rng.ts              # Seeded deterministic PRNG
+│   │   ├── ai/                     # AI modules
+│   │   │   ├── enemyBrain.ts       # Enemy steering + flocking
+│   │   │   └── playerGovernor.ts   # GOAP autonomous play
+│   │   └── audio/                  # Audio modules
+│   │       ├── audioBridge.ts      # Event bus (engine -> audio)
+│   │       └── ambienceManager.ts  # Environmental audio
+│   ├── data/                       # 23 JSON config files (balance, units, buildings, etc.)
 │   ├── db/
 │   │   ├── schema.ts               # Drizzle table definitions
-│   │   ├── client.ts               # SQLite connection
+│   │   ├── client.ts               # sql.js connection
 │   │   ├── meta.ts                 # Service facade (React hooks + async ops)
 │   │   ├── migrations.ts           # Schema migration runner
 │   │   ├── DatabaseProvider.tsx     # React context for DB initialization
 │   │   └── repos/                  # Repository functions per domain
-│   └── __tests__/                  # Jest test suites
+│   ├── i18n/                       # Internationalization
+│   └── __tests__/                  # Vitest test suites
 ├── assets/
 │   ├── models/             # GLB character/building models
 │   └── materials/          # PBR texture sets (Grass001, Ground001)
-├── docs/                   # Documentation (this directory)
-├── e2e/                    # Playwright E2E tests (planned)
+├── docs/                   # Documentation
+├── vite.config.ts          # Vite build configuration
+├── vitest.config.ts        # Vitest test configuration
+├── capacitor.config.ts     # Capacitor native wrapper config
+├── tailwind.config.*       # Tailwind CSS configuration
 └── drizzle.config.ts       # Drizzle Kit configuration
 ```
 
@@ -69,12 +105,12 @@ grailguard/
 
 ```bash
 pnpm install              # Install dependencies
-pnpm start                # Expo dev server
-pnpm web                  # Web dev server
-pnpm ios                  # iOS simulator
-pnpm android              # Android emulator
-pnpm test                 # Run Jest tests
-pnpm test:coverage        # Jest with coverage
+pnpm dev                  # Vite dev server (port 5173)
+pnpm build                # TypeScript check + Vite production build
+pnpm preview              # Preview production build
+pnpm test                 # Run Vitest tests
+pnpm test:watch           # Vitest in watch mode
+pnpm test:coverage        # Vitest with coverage
 pnpm lint                 # Biome check
 pnpm lint:fix             # Biome auto-fix
 pnpm format               # Biome format
@@ -84,9 +120,10 @@ pnpm db:generate          # Generate Drizzle migrations
 
 ## Key Constraints
 
-1. **No DOM APIs** -- React Native environment, no `document.*` or `window.*`
-2. **No Zustand** -- ECS is the runtime authority, not a state management library
-3. **60 FPS target** -- Per-frame work must stay inside `useFrame`/ECS, never React state
-4. **GLBs only** -- All 3D assets are GLB with embedded textures
-5. **pnpm only** -- No npm or yarn
-6. **Biome only** -- No ESLint or Prettier
+1. **No Zustand** -- ECS is the runtime authority, not a state management library
+2. **60 FPS target** -- Per-frame work must stay inside `useFrame`/ECS, never React state
+3. **GLBs only** -- All 3D assets are GLB with embedded textures
+4. **pnpm only** -- No npm or yarn
+5. **Biome only** -- No ESLint or Prettier
+6. **Engine logic in `src/engine/`** -- Never put simulation code in React components
+7. **DB access via `src/db/`** -- Never query sql.js directly from UI code

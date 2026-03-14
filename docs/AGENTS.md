@@ -13,18 +13,20 @@
 
 **Grailguard** is a 2.5D auto-battler tower defense game. Players defend a Holy Grail by placing spawner buildings and turrets along a procedurally generated winding road. Features Factorio-style resource logistics with minecart tracks.
 
-- **Stack:** Expo SDK 55 + React Three Fiber + Koota ECS + Yuka AI + expo-sqlite/Drizzle
-- **Targets:** Web, iOS, Android from a single codebase
-- **Goal:** 60 FPS on mobile, zero DOM manipulation
+- **Stack:** Vite 8 + React 19 + React Three Fiber + Koota ECS + Yuka AI + sql.js/Drizzle + Capacitor 8
+- **Targets:** Web, iOS, Android from a single web-first codebase
+- **Goal:** 60 FPS, web-first with Capacitor native wrapper
 
 ## Architecture Summary
 
 ```
-Rendering (R3F + React Native UI)    <-- projection layer, never owns state
+Rendering (Vite + React + R3F)       <-- projection layer, never owns state
     |
 Simulation (Koota ECS + Yuka AI)     <-- runtime authority for all live game data
     |
-Persistence (SQLite + Drizzle ORM)   <-- durable state (profile, unlocks, saves)
+Persistence (sql.js + Drizzle ORM)   <-- durable state (profile, unlocks, saves)
+    |
+Native (Capacitor 8)                 <-- wraps web build for iOS/Android
 ```
 
 - **UI dispatches commands** via `queueWorldCommand()`, never mutates ECS directly
@@ -34,15 +36,14 @@ Persistence (SQLite + Drizzle ORM)   <-- durable state (profile, unlocks, saves)
 
 ## Hard Rules (Non-Negotiable)
 
-1. **Zero DOM manipulation.** No `document.*`, no `window.*`, no HTML elements.
-2. **No React state for per-frame data.** Use `useFrame` + `useRef` for position/rotation.
-3. **Engine logic in `src/engine/`.** Never put simulation code in React components.
-4. **DB access via `src/db/`.** Never query SQLite directly from UI.
-5. **No Zustand.** ECS is the runtime authority.
-6. **pnpm only.** Never npm or yarn.
-7. **Biome only.** Never ESLint or Prettier.
-8. **Preload all GLBs** via `useGLTF.preload()` before gameplay.
-9. **Use InstancedMesh** for high-volume repeated geometry.
+1. **No React state for per-frame data.** Use `useFrame` + `useRef` for position/rotation.
+2. **Engine logic in `src/engine/`.** Never put simulation code in React components.
+3. **DB access via `src/db/`.** Never query sql.js directly from UI.
+4. **No Zustand.** ECS is the runtime authority.
+5. **pnpm only.** Never npm or yarn.
+6. **Biome only.** Never ESLint or Prettier.
+7. **Preload all GLBs** via `useGLTF.preload()` before gameplay.
+8. **Use InstancedMesh** for high-volume repeated geometry.
 
 ## Documentation System
 
@@ -96,20 +97,25 @@ Every agent's context resets between sessions. The Memory Bank is the only persi
 
 ```
 src/
-├── app/                # Screen components (index, game, codex, doctrine, settings)
+├── main.tsx            # Vite entry point
+├── app/                # Route components (index, game, codex, doctrine, settings, history)
 ├── components/
-│   ├── 3d/             # R3F scene (Arena, entity meshes, model paths)
-│   └── ui/             # React Native HUD overlay
+│   ├── 3d/             # R3F scene (Arena, camera, terrain, entities, particles)
+│   └── ui/             # HUD overlay, radial menu, debug overlay, tutorial
 ├── engine/
-│   ├── GameEngine.ts   # Koota ECS world + simulation systems (~2200 LOC)
-│   ├── constants.ts    # Types + data dictionaries (buildings, units)
+│   ├── GameEngine.ts   # Koota ECS world + orchestration layer
+│   ├── constants.ts    # Type definitions
 │   ├── mapGenerator.ts # Seeded procedural road generation
 │   ├── selectors.ts    # ECS query helpers for UI
-│   └── SoundManager.ts # Tone.js procedural audio
+│   ├── SoundManager.ts # Tone.js procedural audio
+│   ├── systems/        # 9 decomposed subsystem modules + seeded PRNG
+│   ├── ai/             # Enemy brain + GOAP player governor
+│   └── audio/          # Audio bridge + ambience manager
+├── data/               # 23 JSON config files (balance, units, buildings, etc.)
 ├── db/
 │   ├── schema.ts       # Drizzle table definitions (8 tables)
 │   ├── meta.ts         # Service facade (hooks + async ops)
 │   ├── repos/          # Per-domain repository functions
 │   └── migrations.ts   # Schema migration runner
-└── __tests__/          # Jest test suites
+└── __tests__/          # Vitest test suites
 ```

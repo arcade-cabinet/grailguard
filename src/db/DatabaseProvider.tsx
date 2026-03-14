@@ -2,7 +2,7 @@
  * @module DatabaseProvider
  *
  * React context provider that gates the component tree behind successful
- * database migration and seed-data initialisation.  Wrap the app root with
+ * database migration and seed-data initialisation. Wrap the app root with
  * `<DatabaseProvider>` to guarantee every downstream component can safely
  * query the database.
  */
@@ -16,8 +16,6 @@ import { migrations } from './migrations';
 /**
  * Runs Drizzle migrations on mount, seeds default data on success, and
  * renders either an error screen, a loading splash, or the child tree.
- *
- * @param props.children - Application component tree to render once the database is ready.
  */
 export function DatabaseProvider({ children }: { children: React.ReactNode }) {
   const { error, success } = useMigrations(db, migrations);

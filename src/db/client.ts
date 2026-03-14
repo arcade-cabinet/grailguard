@@ -25,7 +25,7 @@ export async function initDatabase(): Promise<void> {
   if (sqliteDb) return;
 
   const SQL = await initSqlJs({
-    locateFile: (file: string) => `https://sql.js.org/dist/${file}`,
+    locateFile: (file: string) => `/${file}`,
   });
 
   // Try to restore from localStorage

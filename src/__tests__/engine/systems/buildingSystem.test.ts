@@ -6,13 +6,13 @@
  */
 
 import {
-  isPlacementValidPure,
-  calculateUpgradeCost,
   calculateSellValue,
   calculateSpawnRate,
-  snapToGrid,
-  getRoadDistancePure,
+  calculateUpgradeCost,
   canAffordBuilding,
+  getRoadDistancePure,
+  isPlacementValidPure,
+  snapToGrid,
 } from '../../../engine/systems/buildingSystem';
 
 describe('buildingSystem', () => {
@@ -119,14 +119,7 @@ describe('buildingSystem', () => {
     });
 
     it('rejects buildings too close to road', () => {
-      const result = isPlacementValidPure(
-        'hut',
-        { x: 0, z: 3 },
-        roadSamples,
-        sanctuaryPos,
-        [],
-        [],
-      );
+      const result = isPlacementValidPure('hut', { x: 0, z: 3 }, roadSamples, sanctuaryPos, [], []);
       expect(result).toBe(false);
     });
 

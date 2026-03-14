@@ -6,8 +6,8 @@
  * enemyProgression data.
  */
 
-import unitConfig from '../../../data/unitConfig.json';
 import enemyProgression from '../../../data/enemyProgression.json';
+import unitConfig from '../../../data/unitConfig.json';
 import { UNITS, type UnitType } from '../../../engine/constants';
 
 describe('additional enemy types (US-080)', () => {

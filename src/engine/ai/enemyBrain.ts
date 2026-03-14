@@ -11,7 +11,7 @@ import {
   CohesionBehavior,
   EvadeBehavior,
   SeparationBehavior,
-  Vehicle,
+  type Vehicle,
 } from 'yuka';
 
 /**

@@ -7,11 +7,11 @@
 
 import {
   BuildStructureEvaluator,
-  StartWaveEvaluator,
-  SmiteEvaluator,
-  RepairEvaluator,
   createPlayerGovernor,
   type GovernorWorldView,
+  RepairEvaluator,
+  SmiteEvaluator,
+  StartWaveEvaluator,
 } from '../../../engine/ai/playerGovernor';
 
 describe('playerGovernor', () => {
@@ -71,11 +71,13 @@ describe('playerGovernor', () => {
     const evaluator = new StartWaveEvaluator();
 
     it('scores higher during build phase when defenses are ready', () => {
-      const score = evaluator.score(makeView({
-        phase: 'build',
-        buildingCount: 3,
-        buildTimeLeft: 5,
-      }));
+      const score = evaluator.score(
+        makeView({
+          phase: 'build',
+          buildingCount: 3,
+          buildTimeLeft: 5,
+        }),
+      );
       expect(score).toBeGreaterThan(0.3);
     });
 
@@ -101,47 +103,57 @@ describe('playerGovernor', () => {
     const evaluator = new SmiteEvaluator();
 
     it('scores higher when enemies are near sanctuary', () => {
-      const score = evaluator.score(makeView({
-        phase: 'defend',
-        enemyNearSanctuary: 5,
-        smiteCooldown: 0,
-        faith: 50,
-      }));
+      const score = evaluator.score(
+        makeView({
+          phase: 'defend',
+          enemyNearSanctuary: 5,
+          smiteCooldown: 0,
+          faith: 50,
+        }),
+      );
       expect(score).toBeGreaterThan(0.3);
     });
 
     it('scores 0 when smite is on cooldown', () => {
-      const score = evaluator.score(makeView({
-        phase: 'defend',
-        enemyNearSanctuary: 5,
-        smiteCooldown: 3,
-      }));
+      const score = evaluator.score(
+        makeView({
+          phase: 'defend',
+          enemyNearSanctuary: 5,
+          smiteCooldown: 3,
+        }),
+      );
       expect(score).toBe(0);
     });
 
     it('scores 0 when no enemies near sanctuary', () => {
-      const score = evaluator.score(makeView({
-        phase: 'defend',
-        enemyNearSanctuary: 0,
-      }));
+      const score = evaluator.score(
+        makeView({
+          phase: 'defend',
+          enemyNearSanctuary: 0,
+        }),
+      );
       expect(score).toBe(0);
     });
 
     it('scores 0 during build phase', () => {
-      const score = evaluator.score(makeView({
-        phase: 'build',
-        enemyNearSanctuary: 5,
-      }));
+      const score = evaluator.score(
+        makeView({
+          phase: 'build',
+          enemyNearSanctuary: 5,
+        }),
+      );
       expect(score).toBe(0);
     });
 
     it('returns a value between 0 and 1', () => {
-      const score = evaluator.score(makeView({
-        phase: 'defend',
-        enemyNearSanctuary: 3,
-        smiteCooldown: 0,
-        faith: 50,
-      }));
+      const score = evaluator.score(
+        makeView({
+          phase: 'defend',
+          enemyNearSanctuary: 3,
+          smiteCooldown: 0,
+          faith: 50,
+        }),
+      );
       expect(score).toBeGreaterThanOrEqual(0);
       expect(score).toBeLessThanOrEqual(1);
     });

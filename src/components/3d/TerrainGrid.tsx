@@ -67,9 +67,7 @@ export function TerrainGrid({ biome = 'kings-road', seed = '12345' }: TerrainGri
     if (!mesh || initialized.current) return;
 
     let seedNum =
-      typeof seed === 'string'
-        ? Number.parseInt(seed.substring(0, 8), 16) || 12345
-        : 12345;
+      typeof seed === 'string' ? Number.parseInt(seed.substring(0, 8), 16) || 12345 : 12345;
     if (Number.isNaN(seedNum)) seedNum = 12345;
     const random = seededRandom(seedNum);
 
@@ -101,10 +99,7 @@ export function TerrainGrid({ biome = 'kings-road', seed = '12345' }: TerrainGri
     initialized.current = true;
   });
 
-  const geometry = useMemo(
-    () => new THREE.PlaneGeometry(TILE_SIZE, TILE_SIZE),
-    [],
-  );
+  const geometry = useMemo(() => new THREE.PlaneGeometry(TILE_SIZE, TILE_SIZE), []);
   const material = useMemo(
     () => new THREE.MeshStandardMaterial({ roughness: 0.9, metalness: 0 }),
     [],

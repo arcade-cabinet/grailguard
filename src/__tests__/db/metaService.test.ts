@@ -53,7 +53,8 @@ jest.mock('../../db/repos/doctrineRepo', () => ({
 
 jest.mock('../../db/repos/unlockRepo', () => ({
   purchaseUnlockTransaction: (...args: unknown[]) => purchaseUnlockTransactionMock(...args),
-  purchaseSpellUnlockTransaction: (...args: unknown[]) => purchaseSpellUnlockTransactionMock(...args),
+  purchaseSpellUnlockTransaction: (...args: unknown[]) =>
+    purchaseSpellUnlockTransactionMock(...args),
 }));
 
 jest.mock('../../db/repos/codexRepo', () => ({

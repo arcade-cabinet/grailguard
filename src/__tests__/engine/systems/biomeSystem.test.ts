@@ -7,9 +7,9 @@
 
 import {
   applyBiomeModifiers,
-  getBiomeConfig,
-  getAllBiomeIds,
   type BiomeSession,
+  getAllBiomeIds,
+  getBiomeConfig,
 } from '../../../engine/systems/biomeSystem';
 
 describe('biomeSystem', () => {

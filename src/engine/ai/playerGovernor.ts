@@ -15,8 +15,8 @@
  * can drive the game identically to a human player.
  */
 
-import type { WorldCommand } from '../GameEngine';
 import governorConfig from '../../data/governorConfig.json';
+import type { WorldCommand } from '../GameEngine';
 
 const { weights, thresholds } = governorConfig;
 
@@ -77,8 +77,8 @@ export class BuildStructureEvaluator implements GoalEvaluator {
     // Place near center with some offset based on building count
     const angle = (view.buildingCount * 1.2) % (Math.PI * 2);
     const radius = 15 + (view.buildingCount % 4) * 5;
-    const x = Math.round(Math.cos(angle) * radius / 5) * 5;
-    const z = Math.round(Math.sin(angle) * radius / 5) * 5;
+    const x = Math.round((Math.cos(angle) * radius) / 5) * 5;
+    const z = Math.round((Math.sin(angle) * radius) / 5) * 5;
 
     return [
       {

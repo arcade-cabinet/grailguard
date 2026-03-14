@@ -64,10 +64,7 @@ export function getBiomeConfig(biomeId: string): BiomeConfig {
  * @param biomeId - The biome to apply.
  * @returns A new BiomeSession with modifiers applied.
  */
-export function applyBiomeModifiers(
-  session: BiomeSession,
-  biomeId: string,
-): BiomeSession {
+export function applyBiomeModifiers(session: BiomeSession, biomeId: string): BiomeSession {
   const config = getBiomeConfig(biomeId);
 
   return {

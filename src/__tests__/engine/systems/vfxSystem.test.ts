@@ -5,57 +5,42 @@
  * world effect updates, and particle burst spawning.
  */
 
-import {
-  updateParticlePure,
-  updateFloatingTextPure,
-  updateWorldEffectPure,
-  generateParticleBurst,
-} from '../../../engine/systems/vfxSystem';
 import { createRng } from '../../../engine/systems/rng';
+import {
+  generateParticleBurst,
+  updateFloatingTextPure,
+  updateParticlePure,
+  updateWorldEffectPure,
+} from '../../../engine/systems/vfxSystem';
 
 describe('vfxSystem', () => {
   describe('updateParticlePure', () => {
     it('decrements life by dt', () => {
-      const result = updateParticlePure(
-        { x: 0, y: 5, z: 0, vx: 1, vy: 10, vz: 0, life: 1 },
-        0.1,
-      );
+      const result = updateParticlePure({ x: 0, y: 5, z: 0, vx: 1, vy: 10, vz: 0, life: 1 }, 0.1);
       expect(result.life).toBeCloseTo(0.9, 2);
     });
 
     it('applies velocity to position', () => {
-      const result = updateParticlePure(
-        { x: 0, y: 5, z: 0, vx: 10, vy: 0, vz: 5, life: 1 },
-        0.1,
-      );
+      const result = updateParticlePure({ x: 0, y: 5, z: 0, vx: 10, vy: 0, vz: 5, life: 1 }, 0.1);
       expect(result.x).toBeCloseTo(1, 1);
       expect(result.z).toBeCloseTo(0.5, 1);
     });
 
     it('applies gravity to vy', () => {
-      const result = updateParticlePure(
-        { x: 0, y: 5, z: 0, vx: 0, vy: 10, vz: 0, life: 1 },
-        0.1,
-      );
+      const result = updateParticlePure({ x: 0, y: 5, z: 0, vx: 0, vy: 10, vz: 0, life: 1 }, 0.1);
       // gravity = 18, vy = 10 - 18*0.1 = 8.2
       expect(result.vy).toBeCloseTo(8.2, 1);
     });
 
     it('applies drag to vx and vz', () => {
-      const result = updateParticlePure(
-        { x: 0, y: 5, z: 0, vx: 10, vy: 0, vz: 10, life: 1 },
-        0.1,
-      );
+      const result = updateParticlePure({ x: 0, y: 5, z: 0, vx: 10, vy: 0, vz: 10, life: 1 }, 0.1);
       // drag = 0.96
       expect(result.vx).toBeCloseTo(10 * 0.96, 1);
       expect(result.vz).toBeCloseTo(10 * 0.96, 1);
     });
 
     it('marks dead when life reaches 0', () => {
-      const result = updateParticlePure(
-        { x: 0, y: 5, z: 0, vx: 0, vy: 0, vz: 0, life: 0.05 },
-        0.1,
-      );
+      const result = updateParticlePure({ x: 0, y: 5, z: 0, vx: 0, vy: 0, vz: 0, life: 0.05 }, 0.1);
       expect(result.dead).toBe(true);
     });
   });
@@ -88,25 +73,13 @@ describe('vfxSystem', () => {
   describe('generateParticleBurst', () => {
     it('generates the requested number of particles', () => {
       const rng = createRng('test-vfx');
-      const particles = generateParticleBurst(
-        { x: 0, y: 2, z: 0 },
-        '#ff0000',
-        10,
-        1.0,
-        rng,
-      );
+      const particles = generateParticleBurst({ x: 0, y: 2, z: 0 }, '#ff0000', 10, 1.0, rng);
       expect(particles).toHaveLength(10);
     });
 
     it('particles have correct color and initial position', () => {
       const rng = createRng('test-vfx-2');
-      const particles = generateParticleBurst(
-        { x: 5, y: 3, z: 7 },
-        '#00ff00',
-        5,
-        1.0,
-        rng,
-      );
+      const particles = generateParticleBurst({ x: 5, y: 3, z: 7 }, '#00ff00', 5, 1.0, rng);
       for (const p of particles) {
         expect(p.color).toBe('#00ff00');
         expect(p.x).toBe(5);
@@ -136,39 +109,19 @@ describe('vfxSystem', () => {
 
     it('returns empty array when reducedFx is true', () => {
       const rng = createRng('reduced-fx');
-      const particles = generateParticleBurst(
-        { x: 0, y: 0, z: 0 },
-        '#ff0000',
-        10,
-        1.0,
-        rng,
-        true,
-      );
+      const particles = generateParticleBurst({ x: 0, y: 0, z: 0 }, '#ff0000', 10, 1.0, rng, true);
       expect(particles).toHaveLength(0);
     });
 
     it('returns normal particles when reducedFx is false', () => {
       const rng = createRng('not-reduced');
-      const particles = generateParticleBurst(
-        { x: 0, y: 0, z: 0 },
-        '#ff0000',
-        10,
-        1.0,
-        rng,
-        false,
-      );
+      const particles = generateParticleBurst({ x: 0, y: 0, z: 0 }, '#ff0000', 10, 1.0, rng, false);
       expect(particles).toHaveLength(10);
     });
 
     it('returns normal particles when reducedFx is omitted', () => {
       const rng = createRng('default-fx');
-      const particles = generateParticleBurst(
-        { x: 0, y: 0, z: 0 },
-        '#ff0000',
-        10,
-        1.0,
-        rng,
-      );
+      const particles = generateParticleBurst({ x: 0, y: 0, z: 0 }, '#ff0000', 10, 1.0, rng);
       expect(particles).toHaveLength(10);
     });
   });

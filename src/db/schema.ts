@@ -123,7 +123,7 @@ export const activeRun = sqliteTable(
     status: text('status').notNull(),
     updatedAt: integer('updated_at').notNull(),
   },
-  (table) => [index('idx_active_run_status').on(table.status)]
+  (table) => [index('idx_active_run_status').on(table.status)],
 );
 
 /**
@@ -143,7 +143,7 @@ export const runHistory = sqliteTable(
     result: text('result').notNull(),
     createdAt: integer('created_at').notNull(),
   },
-  (table) => [index('idx_run_history_created_at').on(table.createdAt)]
+  (table) => [index('idx_run_history_created_at').on(table.createdAt)],
 );
 
 /**

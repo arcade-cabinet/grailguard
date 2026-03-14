@@ -15,7 +15,6 @@ import type { Entity } from 'koota';
 import { useQuery, useTrait } from 'koota/react';
 import { Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { BUILDINGS, type BuildingType } from '../../engine/constants';
-import { t } from '../../i18n';
 import {
   Building,
   GameSession,
@@ -26,8 +25,17 @@ import {
   WaveState,
 } from '../../engine/GameEngine';
 import { soundManager } from '../../engine/SoundManager';
+import { t } from '../../i18n';
 
-function BuildingCard({ entity, treasury, phase }: { entity: Entity; treasury: number; phase: string }) {
+function BuildingCard({
+  entity,
+  treasury,
+  phase,
+}: {
+  entity: Entity;
+  treasury: number;
+  phase: string;
+}) {
   const building = entity.get(Building);
   if (!building) return null;
 
@@ -145,9 +153,7 @@ function WallCard({ entity }: { entity: Entity }) {
   return (
     <View className="rounded-2xl border border-[#8a6a44] bg-[#f3e8d5] p-4">
       <Text className="text-lg font-bold text-[#3e2723]">🚧 {t('hud_barricade')}</Text>
-      <Text className="mt-1 text-sm text-[#6e4e31]">
-        {t('hud_barricade_desc')}
-      </Text>
+      <Text className="mt-1 text-sm text-[#6e4e31]">{t('hud_barricade_desc')}</Text>
       <Text className="mt-1 text-xs uppercase tracking-[2px] text-[#75512d]">
         HP {Math.ceil(unit.hp)} / {Math.ceil(unit.maxHp)}
       </Text>
@@ -351,8 +357,8 @@ export function HUD({
         <View className="mt-4 flex-row items-center justify-between">
           <View>
             <Text className="text-lg font-semibold text-[#f4e6ca]">
-              {t('hud_bank_label')} {session.gold}g | {session.wood}w | {session.ore}o | {session.gem}💎 |{' '}
-              {Math.floor(session.faith)}f
+              {t('hud_bank_label')} {session.gold}g | {session.wood}w | {session.ore}o |{' '}
+              {session.gem}💎 | {Math.floor(session.faith)}f
             </Text>
             {waveState && (
               <Text className="text-xs font-bold text-[#8b5a2b]">
@@ -393,7 +399,9 @@ export function HUD({
                   sideOffset={12}
                   className="rounded-[24px] border border-[#8c6a43] bg-[#ead9bc] p-4"
                 >
-                  <Text className="mb-3 text-lg font-bold text-[#3e2723]">{t('hud_relics_of_defense')}</Text>
+                  <Text className="mb-3 text-lg font-bold text-[#3e2723]">
+                    {t('hud_relics_of_defense')}
+                  </Text>
                   <ScrollView className="max-h-80" contentContainerClassName="gap-3">
                     {(Object.keys(BUILDINGS) as BuildingType[])
                       .filter((type) => unlocked[type])
@@ -472,15 +480,20 @@ export function HUD({
                     sideOffset={12}
                     className="rounded-[24px] border border-[#8c6a43] bg-[#ead9bc] p-4"
                   >
-                    <Text className="mb-3 text-lg font-bold text-[#3e2723]">{t('hud_built_defenses')}</Text>
+                    <Text className="mb-3 text-lg font-bold text-[#3e2723]">
+                      {t('hud_built_defenses')}
+                    </Text>
                     <ScrollView className="max-h-96" contentContainerClassName="gap-3">
                       {buildingEntities.length === 0 && wallEntities.length === 0 ? (
-                        <Text className="text-sm text-[#6e4e31]">
-                          {t('hud_no_structures')}
-                        </Text>
+                        <Text className="text-sm text-[#6e4e31]">{t('hud_no_structures')}</Text>
                       ) : null}
                       {buildingEntities.map((entity) => (
-                        <BuildingCard key={entity.id()} entity={entity} treasury={session.gold} phase={session.phase} />
+                        <BuildingCard
+                          key={entity.id()}
+                          entity={entity}
+                          treasury={session.gold}
+                          phase={session.phase}
+                        />
                       ))}
                       {wallEntities.map((entity) => (
                         <WallCard key={entity.id()} entity={entity} />
@@ -552,10 +565,16 @@ export function HUD({
                   }}
                   className="rounded-2xl border border-[#8f6a43] bg-[#3a281d] px-4 py-4"
                   accessibilityRole="button"
-                  accessibilityLabel={activePlacement ? `Cancel placing ${BUILDINGS[activePlacement].name}` : 'Cancel tool'}
+                  accessibilityLabel={
+                    activePlacement
+                      ? `Cancel placing ${BUILDINGS[activePlacement].name}`
+                      : 'Cancel tool'
+                  }
                 >
                   <Text className="font-bold text-[#f5e8cc]">
-                    {activePlacement ? `Placing ${BUILDINGS[activePlacement].name}` : t('btn_cancel_tool')}
+                    {activePlacement
+                      ? `Placing ${BUILDINGS[activePlacement].name}`
+                      : t('btn_cancel_tool')}
                   </Text>
                 </Toolbar.Button>
               )}
@@ -604,10 +623,10 @@ export function HUD({
       <Modal visible={session.pendingRelicDraft} transparent animationType="fade">
         <View className="flex-1 items-center justify-center bg-[#0a0806]/90 px-4">
           <View className="w-full max-w-2xl rounded-[28px] border border-[#d4af37] bg-[#241711] p-6 shadow-2xl">
-            <Text className="text-center text-3xl font-bold text-[#f0dfbe]">{t('relic_draft_title')}</Text>
-            <Text className="mt-2 text-center text-[#c7b08c]">
-              {t('relic_draft_subtitle')}
+            <Text className="text-center text-3xl font-bold text-[#f0dfbe]">
+              {t('relic_draft_title')}
             </Text>
+            <Text className="mt-2 text-center text-[#c7b08c]">{t('relic_draft_subtitle')}</Text>
             <View className="mt-8 flex-row flex-wrap justify-center gap-4">
               {[
                 {

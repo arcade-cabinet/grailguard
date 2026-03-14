@@ -18,8 +18,8 @@ import {
   useMetaProgress,
 } from '../db/meta';
 import { BUILDINGS, type BuildingType, type SpellType } from '../engine/constants';
-import { t } from '../i18n';
 import { soundManager } from '../engine/SoundManager';
+import { t } from '../i18n';
 
 const BIOMES = [
   { id: 'kings-road', name: "King's Road", desc: 'Lush grass and dirt roads.' },
@@ -131,9 +131,7 @@ export default function MainMenuScreen() {
                 side="top"
                 className="rounded-xl border border-[#6b4a2f] bg-[#2b1c14] px-3 py-2"
               >
-                <Text className="text-sm text-[#f6e6c7]">
-                  {t('btn_embark_tooltip')}
-                </Text>
+                <Text className="text-sm text-[#f6e6c7]">{t('btn_embark_tooltip')}</Text>
               </Tooltip.Content>
             </Tooltip.Portal>
           </Tooltip.Root>
@@ -347,15 +345,15 @@ export default function MainMenuScreen() {
             <View className="mb-6 flex-row items-center justify-between border-b border-[#6e4e31] pb-4">
               <View>
                 <Text className="text-3xl font-bold text-[#3e2723]">{t('market_title')}</Text>
-                <Text className="text-sm text-[#6e4e31]">
-                  {t('market_subtitle')}
-                </Text>
+                <Text className="text-sm text-[#6e4e31]">{t('market_subtitle')}</Text>
               </View>
               <Text className="text-2xl font-bold text-[#c38115]">{coins} 🪙</Text>
             </View>
 
             <ScrollView contentContainerClassName="gap-4 pb-4">
-              <Text className="mt-2 text-2xl font-bold text-[#3e2723]">{t('market_structures')}</Text>
+              <Text className="mt-2 text-2xl font-bold text-[#3e2723]">
+                {t('market_structures')}
+              </Text>
               {marketItems.map(([type, building]) => {
                 const isUnlocked = unlocks[type];
                 const unlockCost = getUnlockCost(type);

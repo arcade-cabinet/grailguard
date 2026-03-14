@@ -100,8 +100,7 @@ export function CameraController() {
     const phase = session?.phase ?? 'build';
     const presetKey = getPresetForPhase(phase);
     const preset = viewportPresets[presetKey];
-    const targetZoom =
-      cameraState.gestureZoom >= 0 ? cameraState.gestureZoom : preset.zoom;
+    const targetZoom = cameraState.gestureZoom >= 0 ? cameraState.gestureZoom : preset.zoom;
 
     // Smooth lerp toward target zoom
     const lerpSpeed = 1 / Math.max(0.1, preset.transitionDuration);

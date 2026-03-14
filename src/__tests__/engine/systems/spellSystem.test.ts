@@ -8,8 +8,8 @@
 import {
   canCastSpell,
   computeSpellEffect,
-  updateCooldowns,
   type SpellTarget,
+  updateCooldowns,
 } from '../../../engine/systems/spellSystem';
 
 describe('spellSystem', () => {
@@ -80,10 +80,7 @@ describe('spellSystem', () => {
 
     describe('holy_nova', () => {
       it('heals all non-wall allies', () => {
-        const allies = [
-          makeAlly(1, 0, 0, 50, 100),
-          makeAlly(2, 10, 0, 30, 100),
-        ];
+        const allies = [makeAlly(1, 0, 0, 50, 100), makeAlly(2, 10, 0, 30, 100)];
         const result = computeSpellEffect('holy_nova', [], allies, sanctuaryPos);
         expect(result.type).toBe('holy_nova');
         expect(result.healTargets).toHaveLength(2);
@@ -91,9 +88,7 @@ describe('spellSystem', () => {
       });
 
       it('excludes wall units from healing', () => {
-        const allies = [
-          { ...makeAlly(1, 0, 0, 50, 100), type: 'wall' as const },
-        ];
+        const allies = [{ ...makeAlly(1, 0, 0, 50, 100), type: 'wall' as const }];
         const result = computeSpellEffect('holy_nova', [], allies, sanctuaryPos);
         expect(result.healTargets).toHaveLength(0);
       });

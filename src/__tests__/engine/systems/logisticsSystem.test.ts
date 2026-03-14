@@ -6,21 +6,18 @@
  */
 
 import {
+  calculateDelivery,
   findLogisticsPathPure,
   moveCartStep,
-  calculateDelivery,
 } from '../../../engine/systems/logisticsSystem';
 
 describe('logisticsSystem', () => {
   describe('findLogisticsPathPure', () => {
     it('returns null when no tracks exist', () => {
-      const result = findLogisticsPathPure(
-        { x: 0, z: 0 },
-        'wood',
-        [],
-        [{ x: 50, z: 50 }],
-        { x: 50, z: 50 },
-      );
+      const result = findLogisticsPathPure({ x: 0, z: 0 }, 'wood', [], [{ x: 50, z: 50 }], {
+        x: 50,
+        z: 50,
+      });
       expect(result).toBeNull();
     });
 
@@ -31,13 +28,7 @@ describe('logisticsSystem', () => {
         { x: 15, z: 0 },
       ];
       const sanctuaryPos = { x: 20, z: 0 };
-      const result = findLogisticsPathPure(
-        { x: 0, z: 0 },
-        'wood',
-        tracks,
-        [],
-        sanctuaryPos,
-      );
+      const result = findLogisticsPathPure({ x: 0, z: 0 }, 'wood', tracks, [], sanctuaryPos);
       expect(result).not.toBeNull();
       expect(result!.length).toBeGreaterThanOrEqual(2);
       // Path should end at or near sanctuary
@@ -51,13 +42,7 @@ describe('logisticsSystem', () => {
         // gap -- no track near sanctuary
       ];
       const sanctuaryPos = { x: 100, z: 100 };
-      const result = findLogisticsPathPure(
-        { x: 0, z: 0 },
-        'wood',
-        tracks,
-        [],
-        sanctuaryPos,
-      );
+      const result = findLogisticsPathPure({ x: 0, z: 0 }, 'wood', tracks, [], sanctuaryPos);
       expect(result).toBeNull();
     });
 
@@ -68,13 +53,7 @@ describe('logisticsSystem', () => {
       ];
       const mintPos = { x: 15, z: 0 };
       const sanctuaryPos = { x: 100, z: 100 }; // far away
-      const result = findLogisticsPathPure(
-        { x: 0, z: 0 },
-        'ore',
-        tracks,
-        [mintPos],
-        sanctuaryPos,
-      );
+      const result = findLogisticsPathPure({ x: 0, z: 0 }, 'ore', tracks, [mintPos], sanctuaryPos);
       expect(result).not.toBeNull();
     });
   });
@@ -85,13 +64,7 @@ describe('logisticsSystem', () => {
         { x: 10, z: 0 },
         { x: 20, z: 0 },
       ];
-      const result = moveCartStep(
-        { x: 0, z: 0 },
-        path,
-        0,
-        5,
-        1.0,
-      );
+      const result = moveCartStep({ x: 0, z: 0 }, path, 0, 5, 1.0);
       expect(result.x).toBeGreaterThan(0);
       expect(result.pathIndex).toBe(0); // not yet arrived
     });
@@ -101,26 +74,14 @@ describe('logisticsSystem', () => {
         { x: 1, z: 0 },
         { x: 20, z: 0 },
       ];
-      const result = moveCartStep(
-        { x: 0.8, z: 0 },
-        path,
-        0,
-        5,
-        1.0,
-      );
+      const result = moveCartStep({ x: 0.8, z: 0 }, path, 0, 5, 1.0);
       // distance < 0.5 triggers advance
       expect(result.pathIndex).toBe(1);
     });
 
     it('signals arrival when reaching end of path', () => {
       const path = [{ x: 1, z: 0 }];
-      const result = moveCartStep(
-        { x: 0.8, z: 0 },
-        path,
-        0,
-        5,
-        1.0,
-      );
+      const result = moveCartStep({ x: 0.8, z: 0 }, path, 0, 5, 1.0);
       expect(result.arrived).toBe(true);
     });
   });

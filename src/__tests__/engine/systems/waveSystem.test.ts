@@ -4,18 +4,18 @@
  * TDD tests for the pure wave-system functions extracted from GameEngine.
  */
 
-import {
-  calculateWaveBudget,
-  calculateBuildTimer,
-  buildWaveQueue,
-  isWaveComplete,
-  calculateWaveCompletionReward,
-  allocateWaveBudget,
-  getWaveLabel,
-  applyDifficultyModifiers,
-} from '../../../engine/systems/waveSystem';
+import type { EnemyAffix, UnitType } from '../../../engine/constants';
 import { createRng } from '../../../engine/systems/rng';
-import type { UnitType, EnemyAffix } from '../../../engine/constants';
+import {
+  allocateWaveBudget,
+  applyDifficultyModifiers,
+  buildWaveQueue,
+  calculateBuildTimer,
+  calculateWaveBudget,
+  calculateWaveCompletionReward,
+  getWaveLabel,
+  isWaveComplete,
+} from '../../../engine/systems/waveSystem';
 
 describe('waveSystem', () => {
   describe('calculateWaveBudget', () => {
@@ -213,8 +213,13 @@ describe('waveSystem', () => {
       const queue = allocateWaveBudget(10, 200, rng);
       const totalCost = queue.reduce((sum, e) => {
         const costs: Record<string, number> = {
-          goblin: 5, orc: 12, troll: 25, boss: 150,
-          flying: 8, shieldBearer: 18, summoner: 20,
+          goblin: 5,
+          orc: 12,
+          troll: 25,
+          boss: 150,
+          flying: 8,
+          shieldBearer: 18,
+          summoner: 20,
         };
         return sum + (costs[e.type] ?? 0);
       }, 0);

@@ -11,7 +11,14 @@ jest.mock('../../../db/client', () => ({
 }));
 
 import { ensureSeedData } from '../../../db/repos/bootstrapRepo';
-import { codexEntries, contentState, doctrineNodes, playerProfile, settings, unlocks } from '../../../db/schema';
+import {
+  codexEntries,
+  contentState,
+  doctrineNodes,
+  playerProfile,
+  settings,
+  unlocks,
+} from '../../../db/schema';
 
 describe('bootstrapRepo', () => {
   beforeEach(() => {
@@ -111,11 +118,7 @@ describe('bootstrapRepo', () => {
     it('seeds content state', async () => {
       await ensureSeedData();
 
-      const state = await testDb.db
-        .select()
-        .from(contentState)
-        .where(eq(contentState.id, 1))
-        .get();
+      const state = await testDb.db.select().from(contentState).where(eq(contentState.id, 1)).get();
 
       expect(state).toBeDefined();
       expect(state!.schemaVersion).toBe(1);

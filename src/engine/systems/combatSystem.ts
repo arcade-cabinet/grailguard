@@ -6,9 +6,9 @@
  */
 
 import combatConfig from '../../data/combatConfig.json';
-import siegeTargeting from '../../data/siegeTargeting.json';
 import dropConfig from '../../data/dropConfig.json';
-import type { UnitType, EnemyAffix, Faction, BuildingType } from '../constants';
+import siegeTargeting from '../../data/siegeTargeting.json';
+import type { BuildingType, EnemyAffix, Faction, UnitType } from '../constants';
 import type { Rng } from './rng';
 
 const {
@@ -118,11 +118,7 @@ export function findCombatTargetPure(
  * @param isMagic - Whether the attack bypasses armor (magic/heal).
  * @returns The final damage amount.
  */
-export function calculateDamage(
-  baseDamage: number,
-  isArmored: boolean,
-  isMagic: boolean,
-): number {
+export function calculateDamage(baseDamage: number, isArmored: boolean, isMagic: boolean): number {
   if (isArmored && !isMagic) {
     return Math.max(1, Math.floor(baseDamage * armoredDamageReduction));
   }

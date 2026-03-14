@@ -8,7 +8,17 @@ describe('unitConfig', () => {
   });
 
   it('has all expected unit types', () => {
-    const expectedTypes = ['wall', 'militia', 'archer', 'cleric', 'knight', 'goblin', 'orc', 'troll', 'boss'];
+    const expectedTypes = [
+      'wall',
+      'militia',
+      'archer',
+      'cleric',
+      'knight',
+      'goblin',
+      'orc',
+      'troll',
+      'boss',
+    ];
     for (const type of expectedTypes) {
       expect(units).toHaveProperty(type);
     }
@@ -52,7 +62,17 @@ describe('unitConfig', () => {
   });
 
   it('each unit has required stat fields', () => {
-    const requiredFields = ['hp', 'speed', 'damage', 'range', 'atkSpd', 'isRanged', 'isHealer', 'color', 'scale'];
+    const requiredFields = [
+      'hp',
+      'speed',
+      'damage',
+      'range',
+      'atkSpd',
+      'isRanged',
+      'isHealer',
+      'color',
+      'scale',
+    ];
     for (const [, unit] of Object.entries(units)) {
       for (const field of requiredFields) {
         expect(unit).toHaveProperty(field);

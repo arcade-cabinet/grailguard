@@ -24,10 +24,7 @@ interface LightingPreset {
 const presets = lightingConfig.presets as Record<PresetName, LightingPreset>;
 
 // Pre-parsed color objects for lerping
-const presetColors: Record<
-  PresetName,
-  { ambient: THREE.Color; directional: THREE.Color }
-> = {
+const presetColors: Record<PresetName, { ambient: THREE.Color; directional: THREE.Color }> = {
   dawn: {
     ambient: new THREE.Color(presets.dawn.ambientColor),
     directional: new THREE.Color(presets.dawn.directionalColor),
@@ -83,8 +80,7 @@ export function DayNightCycle({ wave }: DayNightCycleProps) {
     // Lerp intensities
     currentAmbientIntensity.current +=
       (target.ambientIntensity - currentAmbientIntensity.current) * t;
-    currentDirIntensity.current +=
-      (target.directionalIntensity - currentDirIntensity.current) * t;
+    currentDirIntensity.current += (target.directionalIntensity - currentDirIntensity.current) * t;
 
     // Apply to lights
     if (ambientRef.current) {
@@ -99,10 +95,7 @@ export function DayNightCycle({ wave }: DayNightCycleProps) {
 
   return (
     <>
-      <hemisphereLight
-        ref={ambientRef}
-        args={['#ffffff', '#444444', 0.7]}
-      />
+      <hemisphereLight ref={ambientRef} args={['#ffffff', '#444444', 0.7]} />
       <directionalLight
         ref={directionalRef}
         position={[40, 100, -40]}

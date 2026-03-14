@@ -42,7 +42,15 @@ describe('mapConfig', () => {
   });
 
   it('all top-level numeric values are positive', () => {
-    const numericKeys = ['size', 'roadSampleCount', 'placementGridSize', 'wallMaxRoadDistance', 'spawnerMinRoadDistance', 'roadSplinePointCount', 'yukaPathPointCount'] as const;
+    const numericKeys = [
+      'size',
+      'roadSampleCount',
+      'placementGridSize',
+      'wallMaxRoadDistance',
+      'spawnerMinRoadDistance',
+      'roadSplinePointCount',
+      'yukaPathPointCount',
+    ] as const;
     for (const key of numericKeys) {
       expect(typeof mapConfig[key]).toBe('number');
       expect(mapConfig[key]).toBeGreaterThan(0);

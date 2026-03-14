@@ -12,7 +12,14 @@ import { Canvas } from '@react-three/fiber/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useTrait, WorldProvider } from 'koota/react';
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, AppState, PanResponder, Text, TouchableOpacity, View } from 'react-native';
+import {
+  AccessibilityInfo,
+  AppState,
+  PanResponder,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import {
   Arena,
   projectScreenPointToGround,
@@ -35,7 +42,6 @@ import {
   useMetaProgress,
 } from '../db/meta';
 import { BUILDINGS, type BuildingType } from '../engine/constants';
-import { t } from '../i18n';
 import {
   AutosaveState,
   checkpointRun,
@@ -55,6 +61,7 @@ import {
 } from '../engine/GameEngine';
 import { soundManager } from '../engine/SoundManager';
 import { getActivePlacement, getPlacementPreview, getSelectedEntity } from '../engine/selectors';
+import { t } from '../i18n';
 
 function AccessibilityAnnouncementBridge() {
   const session = useTrait(gameWorld, GameSession);
@@ -216,7 +223,9 @@ function EndOfRunModal() {
     <View className="absolute inset-0 items-center justify-center bg-[#0a0806]/95 px-6">
       <View className="w-full max-w-md rounded-[32px] border-2 border-[#8b3026] bg-[#2a100d] p-8 shadow-2xl">
         <Text className="text-center text-5xl font-bold text-[#f2d6c9]">
-          {session.announcement === 'Victory Achieved!' ? t('game_end_victory') : t('game_end_defeat')}
+          {session.announcement === 'Victory Achieved!'
+            ? t('game_end_victory')
+            : t('game_end_defeat')}
         </Text>
 
         <View className="mt-8 gap-4">
@@ -381,9 +390,7 @@ export default function GameScreen() {
 
     let cancelled = false;
     const bootstrap = async () => {
-      setBootLabel(
-        bootMode === 'resume' ? t('game_loading_resume') : t('game_loading_default'),
-      );
+      setBootLabel(bootMode === 'resume' ? t('game_loading_resume') : t('game_loading_default'));
       const preferredSpeed = await loadPreferredSpeed();
       const savedRun = await loadActiveRunRecord();
       const autoResume = await loadAutoResumeSetting();

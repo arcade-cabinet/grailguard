@@ -8,10 +8,10 @@
  */
 import { db } from '../client';
 import { codexEntries, contentState, doctrineNodes } from '../schema';
+import { now } from '../utils/time';
 import { ensurePlayerProfile } from './profileRepo';
 import { ensureSettings } from './settingsRepo';
 import { ensureUnlocks } from './unlockRepo';
-import { now } from '../utils/time';
 
 const DEFAULT_CODEX = [
   ['enemy:goblin', 'enemy'],
@@ -49,7 +49,7 @@ export async function ensureSeedData() {
         discovered: false,
         discoveredAt: null,
       })
-      .onConflictDoNothing()
+      .onConflictDoNothing(),
   );
 
   const doctrineInserts = DEFAULT_DOCTRINES.map((nodeId) =>
@@ -60,7 +60,7 @@ export async function ensureSeedData() {
         unlocked: false,
         unlockedAt: null,
       })
-      .onConflictDoNothing()
+      .onConflictDoNothing(),
   );
 
   const contentInsert = db

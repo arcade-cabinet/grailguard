@@ -10,14 +10,14 @@ jest.mock('../../../db/client', () => ({
   },
 }));
 
-import { BUILDINGS } from '../../../engine/constants';
 import { ensurePlayerProfile } from '../../../db/repos/profileRepo';
-import { playerProfile } from '../../../db/schema';
 import {
   ensureUnlocks,
   purchaseSpellUnlockTransaction,
   purchaseUnlockTransaction,
 } from '../../../db/repos/unlockRepo';
+import { playerProfile } from '../../../db/schema';
+import { BUILDINGS } from '../../../engine/constants';
 
 /** Helper to read coins from the profile. */
 async function getCoins(): Promise<number> {
@@ -59,11 +59,7 @@ describe('unlockRepo', () => {
 
     it('seeds all spell unlock rows', async () => {
       const { unlocks } = await import('../../../db/schema');
-      const rows = await testDb.db
-        .select()
-        .from(unlocks)
-        .where(eq(unlocks.domain, 'spell'))
-        .all();
+      const rows = await testDb.db.select().from(unlocks).where(eq(unlocks.domain, 'spell')).all();
 
       // 7 spells
       expect(rows.length).toBe(7);

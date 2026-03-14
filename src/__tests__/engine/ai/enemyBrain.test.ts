@@ -5,8 +5,8 @@
  */
 
 import { Vehicle } from 'yuka';
-import { configureEnemyVehicle } from '../../../engine/ai/enemyBrain';
 import aiConfig from '../../../data/aiConfig.json';
+import { configureEnemyVehicle } from '../../../engine/ai/enemyBrain';
 
 describe('enemyBrain', () => {
   describe('configureEnemyVehicle', () => {
@@ -43,9 +43,7 @@ describe('enemyBrain', () => {
     it('adds EvadeBehavior with weight from config', () => {
       const vehicle = new Vehicle();
       configureEnemyVehicle(vehicle, aiConfig);
-      const evade = vehicle.steering.behaviors.find(
-        (b) => b.constructor.name === 'EvadeBehavior',
-      );
+      const evade = vehicle.steering.behaviors.find((b) => b.constructor.name === 'EvadeBehavior');
       expect(evade).toBeDefined();
       expect(evade!.weight).toBe(aiConfig.evasionWeight);
     });

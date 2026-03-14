@@ -29,7 +29,15 @@ import {
 } from './repos/runRepo';
 import { loadSettings, saveSettings } from './repos/settingsRepo';
 import { purchaseSpellUnlockTransaction, purchaseUnlockTransaction } from './repos/unlockRepo';
-import { activeRun, codexEntries, doctrineNodes, playerProfile, runHistory, settings, unlocks } from './schema';
+import {
+  activeRun,
+  codexEntries,
+  doctrineNodes,
+  playerProfile,
+  runHistory,
+  settings,
+  unlocks,
+} from './schema';
 
 const DEFAULT_UNLOCKS: Record<BuildingType, boolean> = {
   wall: true,

@@ -5,8 +5,14 @@ describe('relicConfig', () => {
 
   it('has all expected relics', () => {
     const expectedRelics = [
-      'venomous_fletching', 'martyrs_blood', 'golden_age', 'crystal_lens',
-      'miners_lantern', 'iron_tracks', 'blessed_pickaxe', 'war_horn',
+      'venomous_fletching',
+      'martyrs_blood',
+      'golden_age',
+      'crystal_lens',
+      'miners_lantern',
+      'iron_tracks',
+      'blessed_pickaxe',
+      'war_horn',
     ];
     for (const relic of expectedRelics) {
       expect(relics).toHaveProperty(relic);

@@ -10,8 +10,8 @@
  * re-exported here with proper TypeScript types for compile-time safety.
  */
 
-import unitConfigJson from '../data/unitConfig.json';
 import buildingConfigJson from '../data/buildingConfig.json';
+import unitConfigJson from '../data/unitConfig.json';
 
 /**
  * Which side of the conflict an entity belongs to.

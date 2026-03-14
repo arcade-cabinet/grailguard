@@ -57,7 +57,9 @@ export default function DoctrineScreen() {
           {t('doctrine_header')}
         </Text>
         <Text className="mt-2 text-4xl font-bold text-[#f0dfbe]">{t('doctrine_title')}</Text>
-        <Text className="mt-2 text-sm text-[#d8c3a2]">{t('doctrine_treasury_label')} {coins} 🪙</Text>
+        <Text className="mt-2 text-sm text-[#d8c3a2]">
+          {t('doctrine_treasury_label')} {coins} 🪙
+        </Text>
       </View>
 
       <ScrollView className="mt-4" contentContainerClassName="gap-3 pb-4">
@@ -93,11 +95,19 @@ export default function DoctrineScreen() {
                         : 'border-[#8a7c6c] bg-[#8a7c6c]'
                   }`}
                   accessibilityRole="button"
-                  accessibilityLabel={isMaxed ? `${node.title} maxed` : `${level > 0 ? 'Upgrade' : 'Consecrate'} ${node.title} for ${cost} coins`}
+                  accessibilityLabel={
+                    isMaxed
+                      ? `${node.title} maxed`
+                      : `${level > 0 ? 'Upgrade' : 'Consecrate'} ${node.title} for ${cost} coins`
+                  }
                   accessibilityState={{ disabled: isMaxed || !canAfford }}
                 >
                   <Text className="font-bold text-[#f7ebd0]">
-                    {isMaxed ? t('doctrine_maxed') : level > 0 ? t('doctrine_upgrade') : t('doctrine_consecrate')}
+                    {isMaxed
+                      ? t('doctrine_maxed')
+                      : level > 0
+                        ? t('doctrine_upgrade')
+                        : t('doctrine_consecrate')}
                   </Text>
                 </TouchableOpacity>
               </View>

@@ -6,12 +6,12 @@
  * import tunables from the JSON config.
  */
 
-import waveConfig from '../../data/waveConfig.json';
-import enemyProgression from '../../data/enemyProgression.json';
-import waveLabels from '../../data/waveLabels.json';
-import difficultyConfig from '../../data/difficultyConfig.json';
 import bossConfig from '../../data/bossConfig.json';
-import { UNITS, type UnitType, type EnemyAffix } from '../constants';
+import difficultyConfig from '../../data/difficultyConfig.json';
+import enemyProgression from '../../data/enemyProgression.json';
+import waveConfig from '../../data/waveConfig.json';
+import waveLabels from '../../data/waveLabels.json';
+import { type EnemyAffix, UNITS, type UnitType } from '../constants';
 import type { Rng } from './rng';
 
 /** Available difficulty tier names. */
@@ -52,7 +52,9 @@ const {
  * @returns The wave budget as a floored integer.
  */
 export function calculateWaveBudget(wave: number): number {
-  return Math.floor(waveBudgetBase * waveBudgetMultiplier ** wave + waveBudgetQuadratic * wave * wave);
+  return Math.floor(
+    waveBudgetBase * waveBudgetMultiplier ** wave + waveBudgetQuadratic * wave * wave,
+  );
 }
 
 /**
@@ -113,10 +115,7 @@ export function allocateWaveBudget(
  * @param rng - A seeded PRNG instance for deterministic affix rolls.
  * @returns An array of spawn entries with unit type and optional affix.
  */
-export function buildWaveQueue(
-  wave: number,
-  rng: Rng,
-): { type: UnitType; affix?: EnemyAffix }[] {
+export function buildWaveQueue(wave: number, rng: Rng): { type: UnitType; affix?: EnemyAffix }[] {
   let budget = calculateWaveBudget(wave);
   const queue: { type: UnitType; affix?: EnemyAffix }[] = [];
 

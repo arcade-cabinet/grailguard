@@ -9,18 +9,11 @@
  * spawn particle bursts without creating/destroying ECS entities.
  */
 import { useFrame } from '@react-three/fiber';
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useRef,
-} from 'react';
+import { createContext, useCallback, useContext, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import renderConfig from '../../data/renderConfig.json';
 
-const { poolSize, gravity, drag, bounceRestitution, size } =
-  renderConfig.particles;
+const { poolSize, gravity, drag, bounceRestitution, size } = renderConfig.particles;
 
 /** Internal state for a single particle slot. */
 interface ParticleSlot {
@@ -250,11 +243,7 @@ export function ParticlePool({ children }: { children?: React.ReactNode }) {
 
   return (
     <ParticlePoolContext.Provider value={api}>
-      <instancedMesh
-        ref={meshRef}
-        args={[geometry, material, poolSize]}
-        frustumCulled={false}
-      />
+      <instancedMesh ref={meshRef} args={[geometry, material, poolSize]} frustumCulled={false} />
       {children}
     </ParticlePoolContext.Provider>
   );

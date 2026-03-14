@@ -14,10 +14,7 @@
  * @param visibleIds - Array of currently visible codex IDs.
  * @returns Array of newly discovered IDs (deduplicated).
  */
-export function discoverNewCodexEntries(
-  discoveredIds: string[],
-  visibleIds: string[],
-): string[] {
+export function discoverNewCodexEntries(discoveredIds: string[], visibleIds: string[]): string[] {
   const discoveredSet = new Set(discoveredIds);
   const newEntries: string[] = [];
   const seen = new Set<string>();

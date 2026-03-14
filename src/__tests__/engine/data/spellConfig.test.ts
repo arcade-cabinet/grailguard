@@ -5,8 +5,13 @@ describe('spellConfig', () => {
 
   it('has all seven spells', () => {
     const expectedSpells = [
-      'smite', 'holy_nova', 'zealous_haste', 'earthquake',
-      'chrono_shift', 'meteor_strike', 'divine_shield',
+      'smite',
+      'holy_nova',
+      'zealous_haste',
+      'earthquake',
+      'chrono_shift',
+      'meteor_strike',
+      'divine_shield',
     ];
     for (const spell of expectedSpells) {
       expect(spells).toHaveProperty(spell);

@@ -11,9 +11,21 @@ describe('buildingConfig', () => {
 
   it('has all expected building types', () => {
     const expectedTypes = [
-      'wall', 'hut', 'range', 'temple', 'keep', 'sentry', 'obelisk',
-      'lumber', 'mine_ore', 'mine_gem', 'track', 'mint', 'catapult',
-      'sorcerer', 'vault',
+      'wall',
+      'hut',
+      'range',
+      'temple',
+      'keep',
+      'sentry',
+      'obelisk',
+      'lumber',
+      'mine_ore',
+      'mine_gem',
+      'track',
+      'mint',
+      'catapult',
+      'sorcerer',
+      'vault',
     ];
     for (const type of expectedTypes) {
       expect(buildings).toHaveProperty(type);
@@ -21,7 +33,17 @@ describe('buildingConfig', () => {
   });
 
   it('each building has required fields', () => {
-    const requiredFields = ['cost', 'unlockCost', 'isBuilding', 'icon', 'name', 'role', 'stats', 'spawnTime', 'color'];
+    const requiredFields = [
+      'cost',
+      'unlockCost',
+      'isBuilding',
+      'icon',
+      'name',
+      'role',
+      'stats',
+      'spawnTime',
+      'color',
+    ];
     for (const [, building] of Object.entries(buildings)) {
       for (const field of requiredFields) {
         expect(building).toHaveProperty(field);

@@ -20,7 +20,12 @@ import { t } from '../../i18n';
  */
 interface TutorialStep {
   /** i18n key for the step instruction text. */
-  textKey: 'tutorial_step_1' | 'tutorial_step_2' | 'tutorial_step_3' | 'tutorial_step_4' | 'tutorial_step_5';
+  textKey:
+    | 'tutorial_step_1'
+    | 'tutorial_step_2'
+    | 'tutorial_step_3'
+    | 'tutorial_step_4'
+    | 'tutorial_step_5';
   /** Emoji or icon displayed above the instruction. */
   icon: string;
 }
@@ -40,13 +45,7 @@ const STEPS: TutorialStep[] = [
  * @param props.visible - Whether the tutorial should be displayed.
  * @param props.onDismiss - Callback fired when the tutorial is completed or skipped.
  */
-export function Tutorial({
-  visible,
-  onDismiss,
-}: {
-  visible: boolean;
-  onDismiss: () => void;
-}) {
+export function Tutorial({ visible, onDismiss }: { visible: boolean; onDismiss: () => void }) {
   const [stepIndex, setStepIndex] = useState(0);
 
   if (!visible) return null;

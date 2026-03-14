@@ -78,14 +78,10 @@ export default function HistoryScreen() {
                 <Text className="text-lg font-bold text-[#3e2723]">
                   Wave {run.waveReached} — {run.result === 'defeat' ? 'Defeated' : 'Abandoned'}
                 </Text>
-                <Text className="mt-1 text-sm text-[#6e4e31]">
-                  {formatDate(run.createdAt)}
-                </Text>
+                <Text className="mt-1 text-sm text-[#6e4e31]">{formatDate(run.createdAt)}</Text>
               </View>
               <View className="items-end">
-                <Text className="text-xl font-bold text-[#c38115]">
-                  {run.coinsEarned} coins
-                </Text>
+                <Text className="text-xl font-bold text-[#c38115]">{run.coinsEarned} coins</Text>
               </View>
             </View>
 

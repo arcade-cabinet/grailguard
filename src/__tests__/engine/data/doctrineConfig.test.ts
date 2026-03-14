@@ -9,7 +9,11 @@ describe('doctrineConfig', () => {
 
   it('has all expected doctrines', () => {
     const expectedDoctrines = [
-      'crown_tithe', 'faithward', 'iron_vanguard', 'tax_collection', 'masonry',
+      'crown_tithe',
+      'faithward',
+      'iron_vanguard',
+      'tax_collection',
+      'masonry',
     ];
     for (const doctrine of expectedDoctrines) {
       expect(doctrines).toHaveProperty(doctrine);

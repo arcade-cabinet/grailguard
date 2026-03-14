@@ -5,9 +5,9 @@
  * calculations, and spawn rate math. No ECS or world access.
  */
 
-import { BUILDINGS, type BuildingType } from '../constants';
 import buildingConfig from '../../data/buildingConfig.json';
 import combatConfig from '../../data/combatConfig.json';
+import { BUILDINGS, type BuildingType } from '../constants';
 
 const { sellValuePercent } = combatConfig;
 const spawnRateMultiplier = buildingConfig.spawnRateMultiplier;

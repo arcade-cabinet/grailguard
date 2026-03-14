@@ -110,9 +110,16 @@ describe('AudioBridge', () => {
 
   it('handles all defined event types', () => {
     const allTypes = [
-      'combat_hit', 'unit_death', 'building_placed', 'building_sold',
-      'wave_start', 'wave_complete', 'boss_spawn', 'spell_cast',
-      'game_over', 'ui_click',
+      'combat_hit',
+      'unit_death',
+      'building_placed',
+      'building_sold',
+      'wave_start',
+      'wave_complete',
+      'boss_spawn',
+      'spell_cast',
+      'game_over',
+      'ui_click',
     ] as const;
 
     for (const type of allTypes) {

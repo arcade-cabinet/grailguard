@@ -28,13 +28,13 @@ import {
   WorldEffect,
 } from '../../engine/GameEngine';
 import { soundManager } from '../../engine/SoundManager';
+import { CameraController, getActiveCamera } from './CameraController';
+import { DayNightCycle } from './DayNightCycle';
 import { BuildingMesh } from './Entities/BuildingMesh';
 import { ProjectileMesh } from './Entities/ProjectileMesh';
 import { ResourceCartMesh } from './Entities/ResourceCartMesh';
 import { UnitMesh } from './Entities/UnitMesh';
 import { WorldEffectMesh } from './Entities/WorldEffectMesh';
-import { CameraController, getActiveCamera } from './CameraController';
-import { DayNightCycle } from './DayNightCycle';
 import { ParticlePool } from './ParticlePool';
 import { Sanctuary } from './Sanctuary';
 import { TerrainGrid } from './TerrainGrid';
@@ -104,8 +104,6 @@ function GameLoop() {
   return null;
 }
 
-
-
 const _scatterObj = new THREE.Object3D();
 const _scatterColor = new THREE.Color();
 
@@ -129,8 +127,7 @@ function EnvironmentScatter() {
   const treeTrunkRef = useRef<THREE.InstancedMesh>(null);
   const rockRef = useRef<THREE.InstancedMesh>(null);
 
-  const { treeCount, rockCount, scatterRadius, minRoadClearance } =
-    mapConfig.scenery;
+  const { treeCount, rockCount, scatterRadius, minRoadClearance } = mapConfig.scenery;
   const mapSize = session?.mapSize ?? mapConfig.size;
 
   // Geometries and materials (memoized)
@@ -159,9 +156,7 @@ function EnvironmentScatter() {
     if (initialized.current) return;
     if (!treeCanopyRef.current || !treeTrunkRef.current || !rockRef.current) return;
 
-    let seedNum = session?.runId
-      ? Number.parseInt(session.runId.substring(0, 8), 16)
-      : 12345;
+    let seedNum = session?.runId ? Number.parseInt(session.runId.substring(0, 8), 16) : 12345;
     if (Number.isNaN(seedNum)) seedNum = 12345;
     const random = createScatterRng(seedNum);
 
@@ -228,12 +223,9 @@ function EnvironmentScatter() {
     treeCanopyRef.current.instanceMatrix.needsUpdate = true;
     treeTrunkRef.current.instanceMatrix.needsUpdate = true;
     rockRef.current.instanceMatrix.needsUpdate = true;
-    if (treeCanopyRef.current.instanceColor)
-      treeCanopyRef.current.instanceColor.needsUpdate = true;
-    if (treeTrunkRef.current.instanceColor)
-      treeTrunkRef.current.instanceColor.needsUpdate = true;
-    if (rockRef.current.instanceColor)
-      rockRef.current.instanceColor.needsUpdate = true;
+    if (treeCanopyRef.current.instanceColor) treeCanopyRef.current.instanceColor.needsUpdate = true;
+    if (treeTrunkRef.current.instanceColor) treeTrunkRef.current.instanceColor.needsUpdate = true;
+    if (rockRef.current.instanceColor) rockRef.current.instanceColor.needsUpdate = true;
 
     initialized.current = true;
   });

@@ -5,20 +5,18 @@
  * status effect processing, and boss AoE logic.
  */
 
+import type { CombatEntity, CombatUnit } from '../../../engine/systems/combatSystem';
 import {
-  findCombatTargetPure,
   calculateDamage,
-  processStatusEffects,
+  findCombatTargetPure,
   processBossAoe,
-  selectSiegeTarget,
+  processStatusEffects,
   rollDrop,
+  selectSiegeTarget,
 } from '../../../engine/systems/combatSystem';
-import type { CombatUnit, CombatEntity } from '../../../engine/systems/combatSystem';
 import { createRng } from '../../../engine/systems/rng';
 
-function makeEntity(
-  overrides: Partial<CombatUnit> & { x?: number; z?: number },
-): CombatEntity {
+function makeEntity(overrides: Partial<CombatUnit> & { x?: number; z?: number }): CombatEntity {
   return {
     id: overrides.id ?? Math.floor(Math.random() * 10000),
     x: overrides.x ?? 0,

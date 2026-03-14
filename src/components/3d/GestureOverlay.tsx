@@ -9,11 +9,12 @@
  * Writes into the shared {@link cameraState} object consumed by
  * {@link CameraController} in useFrame.
  */
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+
 import type { ReactNode } from 'react';
 import { View } from 'react-native';
-import { cameraState } from './CameraController';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import renderConfig from '../../data/renderConfig.json';
+import { cameraState } from './CameraController';
 
 const { zoomMin, zoomMax } = renderConfig.camera;
 

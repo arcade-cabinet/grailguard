@@ -37,7 +37,9 @@ function SettingRow({
           accessibilityLabel={label}
           accessibilityState={{ checked: value }}
         >
-          <Text className="font-bold text-[#f7ebd0]">{value ? t('settings_on') : t('settings_off')}</Text>
+          <Text className="font-bold text-[#f7ebd0]">
+            {value ? t('settings_on') : t('settings_off')}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>

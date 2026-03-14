@@ -154,11 +154,7 @@ describe('runRepo', () => {
       expect(active).toBeUndefined();
 
       // But the row should still be in the table with new status
-      const row = await testDb.db
-        .select()
-        .from(activeRun)
-        .where(eq(activeRun.id, 'run_001'))
-        .get();
+      const row = await testDb.db.select().from(activeRun).where(eq(activeRun.id, 'run_001')).get();
       expect(row!.status).toBe('defeat');
     });
 
@@ -166,11 +162,7 @@ describe('runRepo', () => {
       await saveActiveRun(makeSnapshot());
       await archiveActiveRun('abandoned');
 
-      const row = await testDb.db
-        .select()
-        .from(activeRun)
-        .where(eq(activeRun.id, 'run_001'))
-        .get();
+      const row = await testDb.db.select().from(activeRun).where(eq(activeRun.id, 'run_001')).get();
       expect(row!.status).toBe('abandoned');
     });
 
@@ -178,11 +170,7 @@ describe('runRepo', () => {
       await saveActiveRun(makeSnapshot());
       await archiveActiveRun('invalid');
 
-      const row = await testDb.db
-        .select()
-        .from(activeRun)
-        .where(eq(activeRun.id, 'run_001'))
-        .get();
+      const row = await testDb.db.select().from(activeRun).where(eq(activeRun.id, 'run_001')).get();
       expect(row!.status).toBe('invalid');
     });
 
@@ -198,11 +186,7 @@ describe('runRepo', () => {
       await new Promise((r) => setTimeout(r, 5));
       await archiveActiveRun('defeat');
 
-      const row = await testDb.db
-        .select()
-        .from(activeRun)
-        .where(eq(activeRun.id, 'run_001'))
-        .get();
+      const row = await testDb.db.select().from(activeRun).where(eq(activeRun.id, 'run_001')).get();
       expect(row!.updatedAt).toBeGreaterThanOrEqual(before);
     });
   });

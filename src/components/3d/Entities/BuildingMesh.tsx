@@ -12,7 +12,7 @@ import { useRef } from 'react';
 import type * as THREE from 'three';
 import { BUILDINGS } from '../../../engine/constants';
 import { Building, Position } from '../../../engine/GameEngine';
-import { BUILDING_MODEL_PATHS } from '../modelPaths';
+import { BUILDING_MODEL_PATHS, TOWER_DETAIL_PATHS } from '../modelPaths';
 
 /**
  * Renders a building entity using its associated GLB model. Displays a
@@ -34,7 +34,10 @@ export function BuildingMesh({ entity, selected = false }: { entity: Entity; sel
   const building = entity.get(Building);
   const position = entity.get(Position);
 
-  const modelPath = building ? BUILDING_MODEL_PATHS[building.type] : '';
+  // Use unique tower detail model when available, otherwise fall back to generic
+  const modelPath = building
+    ? (TOWER_DETAIL_PATHS[building.type] ?? BUILDING_MODEL_PATHS[building.type])
+    : '';
   const { scene } = useGLTF(modelPath as string);
 
   useFrame((state) => {

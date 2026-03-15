@@ -9,7 +9,7 @@
  * for projecting between screen coordinates and the ground plane.
  */
 import { Environment, useGLTF, useTexture } from '@react-three/drei';
-import { HDRI_PATH, PBR_TEXTURE_PATHS } from './modelPaths';
+import { DETAIL_MODEL_PATHS, HDRI_PATH, PBR_TEXTURE_PATHS } from './modelPaths';
 import { useFrame } from '@react-three/fiber';
 import type { Entity } from 'koota';
 import { useQuery, useTrait } from 'koota/react';
@@ -166,52 +166,67 @@ function createScatterRng(seed: number) {
 /** Number of small rocks scattered along road edges for visual detail. */
 const ROAD_EDGE_ROCK_COUNT = 80;
 
+/** Number of magic crystals scattered near the sanctuary. */
+const CRYSTAL_COUNT = 20;
+
+/** Helper to extract the first mesh geometry + material from a GLB scene. */
+function extractMeshData(scene: THREE.Object3D) {
+  let geo: THREE.BufferGeometry | undefined;
+  let mat: THREE.Material | undefined;
+  scene.traverse((child) => {
+    if (!geo && (child as THREE.Mesh).isMesh) {
+      const mesh = child as THREE.Mesh;
+      geo = mesh.geometry;
+      mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+    }
+  });
+  return { geo, mat };
+}
+
 /**
- * GLB-model environment scatter: uses real tree.glb and boulder.glb models
- * via InstancedMesh for performant rendering of 200+ trees, 100+ rocks,
- * plus 80 small road-edge pebbles. Positions are deterministically seeded
- * from the run ID to ensure reproducible scenery across sessions. Each
- * instance gets slight scale and rotation variation for a natural look.
+ * GLB-model environment scatter: uses KayKit TD Kit detail models via
+ * InstancedMesh for performant rendering. Mixes small and large variants
+ * of trees, rocks, dirt patches, and crystals for visual variety. Also
+ * scatters small rocks along road edges and crystals near the sanctuary
+ * for magical atmosphere. All positions are deterministically seeded from
+ * the run ID for reproducible scenery across sessions.
  */
 function EnvironmentScatter() {
   const session = useTrait(gameWorld, GameSession);
-  const BASE = import.meta.env.BASE_URL;
-  const treeGltf = useGLTF(`${BASE}assets/models/tree.glb`);
-  const boulderGltf = useGLTF(`${BASE}assets/models/boulder.glb`);
 
-  const treeRef = useRef<THREE.InstancedMesh>(null);
-  const rockRef = useRef<THREE.InstancedMesh>(null);
+  // Load both small and large variants for trees and rocks
+  const treeSmallGltf = useGLTF(DETAIL_MODEL_PATHS.treeSmall);
+  const treeLargeGltf = useGLTF(DETAIL_MODEL_PATHS.treeLarge);
+  const rocksSmallGltf = useGLTF(DETAIL_MODEL_PATHS.rocksSmall);
+  const rocksLargeGltf = useGLTF(DETAIL_MODEL_PATHS.rocksLarge);
+  const crystalSmallGltf = useGLTF(DETAIL_MODEL_PATHS.crystalSmall);
+  const dirtSmallGltf = useGLTF(DETAIL_MODEL_PATHS.dirtSmall);
+
+  // Refs for each InstancedMesh layer
+  const treeSmallRef = useRef<THREE.InstancedMesh>(null);
+  const treeLargeRef = useRef<THREE.InstancedMesh>(null);
+  const rocksSmallRef = useRef<THREE.InstancedMesh>(null);
+  const rocksLargeRef = useRef<THREE.InstancedMesh>(null);
   const roadEdgeRef = useRef<THREE.InstancedMesh>(null);
+  const crystalRef = useRef<THREE.InstancedMesh>(null);
+  const dirtRef = useRef<THREE.InstancedMesh>(null);
 
   const { treeCount, rockCount, scatterRadius, minRoadClearance } = mapConfig.scenery;
   const mapSize = session?.mapSize ?? mapConfig.size;
 
-  // Extract the first mesh geometry and material from each GLB
-  const treeData = useMemo(() => {
-    let geo: THREE.BufferGeometry | undefined;
-    let mat: THREE.Material | undefined;
-    treeGltf.scene.traverse((child) => {
-      if (!geo && (child as THREE.Mesh).isMesh) {
-        const mesh = child as THREE.Mesh;
-        geo = mesh.geometry;
-        mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
-      }
-    });
-    return { geo, mat };
-  }, [treeGltf]);
+  // Split counts: 60% small, 40% large for natural variety
+  const treeSmallCount = Math.floor(treeCount * 0.6);
+  const treeLargeCount = treeCount - treeSmallCount;
+  const rockSmallCount = Math.floor(rockCount * 0.6);
+  const rockLargeCount = rockCount - rockSmallCount;
+  const dirtCount = 40;
 
-  const boulderData = useMemo(() => {
-    let geo: THREE.BufferGeometry | undefined;
-    let mat: THREE.Material | undefined;
-    boulderGltf.scene.traverse((child) => {
-      if (!geo && (child as THREE.Mesh).isMesh) {
-        const mesh = child as THREE.Mesh;
-        geo = mesh.geometry;
-        mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
-      }
-    });
-    return { geo, mat };
-  }, [boulderGltf]);
+  const treeSmallData = useMemo(() => extractMeshData(treeSmallGltf.scene), [treeSmallGltf]);
+  const treeLargeData = useMemo(() => extractMeshData(treeLargeGltf.scene), [treeLargeGltf]);
+  const rocksSmallData = useMemo(() => extractMeshData(rocksSmallGltf.scene), [rocksSmallGltf]);
+  const rocksLargeData = useMemo(() => extractMeshData(rocksLargeGltf.scene), [rocksLargeGltf]);
+  const crystalSmallData = useMemo(() => extractMeshData(crystalSmallGltf.scene), [crystalSmallGltf]);
+  const dirtSmallData = useMemo(() => extractMeshData(dirtSmallGltf.scene), [dirtSmallGltf]);
 
   const initialized = useRef(false);
   useMemo(() => {
@@ -220,22 +235,35 @@ function EnvironmentScatter() {
 
   useFrame(() => {
     if (initialized.current) return;
-    if (!treeRef.current || !rockRef.current || !roadEdgeRef.current) return;
-    if (!treeData.geo || !boulderData.geo) return;
+    if (
+      !treeSmallRef.current ||
+      !treeLargeRef.current ||
+      !rocksSmallRef.current ||
+      !rocksLargeRef.current ||
+      !roadEdgeRef.current ||
+      !crystalRef.current ||
+      !dirtRef.current
+    )
+      return;
+    if (!treeSmallData.geo || !treeLargeData.geo || !rocksSmallData.geo || !rocksLargeData.geo)
+      return;
 
     let seedNum = session?.runId ? Number.parseInt(session.runId.substring(0, 8), 16) : 12345;
     if (Number.isNaN(seedNum)) seedNum = 12345;
     const random = createScatterRng(seedNum);
 
     const halfMap = mapSize * scatterRadius;
-    let treeIdx = 0;
-    let rockIdx = 0;
+    let treeSmallIdx = 0;
+    let treeLargeIdx = 0;
+    let rockSmallIdx = 0;
+    let rockLargeIdx = 0;
+    let dirtIdx = 0;
 
-    const candidates = treeCount + rockCount + 200;
+    const totalNeeded = treeCount + rockCount + dirtCount;
+    const candidates = totalNeeded + 300;
     for (let i = 0; i < candidates; i++) {
       const x = (random() - 0.5) * 2 * halfMap;
       const z = (random() - 0.5) * 2 * halfMap;
-      const isTree = treeIdx < treeCount && (rockIdx >= rockCount || random() > 0.33);
 
       // Check road clearance
       const point = new THREE.Vector3(x, 0, z);
@@ -248,26 +276,54 @@ function EnvironmentScatter() {
       if (minDist < minRoadClearance) continue;
 
       const rotY = random() * Math.PI * 2;
+      const roll = random();
 
-      if (isTree && treeIdx < treeCount) {
+      // Distribute: trees, rocks, then dirt patches
+      const totalTreesPlaced = treeSmallIdx + treeLargeIdx;
+      const totalRocksPlaced = rockSmallIdx + rockLargeIdx;
+      const allTreesDone = totalTreesPlaced >= treeCount;
+      const allRocksDone = totalRocksPlaced >= rockCount;
+      const allDirtDone = dirtIdx >= dirtCount;
+
+      if (!allTreesDone && (allRocksDone || roll > 0.33)) {
+        // Place a tree -- alternate between small and large
         const scale = 1.5 + random() * 1.5;
         _scatterObj.position.set(x, 0, z);
         _scatterObj.rotation.set(0, rotY, 0);
         _scatterObj.scale.set(scale, scale, scale);
         _scatterObj.updateMatrix();
-        treeRef.current.setMatrixAt(treeIdx, _scatterObj.matrix);
-        treeIdx++;
-      } else if (!isTree && rockIdx < rockCount) {
+        if (treeSmallIdx < treeSmallCount) {
+          treeSmallRef.current.setMatrixAt(treeSmallIdx, _scatterObj.matrix);
+          treeSmallIdx++;
+        } else if (treeLargeIdx < treeLargeCount) {
+          treeLargeRef.current.setMatrixAt(treeLargeIdx, _scatterObj.matrix);
+          treeLargeIdx++;
+        }
+      } else if (!allRocksDone) {
         const scale = 0.6 + random() * 0.8;
         _scatterObj.position.set(x, scale * 0.2, z);
         _scatterObj.rotation.set(random() * 0.3, rotY, random() * 0.3);
         _scatterObj.scale.set(scale, scale * 0.7, scale);
         _scatterObj.updateMatrix();
-        rockRef.current.setMatrixAt(rockIdx, _scatterObj.matrix);
-        rockIdx++;
+        if (rockSmallIdx < rockSmallCount) {
+          rocksSmallRef.current.setMatrixAt(rockSmallIdx, _scatterObj.matrix);
+          rockSmallIdx++;
+        } else if (rockLargeIdx < rockLargeCount) {
+          rocksLargeRef.current.setMatrixAt(rockLargeIdx, _scatterObj.matrix);
+          rockLargeIdx++;
+        }
+      } else if (!allDirtDone) {
+        // Scatter dirt patches for ground detail
+        const scale = 0.8 + random() * 0.6;
+        _scatterObj.position.set(x, 0.05, z);
+        _scatterObj.rotation.set(0, rotY, 0);
+        _scatterObj.scale.set(scale, scale * 0.4, scale);
+        _scatterObj.updateMatrix();
+        dirtRef.current.setMatrixAt(dirtIdx, _scatterObj.matrix);
+        dirtIdx++;
       }
 
-      if (treeIdx >= treeCount && rockIdx >= rockCount) break;
+      if (allTreesDone && allRocksDone && allDirtDone) break;
     }
 
     // Scatter small rocks along road edges for detail
@@ -279,7 +335,6 @@ function EnvironmentScatter() {
       const perpX = -tangent.z;
       const perpZ = tangent.x;
       const len = Math.sqrt(perpX * perpX + perpZ * perpZ);
-      // Place 5-7 units from road center (just beyond the edge)
       const offset = (5 + random() * 2) * (random() > 0.5 ? 1 : -1);
       const ex = roadPt.x + (perpX / len) * offset;
       const ez = roadPt.z + (perpZ / len) * offset;
@@ -292,36 +347,103 @@ function EnvironmentScatter() {
       edgeIdx++;
     }
 
-    treeRef.current.instanceMatrix.needsUpdate = true;
-    rockRef.current.instanceMatrix.needsUpdate = true;
+    // Scatter crystals near the sanctuary for magical atmosphere
+    const sanctX = sanctuaryPosition.x;
+    const sanctZ = sanctuaryPosition.z;
+    for (let i = 0; i < CRYSTAL_COUNT; i++) {
+      const angle = random() * Math.PI * 2;
+      const dist = 8 + random() * 20;
+      const cx = sanctX + Math.cos(angle) * dist;
+      const cz = sanctZ + Math.sin(angle) * dist;
+      const scale = 0.5 + random() * 1.0;
+      _scatterObj.position.set(cx, 0, cz);
+      _scatterObj.rotation.set(0, random() * Math.PI * 2, random() * 0.2);
+      _scatterObj.scale.set(scale, scale * 1.2, scale);
+      _scatterObj.updateMatrix();
+      crystalRef.current.setMatrixAt(i, _scatterObj.matrix);
+    }
+
+    treeSmallRef.current.instanceMatrix.needsUpdate = true;
+    treeLargeRef.current.instanceMatrix.needsUpdate = true;
+    rocksSmallRef.current.instanceMatrix.needsUpdate = true;
+    rocksLargeRef.current.instanceMatrix.needsUpdate = true;
     roadEdgeRef.current.instanceMatrix.needsUpdate = true;
+    crystalRef.current.instanceMatrix.needsUpdate = true;
+    dirtRef.current.instanceMatrix.needsUpdate = true;
 
     initialized.current = true;
   });
 
-  if (!treeData.geo || !treeData.mat || !boulderData.geo || !boulderData.mat) return null;
+  if (
+    !treeSmallData.geo ||
+    !treeSmallData.mat ||
+    !treeLargeData.geo ||
+    !treeLargeData.mat ||
+    !rocksSmallData.geo ||
+    !rocksSmallData.mat ||
+    !rocksLargeData.geo ||
+    !rocksLargeData.mat ||
+    !crystalSmallData.geo ||
+    !crystalSmallData.mat ||
+    !dirtSmallData.geo ||
+    !dirtSmallData.mat
+  )
+    return null;
 
   return (
     <>
+      {/* Small trees */}
       <instancedMesh
-        ref={treeRef}
-        args={[treeData.geo, treeData.mat, treeCount]}
+        ref={treeSmallRef}
+        args={[treeSmallData.geo, treeSmallData.mat, treeSmallCount]}
         castShadow
         receiveShadow
         frustumCulled={false}
       />
+      {/* Large trees */}
       <instancedMesh
-        ref={rockRef}
-        args={[boulderData.geo, boulderData.mat, rockCount]}
+        ref={treeLargeRef}
+        args={[treeLargeData.geo, treeLargeData.mat, treeLargeCount]}
         castShadow
         receiveShadow
         frustumCulled={false}
       />
-      {/* Small rocks along road edges for detail */}
+      {/* Small rocks */}
+      <instancedMesh
+        ref={rocksSmallRef}
+        args={[rocksSmallData.geo, rocksSmallData.mat, rockSmallCount]}
+        castShadow
+        receiveShadow
+        frustumCulled={false}
+      />
+      {/* Large rocks */}
+      <instancedMesh
+        ref={rocksLargeRef}
+        args={[rocksLargeData.geo, rocksLargeData.mat, rockLargeCount]}
+        castShadow
+        receiveShadow
+        frustumCulled={false}
+      />
+      {/* Small rocks along road edges */}
       <instancedMesh
         ref={roadEdgeRef}
-        args={[boulderData.geo, boulderData.mat, ROAD_EDGE_ROCK_COUNT]}
+        args={[rocksSmallData.geo, rocksSmallData.mat, ROAD_EDGE_ROCK_COUNT]}
         castShadow
+        receiveShadow
+        frustumCulled={false}
+      />
+      {/* Magic crystals near sanctuary */}
+      <instancedMesh
+        ref={crystalRef}
+        args={[crystalSmallData.geo, crystalSmallData.mat, CRYSTAL_COUNT]}
+        castShadow
+        receiveShadow
+        frustumCulled={false}
+      />
+      {/* Ground dirt patches */}
+      <instancedMesh
+        ref={dirtRef}
+        args={[dirtSmallData.geo, dirtSmallData.mat, dirtCount]}
         receiveShadow
         frustumCulled={false}
       />

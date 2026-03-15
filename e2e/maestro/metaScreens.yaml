@@ -1,0 +1,9 @@
+appId: com.arcadecabinet.grailguard
+---
+- launchApp
+- tapOn: "Codex"
+- assertVisible: "Codex"
+- back
+- tapOn: "Settings"
+- assertVisible: "Settings"
+- takeScreenshot: e2e/maestro/screenshots/settings

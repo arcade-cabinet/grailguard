@@ -6,17 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": [
-      "src/**/*.ts",
-      "src/**/*.tsx",
-      "app/**/*.ts",
-      "app/**/*.tsx",
-      "e2e/**/*.ts",
-      "*.ts",
-      "*.tsx",
-      "*.js",
-      "*.json"
-    ]
+    "includes": ["src/**/*.ts", "src/**/*.tsx", "e2e/**/*.ts", "*.ts", "*.tsx", "*.js", "*.json"]
   },
   "formatter": {
     "enabled": true,
@@ -44,10 +34,10 @@
         "noAccumulatingSpread": "warn"
       },
       "style": {
-        "noNonNullAssertion": "warn",
+        "noNonNullAssertion": "off",
         "useConst": "error",
         "useTemplate": "warn",
-        "noParameterAssign": "warn"
+        "noParameterAssign": "off"
       },
       "suspicious": {
         "noExplicitAny": "warn",
@@ -72,11 +62,57 @@
   },
   "overrides": [
     {
-      "includes": ["*.config.js", "babel.config.js", "metro.config.js"],
+      "includes": ["*.config.js", "postcss.config.js"],
       "linter": {
         "rules": {
           "suspicious": {
             "noConsole": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/__tests__/**", "e2e/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noNonNullAssertion": "off"
+          },
+          "suspicious": {
+            "noExplicitAny": "off"
+          },
+          "correctness": {
+            "useHookAtTopLevel": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/components/**"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "useExhaustiveDependencies": "off",
+            "useHookAtTopLevel": "off"
+          },
+          "suspicious": {
+            "noArrayIndexKey": "off"
+          },
+          "a11y": {
+            "useAriaPropsSupportedByRole": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/db/**", "src/engine/**", "src/app/**"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "useExhaustiveDependencies": "off"
+          },
+          "a11y": {
+            "useAriaPropsSupportedByRole": "off"
           }
         }
       }

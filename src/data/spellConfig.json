@@ -1,0 +1,57 @@
+{
+  "spells": {
+    "smite": {
+      "name": "Divine Smite",
+      "faithCost": 25,
+      "cooldown": 15,
+      "damage": 300,
+      "targets": 3,
+      "aoeRadius": 12,
+      "unlockCost": 0
+    },
+    "holy_nova": {
+      "name": "Holy Nova",
+      "faithCost": 25,
+      "cooldown": 20,
+      "healAmount": 50,
+      "unlockCost": 200
+    },
+    "zealous_haste": {
+      "name": "Zealous Haste",
+      "faithCost": 25,
+      "cooldown": 30,
+      "unlockCost": 200
+    },
+    "earthquake": {
+      "name": "Earthquake",
+      "faithCost": 25,
+      "cooldown": 25,
+      "damage": 20,
+      "stunDuration": 3,
+      "unlockCost": 300
+    },
+    "chrono_shift": {
+      "name": "Chrono Shift",
+      "faithCost": 50,
+      "cooldown": 30,
+      "freezeDuration": 4,
+      "unlockCost": 300
+    },
+    "meteor_strike": {
+      "name": "Meteor Strike",
+      "faithCost": 35,
+      "cooldown": 25,
+      "damage": 400,
+      "aoeRadius": 10,
+      "worldEffectRadius": 15,
+      "unlockCost": 400
+    },
+    "divine_shield": {
+      "name": "Divine Shield",
+      "faithCost": 40,
+      "cooldown": 30,
+      "duration": 5,
+      "unlockCost": 400
+    }
+  }
+}

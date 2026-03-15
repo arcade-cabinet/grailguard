@@ -1,0 +1,14 @@
+{
+  "overview": {
+    "zoom": 35,
+    "transitionDuration": 1.5
+  },
+  "action": {
+    "zoom": 55,
+    "transitionDuration": 0.8
+  },
+  "cinematic": {
+    "zoom": 70,
+    "transitionDuration": 2.0
+  }
+}

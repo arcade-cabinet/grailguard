@@ -1,0 +1,10 @@
+appId: com.arcadecabinet.grailguard
+---
+- launchApp
+- assertVisible: "Grailguard"
+- assertVisible: "Embark"
+- tapOn: "Embark"
+- assertVisible: "King's Road"
+- tapOn: "Start Run"
+- assertVisible: "Build Phase"
+- takeScreenshot: e2e/maestro/screenshots/game-loaded

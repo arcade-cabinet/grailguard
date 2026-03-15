@@ -1,0 +1,6 @@
+{
+  "orc": { "priorities": ["hut", "range"] },
+  "troll": { "priorities": ["range", "temple", "keep"] },
+  "boss": { "priorities": ["keep"] },
+  "goblin": { "priorities": ["nearest"] }
+}

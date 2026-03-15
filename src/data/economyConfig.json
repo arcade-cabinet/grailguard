@@ -1,0 +1,23 @@
+{
+  "startingResources": {
+    "gold": 300,
+    "wood": 50,
+    "ore": 0,
+    "gem": 0,
+    "faith": 100,
+    "health": 20
+  },
+  "cart": {
+    "speed": 5,
+    "speedWithRelic": 10
+  },
+  "deliveries": {
+    "wood": 10,
+    "ore": 1,
+    "gem": 1
+  },
+  "coins": {
+    "victoryMultiplier": 25,
+    "defeatMultiplier": 10
+  }
+}

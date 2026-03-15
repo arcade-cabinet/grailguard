@@ -1,0 +1,15 @@
+{
+  "size": 100,
+  "roadSampleCount": 120,
+  "placementGridSize": 5,
+  "wallMaxRoadDistance": 4,
+  "spawnerMinRoadDistance": 7,
+  "roadSplinePointCount": 50,
+  "yukaPathPointCount": 50,
+  "scenery": {
+    "treeCount": 200,
+    "rockCount": 100,
+    "scatterRadius": 0.9,
+    "minRoadClearance": 6
+  }
+}

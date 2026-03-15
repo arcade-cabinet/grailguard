@@ -1,0 +1,23 @@
+{
+  "warlord": {
+    "wave": 5,
+    "ability": "aoe_slam",
+    "radius": 5,
+    "damage": 40
+  },
+  "necromancer": {
+    "wave": 10,
+    "ability": "summon_on_death",
+    "minionCount": 3
+  },
+  "dragon": {
+    "wave": 15,
+    "ability": "fire_breath",
+    "range": 12,
+    "damage": 30
+  },
+  "siegeEngine": {
+    "wave": 20,
+    "ability": "building_target"
+  }
+}

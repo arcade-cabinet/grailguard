@@ -1,0 +1,5 @@
+[
+  { "maxBudget": 100, "label": "Scout Party" },
+  { "maxBudget": 300, "label": "Raiding Force" },
+  { "maxBudget": null, "label": "War Host" }
+]

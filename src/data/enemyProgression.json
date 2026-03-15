@@ -1,0 +1,9 @@
+{
+  "goblin": { "unlockWave": 1 },
+  "orc": { "unlockWave": 3 },
+  "troll": { "unlockWave": 6 },
+  "boss": { "unlockWave": 5 },
+  "flying": { "unlockWave": 8 },
+  "shieldBearer": { "unlockWave": 10 },
+  "summoner": { "unlockWave": 12 }
+}

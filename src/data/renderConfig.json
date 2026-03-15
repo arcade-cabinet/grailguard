@@ -1,0 +1,22 @@
+{
+  "camera": {
+    "position": [0, 100, 70],
+    "zoomMin": 22,
+    "zoomMax": 80,
+    "shakeMaxOffset": 5,
+    "shakeDamping": 0.9,
+    "shakeLerp": 0.1
+  },
+  "particles": {
+    "size": 0.5,
+    "gravity": 25,
+    "drag": 0.95,
+    "poolSize": 800,
+    "bounceRestitution": 0.45,
+    "defaultLifetime": 0.8
+  },
+  "floatingText": {
+    "riseSpeed": 6,
+    "lifetime": 1.2
+  }
+}

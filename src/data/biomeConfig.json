@@ -1,0 +1,56 @@
+{
+  "biomes": {
+    "kings-road": {
+      "name": "King's Road",
+      "description": "Lush grass and dirt roads.",
+      "faithRegenMultiplier": 1.0,
+      "killGoldMultiplier": 1.0,
+      "enemySpeedMultiplier": 1.0,
+      "enemyHpMultiplier": 1.0,
+      "buildTimerMultiplier": 1.0,
+      "dropChanceMultiplier": 1.0,
+      "terrainColors": ["#4a8f46", "#3d7a3a", "#55a050", "#467f42"],
+      "sceneryTypes": ["tree", "rock"],
+      "ambientAudioKey": "forest"
+    },
+    "desert-wastes": {
+      "name": "Desert Wastes",
+      "description": "Barren dunes and scorching heat. Faith regenerates slowly, but kills yield more gold.",
+      "faithRegenMultiplier": 0.5,
+      "killGoldMultiplier": 1.5,
+      "enemySpeedMultiplier": 1.0,
+      "enemyHpMultiplier": 1.0,
+      "buildTimerMultiplier": 1.0,
+      "dropChanceMultiplier": 1.0,
+      "terrainColors": ["#d2b48c", "#c4a67a", "#dabe98", "#bfa070"],
+      "sceneryTypes": ["rock", "cactus"],
+      "ambientAudioKey": "desert"
+    },
+    "frost-peaks": {
+      "name": "Frost Peaks",
+      "description": "Frozen highlands where enemies and builders move slower.",
+      "faithRegenMultiplier": 1.0,
+      "killGoldMultiplier": 1.0,
+      "enemySpeedMultiplier": 0.8,
+      "enemyHpMultiplier": 1.0,
+      "buildTimerMultiplier": 0.8,
+      "dropChanceMultiplier": 1.0,
+      "terrainColors": ["#e8e8f0", "#d0d0e0", "#c8c8d8", "#dddde8"],
+      "sceneryTypes": ["pine", "rock"],
+      "ambientAudioKey": "snow"
+    },
+    "shadow-marsh": {
+      "name": "Shadow Marsh",
+      "description": "Dark wetlands teeming with resilient creatures. Enemies are tougher, but drop rates are doubled.",
+      "faithRegenMultiplier": 1.0,
+      "killGoldMultiplier": 1.0,
+      "enemySpeedMultiplier": 1.0,
+      "enemyHpMultiplier": 1.2,
+      "buildTimerMultiplier": 1.0,
+      "dropChanceMultiplier": 2.0,
+      "terrainColors": ["#2f4f4f", "#264040", "#385858", "#2a4848"],
+      "sceneryTypes": ["deadTree", "mushroom"],
+      "ambientAudioKey": "swamp"
+    }
+  }
+}

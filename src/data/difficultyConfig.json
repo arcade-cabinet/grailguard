@@ -1,0 +1,15 @@
+{
+  "pilgrim": {
+    "enemyStatMultiplier": 0.8,
+    "coinRewardMultiplier": 1.0
+  },
+  "crusader": {
+    "enemyStatMultiplier": 1.0,
+    "coinRewardMultiplier": 1.5
+  },
+  "inquisitor": {
+    "enemyStatMultiplier": 1.3,
+    "coinRewardMultiplier": 2.0,
+    "affixStartWave": 3
+  }
+}

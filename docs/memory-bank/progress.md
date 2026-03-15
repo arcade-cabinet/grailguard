@@ -62,6 +62,15 @@ summary: "Implementation status, what works, what's left, known issues"
 - [x] Procedural tree and rock scenery placement
 - [x] Screen-to-world raycasting for placement
 - [x] HUD overlay with radial context menu, stats, spell bar, wave info
+- [x] Animated resource counters (pulse + color flash on value change)
+- [x] Wave complete reward overlay (gold bonus, interest, early-start breakdown)
+- [x] BannerOverlay with framer-motion slide-down/fade-up animations
+- [x] ScreenFlash component for boss/spell dramatic effects
+- [x] Relic draft card selection animation (glow, scale, fade)
+- [x] Building upgrade visual scaling (1.0x to 1.4x based on level)
+- [x] Building upgrade particle burst + audio feedback
+- [x] Boss entrance: camera shake 12, screen flash 0.35, skull-prefixed banner
+- [x] Radial menu: red cost text for unaffordable items
 
 ### Audio
 - [x] Tone.js procedural synthesis engine

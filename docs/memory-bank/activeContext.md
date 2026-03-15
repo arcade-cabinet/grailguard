@@ -52,6 +52,16 @@ summary: "Current work focus, recent changes, active decisions, and next steps"
 25. **Debug overlay** -- Development-time performance/state panel
 26. **Comprehensive accessibility improvements**
 
+### Game Loop Juice (Session 2026-03-14)
+32. **Animated resource counters** -- Gold/wood/ore/gem/faith pulse (1.0->1.3->1.0 over 300ms) and flash color on value change
+33. **Radial menu cost polish** -- Unaffordable items show cost in red; improved tooltip layout
+34. **Wave complete overlay** -- 2-second reward screen with gold bonus, interest, and early-start breakdown (framer-motion staggered animations)
+35. **Boss entrance drama** -- Camera shake 12, screen flash 0.35, skull-prefixed danger banner with glow shadow
+36. **Building upgrade satisfaction** -- Golden particle burst + audio + camera micro-shake; scale grows 10% per avg level (1.0x at lvl 1, 1.4x at lvl 5); teal level indicator ring
+37. **ScreenFlash component** -- Extracted to dedicated `src/components/ui/ScreenFlash.tsx`
+38. **BannerOverlay component** -- Extracted to `src/components/ui/BannerOverlay.tsx` with framer-motion slide-down entrance, fade-up exit, distinct holy/danger styles
+39. **Relic draft animation** -- Card selection glow + scale animation; unchosen cards fade out
+
 ### Documentation & Quality
 27. **Comprehensive documentation overhaul** -- 18 docs organized into 4 domain directories
 28. **JSDoc coverage** -- All source files documented

@@ -1,6 +1,8 @@
 import { GameEntity, Goal, GoalEvaluator, Think } from 'yuka';
 import {
+  Building,
   createRunWorld,
+  gameWorld,
   getSession,
   queueWorldCommand,
   stepRunWorld,
@@ -157,12 +159,25 @@ describe('YUKA Goal-Driven Player Governor E2E', () => {
     let ticks = 0;
     const maxTicks = 5000;
     let maxWaveReached = 1;
+    let sawDefendPhase = false;
+    let sawBuildingPlaced = false;
 
     while (ticks < maxTicks) {
       const session = getSession();
       if (!session || session.gameOver) break;
 
       maxWaveReached = Math.max(maxWaveReached, session.wave);
+
+      // Track whether the defend phase was entered (wave 1 started)
+      if (session.phase === 'defend') {
+        sawDefendPhase = true;
+      }
+
+      // Track whether any buildings have been placed
+      const buildings = Array.from(gameWorld.query(Building));
+      if (buildings.length > 0) {
+        sawBuildingPlaced = true;
+      }
 
       if (ticks % 10 === 0) {
         governor.brain.arbitrate();
@@ -175,6 +190,18 @@ describe('YUKA Goal-Driven Player Governor E2E', () => {
 
     const finalSession = getSession();
     expect(finalSession).toBeDefined();
+
+    // The governor should have placed at least 1 building
+    expect(sawBuildingPlaced).toBe(true);
+
+    // The game should have entered the defend phase (wave 1 started)
+    expect(sawDefendPhase).toBe(true);
+
+    // At least 1 enemy was killed OR wave 1 completed (reaching wave 2+)
+    const killsOrWaveComplete =
+      (finalSession?.totalKills ?? 0) > 0 || maxWaveReached >= 2;
+    expect(killsOrWaveComplete).toBe(true);
+
     // The player governor should have survived to wave 2
     expect(maxWaveReached).toBeGreaterThanOrEqual(2);
   });

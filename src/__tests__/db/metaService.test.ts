@@ -62,6 +62,12 @@ vi.mock('../../db/repos/codexRepo', () => ({
 
 vi.mock('../../db/client', () => ({
   db: {},
+  persistDatabase: vi.fn(),
+}));
+
+vi.mock('../../db/useLiveQuery', () => ({
+  notifyDbChange: vi.fn(),
+  useLiveQuery: vi.fn(() => ({ data: [] })),
 }));
 
 vi.mock('drizzle-orm/expo-sqlite', () => ({

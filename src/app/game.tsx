@@ -344,7 +344,10 @@ function EndOfRunModal() {
           disabled={isBanking}
           onClick={() => {
             setIsBanking(true);
-            void bankRunRewards(finalizeRun('defeat')).then(() => {
+            const isVictory =
+              session.wave > 20 || session.announcement?.includes('Victory');
+            const result = isVictory ? 'victory' : 'defeat';
+            void bankRunRewards(finalizeRun(result)).then(() => {
               navigate('/', { replace: true });
             });
           }}

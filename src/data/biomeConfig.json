@@ -1,6 +1,8 @@
 {
   "biomes": {
     "kings-road": {
+      "name": "King's Road",
+      "description": "Lush grass and dirt roads.",
       "faithRegenMultiplier": 1.0,
       "killGoldMultiplier": 1.0,
       "enemySpeedMultiplier": 1.0,
@@ -12,6 +14,8 @@
       "ambientAudioKey": "forest"
     },
     "desert-wastes": {
+      "name": "Desert Wastes",
+      "description": "Barren dunes and scorching heat. Faith regenerates slowly, but kills yield more gold.",
       "faithRegenMultiplier": 0.5,
       "killGoldMultiplier": 1.5,
       "enemySpeedMultiplier": 1.0,
@@ -23,6 +27,8 @@
       "ambientAudioKey": "desert"
     },
     "frost-peaks": {
+      "name": "Frost Peaks",
+      "description": "Frozen highlands where enemies and builders move slower.",
       "faithRegenMultiplier": 1.0,
       "killGoldMultiplier": 1.0,
       "enemySpeedMultiplier": 0.8,
@@ -34,6 +40,8 @@
       "ambientAudioKey": "snow"
     },
     "shadow-marsh": {
+      "name": "Shadow Marsh",
+      "description": "Dark wetlands teeming with resilient creatures. Enemies are tougher, but drop rates are doubled.",
       "faithRegenMultiplier": 1.0,
       "killGoldMultiplier": 1.0,
       "enemySpeedMultiplier": 1.0,

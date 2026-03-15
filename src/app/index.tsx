@@ -16,15 +16,25 @@ import {
   purchaseSpellUnlock,
   useMetaProgress,
 } from '../db/meta';
+import biomeConfigJson from '../data/biomeConfig.json';
 import { BUILDINGS, type BuildingType, type SpellType } from '../engine/constants';
 import { soundManager } from '../engine/SoundManager';
 import { t } from '../i18n';
 
-const BIOMES = [
-  { id: 'kings-road', name: "King's Road", desc: 'Lush grass and dirt roads.' },
-  { id: 'dark-forest', name: 'Dark Forest', desc: 'Dense, oppressive woods.' },
-  { id: 'desert-wastes', name: 'Desert Wastes', desc: 'Barren and dry.' },
-];
+const BIOMES = Object.entries(
+  biomeConfigJson.biomes as Record<
+    string,
+    { name?: string; description?: string }
+  >,
+).map(([id, config]) => ({
+  id,
+  name:
+    config.name ??
+    id
+      .replace(/-/g, ' ')
+      .replace(/\b\w/g, (c) => c.toUpperCase()),
+  desc: config.description ?? '',
+}));
 
 const CHALLENGES = [
   { id: 'pilgrim', name: 'Pilgrim', desc: 'Standard enemy hordes.' },

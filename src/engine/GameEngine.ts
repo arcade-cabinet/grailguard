@@ -2228,7 +2228,7 @@ export function checkpointRun(reason: string) {
   return snapshot;
 }
 
-export function finalizeRun(result: 'defeat' | 'abandoned') {
+export function finalizeRun(result: 'victory' | 'defeat' | 'abandoned') {
   const session = getSession();
   if (!session) throw new Error('Cannot finalize an uninitialized run.');
   return {

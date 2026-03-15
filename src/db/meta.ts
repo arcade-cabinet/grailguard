@@ -13,7 +13,7 @@
  */
 import { eq } from 'drizzle-orm';
 import { BUILDINGS, type BuildingType, type SpellType } from '../engine/constants';
-import { db } from './client';
+import { db, persistDatabase } from './client';
 import { ensureSeedData as ensureBootstrapSeedData } from './repos/bootstrapRepo';
 import { discoverCodexEntry as discoverCodexEntryRepo } from './repos/codexRepo';
 import { purchaseDoctrineNode as purchaseDoctrineNodeRepo } from './repos/doctrineRepo';
@@ -37,7 +37,16 @@ import {
   settings,
   unlocks,
 } from './schema';
-import { useLiveQuery } from './useLiveQuery';
+import { notifyDbChange, useLiveQuery } from './useLiveQuery';
+
+/**
+ * Persist the database to localStorage and notify all live queries
+ * that data has changed.  Call after every write operation.
+ */
+function afterWrite() {
+  persistDatabase();
+  notifyDbChange();
+}
 
 const DEFAULT_UNLOCKS: Record<BuildingType, boolean> = {
   wall: true,
@@ -74,6 +83,7 @@ const DEFAULT_SPELL_UNLOCKS: Record<SpellType, boolean> = {
  */
 export async function ensureSeedData() {
   await ensureBootstrapSeedData();
+  afterWrite();
 }
 
 /**
@@ -139,7 +149,9 @@ export function useMetaProgress() {
  * @returns `true` if the purchase succeeded, `false` if funds are insufficient or the building is already unlocked.
  */
 export async function purchaseBuildingUnlock(buildingType: BuildingType) {
-  return purchaseUnlockTransaction(buildingType);
+  const result = await purchaseUnlockTransaction(buildingType);
+  afterWrite();
+  return result;
 }
 
 /**
@@ -148,7 +160,9 @@ export async function purchaseBuildingUnlock(buildingType: BuildingType) {
  * @returns `true` if the purchase succeeded, `false` if funds are insufficient or the spell is already unlocked.
  */
 export async function purchaseSpellUnlock(spellType: SpellType) {
-  return purchaseSpellUnlockTransaction(spellType);
+  const result = await purchaseSpellUnlockTransaction(spellType);
+  afterWrite();
+  return result;
 }
 
 /**
@@ -162,7 +176,7 @@ export async function bankRunRewards(input: {
   earnedCoins: number;
   waveReached: number;
   kills: number;
-  result: 'defeat' | 'abandoned';
+  result: 'victory' | 'defeat' | 'abandoned';
   runId: string;
   durationMs: number;
   biome?: string;
@@ -184,6 +198,7 @@ export async function bankRunRewards(input: {
     result: input.result,
   });
   await clearActiveRun(input.runId);
+  afterWrite();
 }
 
 /**
@@ -193,6 +208,7 @@ export async function bankRunRewards(input: {
 export async function markBrokenRunAndReset() {
   await archiveActiveRun('invalid');
   await clearActiveRun();
+  afterWrite();
 }
 
 /**
@@ -202,6 +218,7 @@ export async function markBrokenRunAndReset() {
 export async function abandonActiveRun() {
   await archiveActiveRun('abandoned');
   await clearActiveRun();
+  afterWrite();
 }
 
 /**
@@ -212,6 +229,7 @@ export async function abandonActiveRun() {
  */
 export async function saveActiveRunRecord(record: Omit<ActiveRunSnapshotRecord, 'updatedAt'>) {
   await saveActiveRun(record);
+  afterWrite();
 }
 
 /**
@@ -229,6 +247,7 @@ export async function loadActiveRunRecord() {
  */
 export async function clearSavedRun(runId?: string) {
   await clearActiveRun(runId);
+  afterWrite();
 }
 
 /**
@@ -237,6 +256,7 @@ export async function clearSavedRun(runId?: string) {
  */
 export async function updatePreferredSpeed(preferredSpeed: number) {
   await saveSettings({ preferredSpeed, theme: 'holy-grail' });
+  afterWrite();
 }
 
 /**
@@ -278,6 +298,7 @@ export async function updateSettings(
   }>,
 ) {
   await saveSettings(patch);
+  afterWrite();
 }
 
 /**
@@ -319,7 +340,9 @@ export function useDoctrineNodes() {
  * @returns `true` if the purchase succeeded, `false` if funds are insufficient or the node is maxed.
  */
 export async function purchaseDoctrineNode(nodeId: string, cost: number) {
-  return purchaseDoctrineNodeRepo({ nodeId, cost });
+  const result = await purchaseDoctrineNodeRepo({ nodeId, cost });
+  afterWrite();
+  return result;
 }
 
 /**
@@ -348,5 +371,6 @@ export function getUnlockCost(type: BuildingType) {
  * @param category - Category grouping (e.g. "enemy", "biome").
  */
 export async function discoverCodexEntry(entryId: string, category: string) {
-  return discoverCodexEntryRepo(entryId, category);
+  await discoverCodexEntryRepo(entryId, category);
+  afterWrite();
 }

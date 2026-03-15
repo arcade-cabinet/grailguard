@@ -304,14 +304,91 @@ Each run is a **pilgrimage to defend the Grail**:
 | Build phase BGM | Contemplative lute | 80 BPM, minor key, arpeggiated |
 | Defend phase BGM | Martial drums + strings | 120 BPM, driving rhythm, builds with wave |
 
+## Diegetic Interface Design
+
+### Philosophy: Everything in the World
+
+Inspired by Dead Space's suit-as-HUD and Kingdom Rush's contextual radial menus, Grailguard should minimize floating UI overlays and instead embed information INTO the 3D game world wherever possible.
+
+| UI Diegesis Scale | Description | Grailguard Examples |
+|-------------------|-------------|-------------------|
+| **Fully Diegetic** | Exists in-world, characters can see it | Sanctuary damage cracks, resource piles, herald banner |
+| **Spatial** | Attached to world objects, only player sees | Building radial menus, placement ghost, selection rings |
+| **Meta** | Overlaid but themed to match world | Resource bar, wave counter, spell cooldowns |
+| **Non-Diegetic** | Pure overlay (avoid) | Debug overlay only |
+
+### 3D Resource Indicators (Fully Diegetic)
+
+Replace the "Bank: 300g | 50w | 0o" text overlay with PHYSICAL resource piles visible on/around the sanctuary:
+
+- **Gold:** A chest at the sanctuary base with visible coin pile. Size scales with gold amount (0-100: small pouch, 100-500: open chest, 500+: overflowing).
+- **Wood:** A lumber pile next to the sanctuary. Logs stack higher with more wood.
+- **Ore/Gem:** Crates/barrels near the mining side of the sanctuary.
+- **Faith:** The grail itself glows brighter/dimmer based on faith level. At max faith, a visible aura radiates outward.
+
+### Herald Banner (Fully Diegetic)
+
+A physical banner/flag at the road entrance that shows wave information:
+- During build phase: banner is DOWN (peaceful)
+- When wave starts: banner RISES with the wave number
+- Boss waves: banner is RED with skull sigil
+- The banner can have wave labels ("Scout Party") written on cloth texture
+
+### Hourglass Timer (Fully Diegetic)
+
+A 3D hourglass model at the sanctuary that drains during the build phase:
+- Sand flows from top to bottom
+- When empty, the wave starts automatically
+- Player can "break" the hourglass early (Call Wave) by clicking it
+- The hourglass replaces the "Council Time: 20s" text overlay
+
+### Ground Runes for Spells (Spatial)
+
+Instead of spell buttons in the toolbar, place glowing rune circles on the ground around the sanctuary:
+- Each unlocked spell has a rune position (N, S, E, W, NE, NW, SE)
+- Active/ready runes glow gold; on-cooldown runes dim with a clockwise fill
+- Tap a rune to cast the spell at a target location
+- Runes pulse brighter when faith is sufficient
+
+### Enemy Spawn Portal (Fully Diegetic)
+
+At the road start (enemy spawn point):
+- A dark, crackling portal or cave entrance
+- Grows larger/more threatening as wave number increases
+- During defend phase, enemies emerge FROM this portal
+- During build phase, it's dormant but ominous
+
+### Contextual Radial Menu (Spatial — IMPLEMENTED)
+
+Already built as `RadialMenu.tsx` + `useRadialMenu.ts`:
+- Appears at the clicked world position
+- Context-aware: terrain type determines available options
+- Building context: upgrade/sell/targeting
+- Spring animation, DaisyUI themed
+
+### Minimal Meta Overlay (What Remains as Traditional HUD)
+
+Only these elements stay as traditional screen overlays:
+- **Wave counter** (top-right corner, small)
+- **Mini-map** (future — top-left corner)
+- **Speed toggle** (bottom-right, small icon)
+- **Leave button** (bottom-right, small icon)
+
+Everything else should be in-world or contextual.
+
 ## Planned Work
 
 - [x] Replace Toychest toolbar with radial context menu (RadialMenu + useRadialMenu)
-- [ ] Create NativeWind theme tokens matching the color palette above
+- [x] DaisyUI medieval theme with custom Grailguard colors
+- [x] HDRI sky (Alps Field) as quarter-dome backdrop
+- [x] PBR terrain with tiled grass textures
+- [x] Depth fog atmosphere
+- [ ] 3D resource indicators on sanctuary (gold chest, wood pile, ore crates)
+- [ ] Herald banner at road entrance (physical wave announcement)
+- [ ] Hourglass timer model (replaces Council Time text)
+- [ ] Ground runes for spell casting (replaces spell bar buttons)
+- [ ] Enemy spawn portal at road start
 - [ ] Implement wave banner with spring physics animation
 - [ ] Create parchment-styled tooltip component
-- [ ] Design game over modal with wax seal and stat layout
 - [ ] Implement doctrine tree with illuminated manuscript nodes
 - [ ] Design relic draft card reveal animation
-- [ ] Create resource bar with segment-based health display
-- [ ] Implement spell bar with radial cooldown sweep

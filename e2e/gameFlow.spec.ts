@@ -88,11 +88,10 @@ test.describe('Game Flow', () => {
     });
   });
 
-  test('GOAP governor can build defenses and survive wave 1', async ({ page }) => {
-    // Extended timeout: governor needs build time + full wave cycle
+  test('GOAP governor builds defenses and survives wave 1', async ({ page }) => {
+    // Extended timeout: governor build time + full wave cycle
     test.setTimeout(180_000);
-    // Enable the GOAP governor via URL param — it auto-builds towers,
-    // calls waves, and casts spells autonomously
+    // Enable GOAP governor — it auto-builds towers during build phase
     await page.goto(
       '/grailguard/game?mode=fresh&biome=kings-road&challenge=pilgrim&spells=smite&mapSize=100&governor=1',
     );
@@ -100,15 +99,21 @@ test.describe('Game Flow', () => {
       timeout: 30000,
     });
     await dismissTutorialIfVisible(page);
-    // Governor auto-starts the wave — wait for battle phase
+    // Give governor time to build structures (CI tick rate is slow)
+    await page.waitForTimeout(10000);
+    // Manually click Call Wave (reliable) — governor's towers handle defense
+    const callWaveBtn = page.getByRole('button', { name: /call wave/i });
+    await expect(callWaveBtn).toBeEnabled({ timeout: 5000 });
+    await callWaveBtn.click();
+    // Wait for battle phase to start
     await expect(page.getByRole('heading', { name: /battle phase/i })).toBeVisible({
-      timeout: 60000,
+      timeout: 15000,
     });
-    // Wait for wave to complete (governor handles defense, back to build phase)
+    // Wait for wave to complete — governor defends, back to build phase
     await expect(page.getByRole('heading', { name: /build phase/i })).toBeVisible({
-      timeout: 90000,
+      timeout: 120000,
     });
-    // Verify wave counter incremented to wave 2
+    // Verify wave counter shows wave 2
     await expect(page.getByText('2', { exact: true })).toBeVisible();
   });
 

@@ -299,7 +299,10 @@ function LoadingOverlay({
   const progressLabel = total > 0 ? `${Math.round(progress)}%` : label;
 
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0a0806]/95">
+    <div
+      data-testid="loading-overlay"
+      className="absolute inset-0 flex flex-col items-center justify-center bg-[#0a0806]/95"
+    >
       <div className="h-14 w-14 animate-spin rounded-full border-4 border-[#d4af37]/20 border-t-[#d4af37]" />
       <h1 className="mt-6 text-5xl font-bold text-[#d4af37]">{t('app_title')}</h1>
       <p className="mt-2 text-lg text-[#d7c6af]">{t('game_loading_blessing')}</p>

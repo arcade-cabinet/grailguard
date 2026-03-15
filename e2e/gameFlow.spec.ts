@@ -1,6 +1,18 @@
 import { expect, test } from '@playwright/test';
 
 /**
+ * Wait for the loading overlay (3D asset progress) to fully disappear.
+ * The overlay stays visible after bootstrapping while drei useProgress
+ * tracks GLB loading. Must be called before interacting with game buttons.
+ */
+async function waitForGameReady(page: import('@playwright/test').Page) {
+  await page.waitForSelector('[data-testid="loading-overlay"]', {
+    state: 'detached',
+    timeout: 60000,
+  });
+}
+
+/**
  * Dismiss the tutorial overlay if it appears. Waits for the overlay to
  * fully detach from the DOM before returning, ensuring no z-index:9999
  * element blocks subsequent interactions.
@@ -79,6 +91,8 @@ test.describe('Game Flow', () => {
     await expect(page.getByRole('heading', { name: /build phase/i })).toBeVisible({
       timeout: 30000,
     });
+    // Wait for 3D assets to finish loading (loading overlay blocks clicks)
+    await waitForGameReady(page);
     await dismissTutorialIfVisible(page);
     // Verify Call Wave button works
     const callWaveBtn = page.getByRole('button', { name: /call wave/i });
@@ -101,7 +115,8 @@ test.describe('Game Flow', () => {
     await expect(page.getByRole('heading', { name: /build phase/i })).toBeVisible({
       timeout: 30000,
     });
-    // Dismiss tutorial — it appears after engine init
+    // Wait for 3D assets to finish loading (loading overlay blocks clicks)
+    await waitForGameReady(page);
     await dismissTutorialIfVisible(page);
     // Click Leave to exit the game — verify it's actionable
     const leaveBtn = page.getByRole('button', { name: /leave/i });

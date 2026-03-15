@@ -464,18 +464,65 @@ function PBRRoad() {
   );
 }
 
+/**
+ * Semi-transparent building placement ghost with a pulsing breathe animation
+ * and green/red tint for valid/invalid placement feedback.
+ */
 function PlacementGhost({
   preview,
 }: {
   preview: { x: number; y: number; z: number; valid: boolean } | null;
 }) {
+  const groupRef = useRef<THREE.Group>(null);
+  const ringRef = useRef<THREE.Mesh>(null);
+
+  useFrame((state) => {
+    if (!groupRef.current) return;
+    // Pulse/breathe: scale oscillates 0.95 to 1.05
+    const pulse = 1 + Math.sin(state.clock.elapsedTime * 4) * 0.05;
+    groupRef.current.scale.set(pulse, pulse, pulse);
+    // Spin the ground ring indicator
+    if (ringRef.current) {
+      ringRef.current.rotation.z += 0.02;
+    }
+  });
+
   if (!preview) return null;
 
+  const color = preview.valid ? '#22c55e' : '#ef4444';
+
   return (
-    <mesh position={[preview.x, preview.y, preview.z]}>
-      <boxGeometry args={[6, 3, 6]} />
-      <meshBasicMaterial color={preview.valid ? '#22c55e' : '#ef4444'} transparent opacity={0.4} />
-    </mesh>
+    <group ref={groupRef} position={[preview.x, preview.y, preview.z]}>
+      {/* Main ghost body */}
+      <mesh>
+        <boxGeometry args={[6, 3, 6]} />
+        <meshStandardMaterial
+          color={color}
+          emissive={color}
+          emissiveIntensity={0.6}
+          transparent
+          opacity={0.35}
+          depthWrite={false}
+        />
+      </mesh>
+      {/* Roof peak for building silhouette */}
+      <mesh position={[0, 2.5, 0]}>
+        <coneGeometry args={[3.5, 2, 4]} />
+        <meshStandardMaterial
+          color={color}
+          emissive={color}
+          emissiveIntensity={0.6}
+          transparent
+          opacity={0.3}
+          depthWrite={false}
+        />
+      </mesh>
+      {/* Ground ring indicator */}
+      <mesh ref={ringRef} position={[0, 0.1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[3.8, 4.5, 32]} />
+        <meshBasicMaterial color={color} transparent opacity={0.5} depthWrite={false} />
+      </mesh>
+    </group>
   );
 }
 

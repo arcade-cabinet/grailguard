@@ -224,6 +224,13 @@ class AudioEngine {
     this.sfxSynth?.triggerAttackRelease('A5', '16n');
   }
 
+  /** Plays a short low thud for enemy death. Randomly skips 50% to avoid spam. */
+  playUnitDeath() {
+    if (!this.soundEnabled || !this.inited) return;
+    if (Math.random() > 0.5) return;
+    this.sfxSynth?.triggerAttackRelease('E2', '32n');
+  }
+
   /**
    * Plays a dramatic minor chord and silences all other audio layers to
    * signal the end of the game.
@@ -238,6 +245,7 @@ class AudioEngine {
   /** Subscribes to audioBus events. Should be called once during init. */
   private subscribeToAudioBus() {
     audioBus.on('combat_hit', () => this.playCombat());
+    audioBus.on('unit_death', () => this.playUnitDeath());
     audioBus.on('building_placed', () => this.playBuild());
     audioBus.on('wave_start', () => this.playWaveStart());
     audioBus.on('wave_complete', () => this.playWaveComplete());

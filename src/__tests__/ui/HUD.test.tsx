@@ -45,9 +45,14 @@ vi.mock('../../i18n', () => ({
   },
 }));
 
-// Mock framer-motion
+// Mock framer-motion -- pass-through for div and button
 vi.mock('framer-motion', () => {
   const React = require('react');
+  const stripMotionProps = (props: Record<string, unknown>) => {
+    const { initial, animate, exit, transition, whileHover, whileTap, layout, ...htmlProps } =
+      props;
+    return htmlProps;
+  };
   return {
     AnimatePresence: ({ children }: { children: React.ReactNode }) =>
       React.createElement(React.Fragment, null, children),
@@ -56,11 +61,14 @@ vi.mock('framer-motion', () => {
         (
           { children, ...props }: React.HTMLAttributes<HTMLDivElement> & Record<string, unknown>,
           ref: React.Ref<HTMLDivElement>,
-        ) => {
-          const { initial, animate, exit, transition, whileHover, whileTap, ...htmlProps } =
-            props as Record<string, unknown>;
-          return React.createElement('div', { ...htmlProps, ref }, children);
-        },
+        ) => React.createElement('div', { ...stripMotionProps(props), ref }, children),
+      ),
+      button: React.forwardRef(
+        (
+          { children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> &
+            Record<string, unknown>,
+          ref: React.Ref<HTMLButtonElement>,
+        ) => React.createElement('button', { ...stripMotionProps(props), ref }, children),
       ),
     },
   };
@@ -418,11 +426,15 @@ describe('HUD: relic draft modal', () => {
   });
 
   it('clicking a relic option queues draftRelic command', () => {
+    vi.useFakeTimers();
     mockSession.pendingRelicDraft = true;
     render(<HUD activePlacement={null} onExit={vi.fn()} onCancelPlacement={vi.fn()} />);
     const goldenAge = screen.getByLabelText(/Draft relic: Golden Age/);
     fireEvent.click(goldenAge);
+    // Selection animation delays the command by 400ms
+    vi.advanceTimersByTime(500);
     expect(mockQueueWorldCommand).toHaveBeenCalledWith({ type: 'draftRelic', relicId: 'golden_age' });
+    vi.useRealTimers();
   });
 });
 
@@ -471,7 +483,8 @@ describe('HUD: banner', () => {
     mockSession.bannerText = 'Boss Approaches!';
     mockSession.bannerTone = 'danger';
     render(<HUD activePlacement={null} onExit={vi.fn()} onCancelPlacement={vi.fn()} />);
-    expect(screen.getByText('Boss Approaches!')).toBeTruthy();
+    // BannerOverlay prefixes danger banners with a skull character
+    expect(screen.getByText(/Boss Approaches!/)).toBeTruthy();
     expect(screen.getByText('Dire Omen')).toBeTruthy();
   });
 });

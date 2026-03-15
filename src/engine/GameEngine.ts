@@ -563,6 +563,9 @@ function destroyUnit(entity: Entity, rewardGold: boolean) {
   const position = entity.get(Position);
   if (!unit) return;
 
+  // Emit unit_death audio event for SFX
+  audioBus.emit({ type: 'unit_death', detail: unit.type });
+
   if (rewardGold && unit.team === 'enemy' && unit.reward > 0) {
     const session = getSession();
     if (session) {
@@ -623,9 +626,15 @@ function destroyUnit(entity: Entity, rewardGold: boolean) {
       spawnParticleBurstECS(
         position,
         unit.team === 'ally' ? '#a16207' : unit.type === 'boss' ? '#ef4444' : '#7f1d1d',
-        unit.type === 'boss' ? 20 : 12,
-        unit.type === 'boss' ? 1.5 : 1,
+        unit.type === 'boss' ? 50 : 12,
+        unit.type === 'boss' ? 2.0 : 1,
       );
+    }
+
+    // Boss death: dramatic camera shake, screen flash, and world effect
+    if (unit.type === 'boss' && unit.team === 'enemy') {
+      setSession({ cameraShake: 8, screenFlash: 0.35, screenFlashColor: '#ef4444' });
+      spawnWorldEffect('boss_spawn', position, '#ef4444', 12, 1.2);
     }
   }
 
@@ -1164,7 +1173,8 @@ function updateWaveState(dt: number) {
     if (next.type === 'boss') {
       const bossVariant = getBossVariant(session.wave);
       const bossLabel = bossVariant ? `${bossVariant.id} Approaches` : 'Boss Approaches';
-      triggerBanner(bossLabel, 'danger', 2.8, 0.22, '#ef4444');
+      triggerBanner(bossLabel, 'danger', 2.8, 0.35, '#ef4444');
+      setSession({ cameraShake: 12 });
       audioBus.emit({ type: 'boss_spawn' });
       spawnWorldEffect(
         'boss_spawn',
@@ -1778,6 +1788,12 @@ export function upgradeBuilding(entity: Entity, branch: 'spawn' | 'stats') {
   if (branch === 'spawn') building.levelSpawn += 1;
   else building.levelStats += 1;
 
+  // Upgrade satisfaction: golden particle burst + audio + micro-shake
+  const pos = entity.get(Position);
+  if (pos) {
+    spawnParticleBurstECS(pos, '#d4af37', 14, 1.1);
+  }
+  audioBus.emit({ type: 'building_placed' });
   setSession({
     gold: session.gold - costs.gold,
     wood: session.wood - costs.wood,
@@ -1884,6 +1900,7 @@ export function startWave() {
     phase: 'defend',
     buildTimeLeft: 0,
     announcement: 'Battle Phase',
+    cameraShake: isBossWave ? 6 : 3,
   });
   setWaveState({ spawnTimer: 0.5 });
   markRunDirty('start_wave');

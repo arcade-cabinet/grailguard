@@ -129,5 +129,9 @@
   "history_difficulty": "Difficulty: {difficulty}",
   "history_duration": "Duration: {duration}",
   "embark_governor": "AI Governor (Auto-Play)",
-  "hud_tap_terrain_hint": "Tap terrain to build"
+  "hud_tap_terrain_hint": "Tap terrain to build",
+  "wave_complete_title": "Wave {wave} Complete!",
+  "wave_complete_gold_bonus": "+{amount}g",
+  "wave_complete_interest": "+{amount}g ({rate}% interest)",
+  "wave_complete_early_bonus": "+{amount}g early start"
 }

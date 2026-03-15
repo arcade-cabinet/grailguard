@@ -29,16 +29,16 @@ describe('renderConfig', () => {
 
   describe('particles', () => {
     it('has correct default values', () => {
-      expect(renderConfig.particles.size).toBe(0.3);
-      expect(renderConfig.particles.gravity).toBe(30);
-      expect(renderConfig.particles.drag).toBe(0.96);
+      expect(renderConfig.particles.size).toBe(0.5);
+      expect(renderConfig.particles.gravity).toBe(25);
+      expect(renderConfig.particles.drag).toBe(0.95);
     });
   });
 
   describe('floatingText', () => {
     it('has correct default values', () => {
-      expect(renderConfig.floatingText.riseSpeed).toBe(5);
-      expect(renderConfig.floatingText.lifetime).toBe(1);
+      expect(renderConfig.floatingText.riseSpeed).toBe(6);
+      expect(renderConfig.floatingText.lifetime).toBe(1.2);
     });
   });
 });

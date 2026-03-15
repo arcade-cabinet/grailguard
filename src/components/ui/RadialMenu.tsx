@@ -192,11 +192,17 @@ function RadialMenuItemButton({ item, onClose }: { item: RadialMenuItem; onClose
     >
       <span className="text-lg leading-none">{item.icon}</span>
 
-      {/* Tooltip label */}
-      <div className="pointer-events-none absolute -bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg border border-[#6b4a2f] bg-[#1f140f]/95 px-2 py-1 opacity-0 shadow-md transition-opacity group-hover:opacity-100">
+      {/* Tooltip: name + cost (red when unaffordable) */}
+      <div className="pointer-events-none absolute -bottom-12 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg border border-[#6b4a2f] bg-[#1f140f]/95 px-3 py-1.5 opacity-0 shadow-md transition-opacity group-hover:opacity-100">
         <span className="block text-center text-[10px] font-bold text-[#f5e8cc]">{item.label}</span>
         {item.subLabel ? (
-          <span className="block text-center text-[9px] text-[#c9b18b]">{item.subLabel}</span>
+          <span
+            className={`block text-center text-[9px] font-semibold ${
+              item.disabled ? 'text-[#ef4444]' : 'text-[#c9b18b]'
+            }`}
+          >
+            {item.subLabel}
+          </span>
         ) : null}
       </div>
     </button>

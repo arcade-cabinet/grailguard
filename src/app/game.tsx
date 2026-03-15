@@ -20,6 +20,7 @@ import { HUD } from '../components/ui/HUD';
 import { RadialMenu } from '../components/ui/RadialMenu';
 import { Tutorial } from '../components/ui/Tutorial';
 import { useRadialMenu } from '../components/ui/useRadialMenu';
+import { WaveCompleteOverlay, type WaveReward } from '../components/ui/WaveCompleteOverlay';
 import {
   abandonActiveRun,
   bankRunRewards,
@@ -157,6 +158,58 @@ function CodexDiscoveryBridge() {
   return null;
 }
 
+/**
+ * Tracks wave transitions and shows a WaveCompleteOverlay with reward
+ * breakdown. Listens for the phase changing from 'defend' to 'build'
+ * (which indicates wave completion), computes the reward breakdown,
+ * and displays it for 2 seconds before auto-hiding.
+ */
+function WaveCompleteBridge() {
+  const session = useTrait(gameWorld, GameSession);
+  const [reward, setReward] = useState<WaveReward | null>(null);
+  const prevPhaseRef = useRef<string>('');
+  const prevWaveRef = useRef<number>(1);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!session) return;
+
+    // Detect transition from defend -> build (wave just completed)
+    const wasDefend = prevPhaseRef.current === 'defend';
+    const nowBuild = session.phase === 'build';
+    const waveAdvanced = session.wave > prevWaveRef.current;
+
+    if (wasDefend && nowBuild && waveAdvanced) {
+      // Wave N was just completed, session.wave is now N+1
+      const completedWave = session.wave - 1;
+      // Approximate the reward using the wave config formula
+      const goldReward = 50 + 10 * completedWave;
+      const hasGoldenAge = session.relics?.includes('golden_age') ?? false;
+      const interest = hasGoldenAge ? Math.floor(session.gold * 0.05) : 0;
+
+      setReward({
+        wave: completedWave,
+        goldReward,
+        interest,
+        interestRate: 5,
+        earlyBonus: 0,
+      });
+
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => setReward(null), 2000);
+    }
+
+    prevPhaseRef.current = session.phase;
+    prevWaveRef.current = session.wave;
+
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [session?.phase, session?.wave, session?.gold, session?.relics, session]);
+
+  return <WaveCompleteOverlay reward={reward} />;
+}
+
 function FloatingTextLayer({ viewportSize }: { viewportSize: { width: number; height: number } }) {
   const floatingTexts = useQuery(FloatingText, Position);
 
@@ -170,24 +223,31 @@ function FloatingTextLayer({ viewportSize }: { viewportSize: { width: number; he
         const projected = projectWorldPointToScreen(position, viewportSize);
         if (!projected?.visible) return null;
 
+        // Scale up as life fades for a "pop" effect, then shrink
+        const life = Math.max(0, floatingText.life);
+        const popScale = life > 0.8 ? 1 + (1 - life) * 3 : 1.6 * life;
+
         return (
           <div
             key={entity.id()}
             className="absolute"
             style={{
-              left: projected.x - 32,
-              top: projected.y - 20,
-              width: 64,
+              left: projected.x - 60,
+              top: projected.y - 24,
+              width: 120,
               textAlign: 'center',
-              opacity: Math.max(0, floatingText.life),
+              opacity: Math.min(1, life * 2),
+              transform: `scale(${Math.max(0.3, popScale)})`,
             }}
           >
             <span
               style={{
                 color: floatingText.color,
-                fontSize: 20,
+                fontSize: 32,
                 fontWeight: 900,
-                textShadow: '1px 1px 3px #000000',
+                textShadow: '0 0 6px #000000, 0 2px 4px #000000, 0 0 12px #00000080',
+                letterSpacing: '1px',
+                WebkitTextStroke: '1px rgba(0,0,0,0.5)',
               }}
             >
               {floatingText.text}
@@ -738,6 +798,9 @@ function LiveGameView({
           onClose={closeMenu}
         />
       ) : null}
+
+      {/* Wave complete reward overlay */}
+      {!isBootstrapping ? <WaveCompleteBridge /> : null}
 
       <LoadingOverlay forceVisible={isBootstrapping} label={bootLabel} />
       {!isBootstrapping ? <EndOfRunModal /> : null}

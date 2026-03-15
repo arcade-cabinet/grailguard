@@ -2,6 +2,8 @@
  * @module BuildingMesh
  *
  * Renders a single building entity as a 3D mesh inside the Arena scene.
+ * Scale increases with upgrade level (avgLevel * 0.1 bonus) so higher-level
+ * buildings are visually larger. A level indicator ring shows upgrade progress.
  */
 import { Clone, useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
@@ -15,17 +17,20 @@ import { BUILDING_MODEL_PATHS } from '../modelPaths';
 /**
  * Renders a building entity using its associated GLB model. Displays a
  * camera-facing spawn/rate progress bar above the building and a golden
- * selection ring when selected. The model is scaled per building type and
- * updated each frame to track entity position.
+ * selection ring when selected. The model is scaled per building type,
+ * with a bonus multiplier based on average upgrade level (1.0 at level 1,
+ * up to 1.4 at level 5).
  *
  * @param props.entity - The Koota entity that carries `Building` and `Position` traits.
  * @param props.selected - Whether to show the golden selection ring around the building.
  */
 export function BuildingMesh({ entity, selected = false }: { entity: Entity; selected?: boolean }) {
   const groupRef = useRef<THREE.Group>(null);
+  const modelRef = useRef<THREE.Group>(null);
   const progressGroupRef = useRef<THREE.Group>(null);
   const progressBarRef = useRef<THREE.Mesh>(null);
   const selectionRef = useRef<THREE.Mesh>(null);
+  const levelIndicatorRef = useRef<THREE.Mesh>(null);
   const building = entity.get(Building);
   const position = entity.get(Position);
 
@@ -38,6 +43,22 @@ export function BuildingMesh({ entity, selected = false }: { entity: Entity; sel
     if (!groupRef.current || !currentBuilding || !currentPosition) return;
 
     groupRef.current.position.set(currentPosition.x, currentPosition.y, currentPosition.z);
+
+    // Scale grows with upgrade level: 1.0 at level 1, up to 1.4 at level 5
+    const avgLevel = (currentBuilding.levelSpawn + currentBuilding.levelStats) / 2;
+    const upgradeScale = 1 + (avgLevel - 1) * 0.1;
+    if (modelRef.current) {
+      modelRef.current.scale.setScalar(upgradeScale);
+    }
+
+    // Level indicator ring: visible when any upgrade > 1, grows brighter
+    if (levelIndicatorRef.current) {
+      const showLevel = avgLevel > 1;
+      levelIndicatorRef.current.visible = showLevel;
+      if (showLevel) {
+        levelIndicatorRef.current.rotation.z += 0.5 / 60;
+      }
+    }
 
     if (selectionRef.current) {
       selectionRef.current.visible = selected;
@@ -70,7 +91,11 @@ export function BuildingMesh({ entity, selected = false }: { entity: Entity; sel
 
   return (
     <group ref={groupRef}>
-      <Clone object={scene} scale={scale} castShadow receiveShadow />
+      {/* Model wrapper that scales with upgrade level */}
+      <group ref={modelRef}>
+        <Clone object={scene} scale={scale} castShadow receiveShadow />
+      </group>
+      {/* Selection ring */}
       <mesh
         ref={selectionRef}
         position={[0, 0.2, 0]}
@@ -80,6 +105,17 @@ export function BuildingMesh({ entity, selected = false }: { entity: Entity; sel
         <ringGeometry args={[2.7, 3.5, 36]} />
         <meshBasicMaterial color="#d4af37" transparent opacity={0.85} />
       </mesh>
+      {/* Level indicator ring: subtle teal glow visible when upgraded */}
+      <mesh
+        ref={levelIndicatorRef}
+        position={[0, 0.15, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        visible={false}
+      >
+        <ringGeometry args={[2.2, 2.5, 24]} />
+        <meshBasicMaterial color="#5eead4" transparent opacity={0.45} />
+      </mesh>
+      {/* Spawn progress bar */}
       <group ref={progressGroupRef} position={[0, 4.8, 0]}>
         <mesh>
           <planeGeometry args={[2.9, 0.3]} />

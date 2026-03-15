@@ -15,6 +15,20 @@ async function dismissTutorialIfVisible(page: import('@playwright/test').Page) {
   }
 }
 
+/**
+ * Click the "Start Run" button reliably across all viewports.
+ * On mobile the button may be outside the viewport even after scrolling
+ * (the embark modal overflows on small screens). We use a JS-dispatched
+ * click which bypasses Playwright's viewport requirement.
+ */
+async function clickStartRun(page: import('@playwright/test').Page) {
+  const startBtn = page.getByRole('button', { name: /start run/i });
+  await expect(startBtn).toBeVisible({ timeout: 5000 });
+  // Scroll into view, then dispatch a JS click (bypasses viewport check)
+  await startBtn.scrollIntoViewIfNeeded();
+  await startBtn.evaluate((el: HTMLElement) => el.click());
+}
+
 test.describe('Game Flow', () => {
   test('app loads and shows main menu', async ({ page }) => {
     await page.goto('/grailguard/');
@@ -42,13 +56,10 @@ test.describe('Game Flow', () => {
   test('starting a run navigates to game screen', async ({ page }) => {
     await page.goto('/grailguard/');
     await page.getByRole('button', { name: /embark/i }).click();
-    // Force-click Start Run — may be outside viewport on mobile embark modal
-    const startBtn = page.getByRole('button', { name: /start run/i });
-    await startBtn.scrollIntoViewIfNeeded();
-    await startBtn.click({ force: true });
+    await clickStartRun(page);
     await page.waitForURL(/\/game/);
     await expect(page.getByRole('heading', { name: /build phase/i })).toBeVisible({
-      timeout: 15000,
+      timeout: 30000,
     });
   });
 
@@ -57,24 +68,22 @@ test.describe('Game Flow', () => {
       '/grailguard/game?mode=fresh&biome=kings-road&challenge=pilgrim&spells=smite&mapSize=100',
     );
     await expect(page.getByRole('heading', { name: /build phase/i })).toBeVisible({
-      timeout: 15000,
+      timeout: 30000,
     });
   });
 
-  test('player can build and survive a wave', { timeout: 120_000 }, async ({ page }) => {
-    await page.goto('/grailguard/');
-    // Click Embark
-    await page.getByRole('button', { name: /embark/i }).click();
-    // Force-click Start Run — may be outside viewport on mobile embark modal
-    const startBtn = page.getByRole('button', { name: /start run/i });
-    await startBtn.scrollIntoViewIfNeeded();
-    await startBtn.click({ force: true });
-    await page.waitForURL(/\/game/);
-    // Wait for build phase heading FIRST (confirms game engine is fully loaded)
+  test('player can build and survive a wave', async ({ page }) => {
+    // Extended timeout: game engine init + full wave cycle can exceed 60s in CI
+    test.setTimeout(180_000);
+    // Navigate directly to game (more reliable than Embark flow in CI)
+    await page.goto(
+      '/grailguard/game?mode=fresh&biome=kings-road&challenge=pilgrim&spells=smite&mapSize=100',
+    );
+    // Wait for build phase heading (confirms game engine is fully loaded)
     await expect(page.getByRole('heading', { name: /build phase/i })).toBeVisible({
-      timeout: 15000,
+      timeout: 30000,
     });
-    // THEN dismiss tutorial — it appears after engine init, not before
+    // Dismiss tutorial — it appears after engine init
     await dismissTutorialIfVisible(page);
     // Click Call Wave — verify button is actionable (not behind overlay)
     const callWaveBtn = page.getByRole('button', { name: /call wave/i });
@@ -82,11 +91,11 @@ test.describe('Game Flow', () => {
     await callWaveBtn.click();
     // Wait for enemies to spawn (battle phase)
     await expect(page.getByRole('heading', { name: /battle phase/i })).toBeVisible({
-      timeout: 10000,
+      timeout: 15000,
     });
     // Wait for wave to complete (back to build phase)
     await expect(page.getByRole('heading', { name: /build phase/i })).toBeVisible({
-      timeout: 60000,
+      timeout: 90000,
     });
     // Verify wave counter incremented (use exact match to avoid strict mode)
     await expect(page.getByText('2', { exact: true })).toBeVisible();
@@ -96,11 +105,11 @@ test.describe('Game Flow', () => {
     await page.goto(
       '/grailguard/game?mode=fresh&biome=kings-road&challenge=pilgrim&spells=smite&mapSize=100',
     );
-    // Wait for build phase heading FIRST (confirms game engine is fully loaded)
+    // Wait for build phase heading (confirms game engine is fully loaded)
     await expect(page.getByRole('heading', { name: /build phase/i })).toBeVisible({
-      timeout: 15000,
+      timeout: 30000,
     });
-    // THEN dismiss tutorial — it appears after engine init
+    // Dismiss tutorial — it appears after engine init
     await dismissTutorialIfVisible(page);
     // Click Leave to exit the game — verify it's actionable
     const leaveBtn = page.getByRole('button', { name: /leave/i });

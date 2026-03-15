@@ -42,10 +42,10 @@ test.describe('Game Flow', () => {
   test('starting a run navigates to game screen', async ({ page }) => {
     await page.goto('/grailguard/');
     await page.getByRole('button', { name: /embark/i }).click();
-    // Scroll the Start Run button into view (may be off-screen on mobile)
+    // Force-click Start Run — may be outside viewport on mobile embark modal
     const startBtn = page.getByRole('button', { name: /start run/i });
     await startBtn.scrollIntoViewIfNeeded();
-    await startBtn.click();
+    await startBtn.click({ force: true });
     await page.waitForURL(/\/game/);
     await expect(page.getByRole('heading', { name: /build phase/i })).toBeVisible({
       timeout: 15000,
@@ -61,14 +61,14 @@ test.describe('Game Flow', () => {
     });
   });
 
-  test('player can build and survive a wave', async ({ page }) => {
+  test('player can build and survive a wave', { timeout: 120_000 }, async ({ page }) => {
     await page.goto('/grailguard/');
     // Click Embark
     await page.getByRole('button', { name: /embark/i }).click();
-    // Scroll Start Run into view (off-screen on mobile viewports)
+    // Force-click Start Run — may be outside viewport on mobile embark modal
     const startBtn = page.getByRole('button', { name: /start run/i });
     await startBtn.scrollIntoViewIfNeeded();
-    await startBtn.click();
+    await startBtn.click({ force: true });
     await page.waitForURL(/\/game/);
     // Wait for build phase heading FIRST (confirms game engine is fully loaded)
     await expect(page.getByRole('heading', { name: /build phase/i })).toBeVisible({

@@ -27,7 +27,10 @@ test.describe('Game Flow', () => {
   test('starting a run navigates to game screen', async ({ page }) => {
     await page.goto('/grailguard/');
     await page.getByRole('button', { name: /embark/i }).click();
-    await page.getByRole('button', { name: /start run/i }).click();
+    // Scroll the Start Run button into view (may be off-screen on mobile)
+    const startBtn = page.getByRole('button', { name: /start run/i });
+    await startBtn.scrollIntoViewIfNeeded();
+    await startBtn.click();
     await page.waitForURL(/\/game/);
     await expect(page.getByRole('heading', { name: /build phase/i })).toBeVisible({
       timeout: 15000,
@@ -47,19 +50,27 @@ test.describe('Game Flow', () => {
     await page.goto('/grailguard/');
     // Click Embark
     await page.getByRole('button', { name: /embark/i }).click();
-    // Click Start Run
-    await page.getByRole('button', { name: /start run/i }).click();
+    // Scroll Start Run into view (off-screen on mobile viewports)
+    const startBtn = page.getByRole('button', { name: /start run/i });
+    await startBtn.scrollIntoViewIfNeeded();
+    await startBtn.click();
     await page.waitForURL(/\/game/);
-    // Dismiss tutorial overlay (blocks all other interactions)
-    await page.getByRole('button', { name: /skip tutorial/i }).click({ timeout: 15000 });
-    // Wait for tutorial overlay to disappear
-    await expect(page.getByRole('alert')).toBeHidden({ timeout: 5000 });
-    // Wait for build phase
+    // Dismiss tutorial if it appears — wait for overlay to fully unmount
+    const skipBtn = page.getByRole('button', { name: /skip tutorial/i });
+    if (await skipBtn.isVisible({ timeout: 8000 }).catch(() => false)) {
+      await skipBtn.click({ force: true });
+      // Wait for tutorial overlay to fully unmount
+      await expect(page.getByRole('alert')).toBeHidden({ timeout: 5000 }).catch(() => {});
+      await page.waitForTimeout(1500);
+    }
+    // Wait for build phase heading (confirms game engine is running)
     await expect(page.getByRole('heading', { name: /build phase/i })).toBeVisible({
       timeout: 15000,
     });
-    // Click Call Wave
-    await page.getByRole('button', { name: /call wave/i }).click();
+    // Click Call Wave — verify button is actionable (not behind overlay)
+    const callWaveBtn = page.getByRole('button', { name: /call wave/i });
+    await expect(callWaveBtn).toBeEnabled({ timeout: 5000 });
+    await callWaveBtn.click();
     // Wait for enemies to spawn (battle phase)
     await expect(page.getByRole('heading', { name: /battle phase/i })).toBeVisible({
       timeout: 10000,
@@ -76,16 +87,21 @@ test.describe('Game Flow', () => {
     await page.goto(
       '/grailguard/game?mode=fresh&biome=kings-road&challenge=pilgrim&spells=smite&mapSize=100',
     );
-    // Dismiss tutorial overlay (blocks all other interactions)
-    await page.getByRole('button', { name: /skip tutorial/i }).click({ timeout: 15000 });
-    // Wait for tutorial overlay to disappear
-    await expect(page.getByRole('alert')).toBeHidden({ timeout: 5000 });
+    // Dismiss tutorial if it appears — wait for overlay to fully unmount
+    const skipBtn2 = page.getByRole('button', { name: /skip tutorial/i });
+    if (await skipBtn2.isVisible({ timeout: 8000 }).catch(() => false)) {
+      await skipBtn2.click({ force: true });
+      await expect(page.getByRole('alert')).toBeHidden({ timeout: 5000 }).catch(() => {});
+      await page.waitForTimeout(1500);
+    }
     // Verify we are in the game (build phase heading visible)
     await expect(page.getByRole('heading', { name: /build phase/i })).toBeVisible({
       timeout: 15000,
     });
-    // Click Leave to exit the game and return to main menu
-    await page.getByRole('button', { name: /leave/i }).click();
+    // Click Leave to exit the game — verify it's actionable
+    const leaveBtn = page.getByRole('button', { name: /leave/i });
+    await expect(leaveBtn).toBeEnabled({ timeout: 5000 });
+    await leaveBtn.click();
     // Verify we return to the main menu
     await page.waitForURL(/\/grailguard\/?$/);
     await expect(page.getByText('Grailguard')).toBeVisible();

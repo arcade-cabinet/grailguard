@@ -26,8 +26,11 @@ import {
   Vehicle,
   Vector3 as YukaVector3,
 } from 'yuka';
+import aiConfig from '../data/aiConfig.json';
 import combatConfig from '../data/combatConfig.json';
 import waveConfig from '../data/waveConfig.json';
+import { type AiConfig, configureEnemyVehicle } from './ai/enemyBrain';
+import { createPlayerGovernor, type GovernorWorldView } from './ai/playerGovernor';
 import { audioBus } from './audio/audioBridge';
 import {
   BUILDINGS,
@@ -39,6 +42,7 @@ import {
   type UnitType,
 } from './constants';
 import { generateRoadPoints } from './mapGenerator';
+import { applyBiomeModifiers, type BiomeSession } from './systems/biomeSystem';
 import {
   calculateSellValue,
   calculateSpawnRate,
@@ -57,6 +61,9 @@ import {
   findCombatTargetPure,
   processBossAoe,
   processStatusEffects,
+  rollDrop,
+  type SiegeBuilding,
+  selectSiegeTarget,
 } from './systems/combatSystem';
 import { calculateDelivery, findLogisticsPathPure, moveCartStep } from './systems/logisticsSystem';
 import { moveProjectile, processImpact } from './systems/projectileSystem';
@@ -80,17 +87,12 @@ import {
   applyDifficultyModifiers,
   buildWaveQueue,
   calculateWaveCompletionReward,
+  type DifficultyTier,
   getBossVariant,
   getWaveLabel,
   isWaveComplete,
-  type DifficultyTier,
 } from './systems/waveSystem';
-import { rollDrop, selectSiegeTarget, type SiegeBuilding } from './systems/combatSystem';
-import { applyBiomeModifiers, type BiomeSession } from './systems/biomeSystem';
-import { configureEnemyVehicle, type AiConfig } from './ai/enemyBrain';
-import aiConfig from '../data/aiConfig.json';
 import { updateTelemetry } from './telemetry';
-import { createPlayerGovernor, type GovernorWorldView } from './ai/playerGovernor';
 
 // ────────────────────────────────────────────────────────────────
 // Yuka AI manager
@@ -586,7 +588,10 @@ function destroyUnit(entity: Entity, rewardGold: boolean) {
             const p = e.get(Position);
             if (u && p && u.team === 'ally' && u.hp < u.maxHp) {
               const d = distance2D(position, p);
-              if (d < bestDist) { bestDist = d; bestAlly = e; }
+              if (d < bestDist) {
+                bestDist = d;
+                bestAlly = e;
+              }
             }
           }
           if (bestAlly) {
@@ -668,7 +673,8 @@ function spawnScaledUnit(
   // Apply difficulty modifiers to enemy stats
   let baseHp = config.hp * multiplier * hpMultiplier;
   let baseDamage = config.damage * multiplier;
-  let baseSpeed = affix === 'swift' ? config.speed * combatConfig.swiftSpeedMultiplier : config.speed;
+  let baseSpeed =
+    affix === 'swift' ? config.speed * combatConfig.swiftSpeedMultiplier : config.speed;
   if (team === 'enemy') {
     const diffMods = applyDifficultyModifiers(
       { hp: baseHp, damage: baseDamage, speed: baseSpeed },
@@ -873,9 +879,8 @@ function updateUnits(dt: number) {
               buildings.push({ id: be.id() as number, type: bb.type, x: bp.x, z: bp.z });
             }
           }
-          const siegeTarget = buildings.length > 0
-            ? selectSiegeTarget(unit.type, buildings, position)
-            : undefined;
+          const siegeTarget =
+            buildings.length > 0 ? selectSiegeTarget(unit.type, buildings, position) : undefined;
           if (siegeTarget) {
             let seek = vehicle.steering.behaviors.find((b) => b instanceof SeekBehavior) as
               | SeekBehavior
@@ -892,10 +897,10 @@ function updateUnits(dt: number) {
           }
         }
         if (!siegeTargetFound) {
-        const follow = vehicle.steering.behaviors.find((b) => b instanceof FollowPathBehavior);
-        if (follow) follow.active = true;
-        const seek = vehicle.steering.behaviors.find((b) => b instanceof SeekBehavior);
-        if (seek) seek.active = false;
+          const follow = vehicle.steering.behaviors.find((b) => b instanceof FollowPathBehavior);
+          if (follow) follow.active = true;
+          const seek = vehicle.steering.behaviors.find((b) => b instanceof SeekBehavior);
+          if (seek) seek.active = false;
         }
         if (distance2D(position, sanctuaryPosition) < 6) {
           damageSanctuary(
@@ -1714,7 +1719,10 @@ export function isPlacementValid(type: BuildingType, position: { x: number; z: n
  * Used by the radial menu to determine context (near road vs far from road).
  */
 export function getRoadDistance(position: { x: number; z: number }): number {
-  return getRoadDistancePure(position, roadSamples.map((s) => ({ x: s.x, z: s.z })));
+  return getRoadDistancePure(
+    position,
+    roadSamples.map((s) => ({ x: s.x, z: s.z })),
+  );
 }
 
 export function buildStructure(type: BuildingType, position: { x: number; y: number; z: number }) {

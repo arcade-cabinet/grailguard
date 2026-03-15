@@ -10,29 +10,22 @@
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import biomeConfigJson from '../data/biomeConfig.json';
 import {
   getUnlockCost,
   purchaseBuildingUnlock,
   purchaseSpellUnlock,
   useMetaProgress,
 } from '../db/meta';
-import biomeConfigJson from '../data/biomeConfig.json';
 import { BUILDINGS, type BuildingType, type SpellType } from '../engine/constants';
 import { soundManager } from '../engine/SoundManager';
 import { t } from '../i18n';
 
 const BIOMES = Object.entries(
-  biomeConfigJson.biomes as Record<
-    string,
-    { name?: string; description?: string }
-  >,
+  biomeConfigJson.biomes as Record<string, { name?: string; description?: string }>,
 ).map(([id, config]) => ({
   id,
-  name:
-    config.name ??
-    id
-      .replace(/-/g, ' ')
-      .replace(/\b\w/g, (c) => c.toUpperCase()),
+  name: config.name ?? id.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
   desc: config.description ?? '',
 }));
 
@@ -107,9 +100,7 @@ export function MainMenu() {
             {t('app_subtitle')}
           </p>
           <h1 className="mt-3 text-center text-6xl font-bold text-[#ead7b0]">{t('app_title')}</h1>
-          <p className="mt-3 text-center text-base leading-6 text-[#d7c6af]">
-            {t('app_tagline')}
-          </p>
+          <p className="mt-3 text-center text-base leading-6 text-[#d7c6af]">{t('app_tagline')}</p>
 
           <div className="mt-8 rounded-[24px] border border-[#7f5b37] bg-[#e9d8be] px-6 py-5">
             <p className="text-center text-xs font-bold uppercase tracking-[4px] text-[#6e4e31]">
@@ -368,24 +359,23 @@ export function MainMenu() {
               </div>
 
               <div className="flex flex-col gap-4 pb-4">
-                <h3 className="mt-2 text-2xl font-bold text-[#3e2723]">
-                  {t('market_structures')}
-                </h3>
+                <h3 className="mt-2 text-2xl font-bold text-[#3e2723]">{t('market_structures')}</h3>
                 {marketItems.map(([type, building]) => {
                   const isUnlocked = unlocks[type];
                   const unlockCost = getUnlockCost(type);
                   const canAfford = coins >= unlockCost;
 
                   return (
-                    <div key={type} className="rounded-2xl border border-[#8a6a44] bg-[#f3e8d5] p-4">
+                    <div
+                      key={type}
+                      className="rounded-2xl border border-[#8a6a44] bg-[#f3e8d5] p-4"
+                    >
                       <div className="flex flex-row items-start justify-between gap-4">
                         <div className="flex-1">
                           <h4 className="text-2xl font-bold text-[#3e2723]">
                             {building.icon} {building.name}
                           </h4>
-                          <p className="mt-1 text-sm leading-5 text-[#6e4e31]">
-                            {building.role}
-                          </p>
+                          <p className="mt-1 text-sm leading-5 text-[#6e4e31]">{building.role}</p>
                           <p className="mt-2 text-xs uppercase tracking-[2px] text-[#75512d]">
                             {building.stats}
                           </p>
@@ -428,7 +418,10 @@ export function MainMenu() {
                   const spell = SPELLS[type];
 
                   return (
-                    <div key={type} className="rounded-2xl border border-[#8a6a44] bg-[#f3e8d5] p-4">
+                    <div
+                      key={type}
+                      className="rounded-2xl border border-[#8a6a44] bg-[#f3e8d5] p-4"
+                    >
                       <div className="flex flex-row items-start justify-between gap-4">
                         <div className="flex-1">
                           <h4 className="text-2xl font-bold text-[#3e2723]">

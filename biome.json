@@ -6,15 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": [
-      "src/**/*.ts",
-      "src/**/*.tsx",
-      "e2e/**/*.ts",
-      "*.ts",
-      "*.tsx",
-      "*.js",
-      "*.json"
-    ]
+    "includes": ["src/**/*.ts", "src/**/*.tsx", "e2e/**/*.ts", "*.ts", "*.tsx", "*.js", "*.json"]
   },
   "formatter": {
     "enabled": true,

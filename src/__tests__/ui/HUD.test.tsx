@@ -65,8 +65,10 @@ vi.mock('framer-motion', () => {
       ),
       button: React.forwardRef(
         (
-          { children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> &
-            Record<string, unknown>,
+          {
+            children,
+            ...props
+          }: React.ButtonHTMLAttributes<HTMLButtonElement> & Record<string, unknown>,
           ref: React.Ref<HTMLButtonElement>,
         ) => React.createElement('button', { ...stripMotionProps(props), ref }, children),
       ),
@@ -80,13 +82,7 @@ vi.mock('@radix-ui/react-toolbar', () => {
   return {
     Root: ({ children, ...props }: Record<string, unknown>) =>
       React.createElement('div', { ...props, 'data-testid': 'toolbar-root' }, children),
-    Button: ({
-      children,
-      disabled,
-      onClick,
-      className,
-      ...props
-    }: Record<string, unknown>) =>
+    Button: ({ children, disabled, onClick, className, ...props }: Record<string, unknown>) =>
       React.createElement(
         'button',
         {
@@ -379,9 +375,7 @@ describe('HUD: leave button', () => {
 
 describe('HUD: cancel placement', () => {
   it('shows cancel button when activePlacement is set during build', () => {
-    render(
-      <HUD activePlacement="hut" onExit={vi.fn()} onCancelPlacement={vi.fn()} />,
-    );
+    render(<HUD activePlacement="hut" onExit={vi.fn()} onCancelPlacement={vi.fn()} />);
     const cancelBtn = screen.getByLabelText(/Cancel placing Militia Hut/);
     expect(cancelBtn).toBeTruthy();
   });
@@ -433,7 +427,10 @@ describe('HUD: relic draft modal', () => {
     fireEvent.click(goldenAge);
     // Selection animation delays the command by 400ms
     vi.advanceTimersByTime(500);
-    expect(mockQueueWorldCommand).toHaveBeenCalledWith({ type: 'draftRelic', relicId: 'golden_age' });
+    expect(mockQueueWorldCommand).toHaveBeenCalledWith({
+      type: 'draftRelic',
+      relicId: 'golden_age',
+    });
     vi.useRealTimers();
   });
 });

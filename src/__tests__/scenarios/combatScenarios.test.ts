@@ -304,13 +304,27 @@ describe('combat scenarios: boss AoE', () => {
 describe('combat scenarios: healer targeting', () => {
   it('healer targets wounded ally (not enemies)', () => {
     const healer = makeEntity({
-      team: 'ally', x: 0, z: 0, isHealer: true, range: 12,
+      team: 'ally',
+      x: 0,
+      z: 0,
+      isHealer: true,
+      range: 12,
     });
     const injured = makeEntity({
-      id: 10, team: 'ally', x: 5, z: 0, hp: 20, maxHp: 100,
+      id: 10,
+      team: 'ally',
+      x: 5,
+      z: 0,
+      hp: 20,
+      maxHp: 100,
     });
     const enemy = makeEntity({
-      id: 11, team: 'enemy', x: 3, z: 0, hp: 50, maxHp: 50,
+      id: 11,
+      team: 'enemy',
+      x: 3,
+      z: 0,
+      hp: 50,
+      maxHp: 50,
     });
     const result = findCombatTargetPure(healer, [injured, enemy]);
     expect(result?.id).toBe(10);
@@ -318,13 +332,27 @@ describe('combat scenarios: healer targeting', () => {
 
   it('healer targets closest wounded ally when multiple are injured', () => {
     const healer = makeEntity({
-      team: 'ally', x: 0, z: 0, isHealer: true, range: 15,
+      team: 'ally',
+      x: 0,
+      z: 0,
+      isHealer: true,
+      range: 15,
     });
     const farInjured = makeEntity({
-      id: 20, team: 'ally', x: 10, z: 0, hp: 10, maxHp: 100,
+      id: 20,
+      team: 'ally',
+      x: 10,
+      z: 0,
+      hp: 10,
+      maxHp: 100,
     });
     const nearInjured = makeEntity({
-      id: 21, team: 'ally', x: 3, z: 0, hp: 50, maxHp: 100,
+      id: 21,
+      team: 'ally',
+      x: 3,
+      z: 0,
+      hp: 50,
+      maxHp: 100,
     });
     const result = findCombatTargetPure(healer, [farInjured, nearInjured]);
     expect(result?.id).toBe(21); // nearest wounded
@@ -332,40 +360,76 @@ describe('combat scenarios: healer targeting', () => {
 
   it('healer ignores full-health allies', () => {
     const healer = makeEntity({
-      team: 'ally', x: 0, z: 0, isHealer: true, range: 12,
+      team: 'ally',
+      x: 0,
+      z: 0,
+      isHealer: true,
+      range: 12,
     });
     const healthy = makeEntity({
-      id: 30, team: 'ally', x: 3, z: 0, hp: 100, maxHp: 100,
+      id: 30,
+      team: 'ally',
+      x: 3,
+      z: 0,
+      hp: 100,
+      maxHp: 100,
     });
     expect(findCombatTargetPure(healer, [healthy])).toBeUndefined();
   });
 
   it('healer ignores wounded allies out of range', () => {
     const healer = makeEntity({
-      team: 'ally', x: 0, z: 0, isHealer: true, range: 5,
+      team: 'ally',
+      x: 0,
+      z: 0,
+      isHealer: true,
+      range: 5,
     });
     const farInjured = makeEntity({
-      id: 31, team: 'ally', x: 20, z: 0, hp: 10, maxHp: 100,
+      id: 31,
+      team: 'ally',
+      x: 20,
+      z: 0,
+      hp: 10,
+      maxHp: 100,
     });
     expect(findCombatTargetPure(healer, [farInjured])).toBeUndefined();
   });
 
   it('healer does not target dead allies', () => {
     const healer = makeEntity({
-      team: 'ally', x: 0, z: 0, isHealer: true, range: 12,
+      team: 'ally',
+      x: 0,
+      z: 0,
+      isHealer: true,
+      range: 12,
     });
     const dead = makeEntity({
-      id: 32, team: 'ally', x: 3, z: 0, hp: 0, maxHp: 100,
+      id: 32,
+      team: 'ally',
+      x: 3,
+      z: 0,
+      hp: 0,
+      maxHp: 100,
     });
     expect(findCombatTargetPure(healer, [dead])).toBeUndefined();
   });
 
   it('healer does not target enemy units', () => {
     const healer = makeEntity({
-      team: 'ally', x: 0, z: 0, isHealer: true, range: 12,
+      team: 'ally',
+      x: 0,
+      z: 0,
+      isHealer: true,
+      range: 12,
     });
     const enemy = makeEntity({
-      id: 33, team: 'enemy', x: 3, z: 0, hp: 10, maxHp: 100,
+      id: 33,
+      team: 'enemy',
+      x: 3,
+      z: 0,
+      hp: 10,
+      maxHp: 100,
     });
     expect(findCombatTargetPure(healer, [enemy])).toBeUndefined();
   });
@@ -379,10 +443,20 @@ describe('combat scenarios: wall priority', () => {
   it('enemy prioritizes wall at close range (<5 units)', () => {
     const enemy = makeEntity({ team: 'enemy', x: 0, z: 0, range: 3 });
     const wall = makeEntity({
-      id: 40, team: 'ally', type: 'wall', x: 3, z: 0, hp: 600,
+      id: 40,
+      team: 'ally',
+      type: 'wall',
+      x: 3,
+      z: 0,
+      hp: 600,
     });
     const militia = makeEntity({
-      id: 41, team: 'ally', type: 'militia', x: 2, z: 0, hp: 40,
+      id: 41,
+      team: 'ally',
+      type: 'militia',
+      x: 2,
+      z: 0,
+      hp: 40,
     });
     const result = findCombatTargetPure(enemy, [militia, wall]);
     expect(result?.id).toBe(40); // wall takes priority
@@ -391,10 +465,20 @@ describe('combat scenarios: wall priority', () => {
   it('enemy does not prioritize wall beyond wallPriorityRange', () => {
     const enemy = makeEntity({ team: 'enemy', x: 0, z: 0, range: 8 });
     const wall = makeEntity({
-      id: 42, team: 'ally', type: 'wall', x: 7, z: 0, hp: 600,
+      id: 42,
+      team: 'ally',
+      type: 'wall',
+      x: 7,
+      z: 0,
+      hp: 600,
     });
     const militia = makeEntity({
-      id: 43, team: 'ally', type: 'militia', x: 3, z: 0, hp: 40,
+      id: 43,
+      team: 'ally',
+      type: 'militia',
+      x: 3,
+      z: 0,
+      hp: 40,
     });
     const result = findCombatTargetPure(enemy, [wall, militia]);
     // Wall at 7 > wallPriorityRange(5), so nearest enemy (militia at 3) wins
@@ -404,10 +488,20 @@ describe('combat scenarios: wall priority', () => {
   it('ally does not prioritize walls (ally-side targeting)', () => {
     const ally = makeEntity({ team: 'ally', x: 0, z: 0, range: 5 });
     const enemyWall = makeEntity({
-      id: 44, team: 'enemy', type: 'wall', x: 3, z: 0, hp: 600,
+      id: 44,
+      team: 'enemy',
+      type: 'wall',
+      x: 3,
+      z: 0,
+      hp: 600,
     });
     const goblin = makeEntity({
-      id: 45, team: 'enemy', type: 'goblin', x: 2, z: 0, hp: 30,
+      id: 45,
+      team: 'enemy',
+      type: 'goblin',
+      x: 2,
+      z: 0,
+      hp: 30,
     });
     const result = findCombatTargetPure(ally, [enemyWall, goblin]);
     // Ally picks nearest enemy, not wall-priority (only enemies do wall priority)
@@ -574,18 +668,12 @@ describe('combat scenarios: rare drops', () => {
 
 describe('combat scenarios: status effects edge cases', () => {
   it('frozen timer decays correctly', () => {
-    const result = processStatusEffects(
-      { hp: 100, poison: 0, frozen: 5, slowed: 0 },
-      2.0,
-    );
+    const result = processStatusEffects({ hp: 100, poison: 0, frozen: 5, slowed: 0 }, 2.0);
     expect(result.frozen).toBe(3);
   });
 
   it('frozen timer does not go below 0', () => {
-    const result = processStatusEffects(
-      { hp: 100, poison: 0, frozen: 1, slowed: 0 },
-      5.0,
-    );
+    const result = processStatusEffects({ hp: 100, poison: 0, frozen: 1, slowed: 0 }, 5.0);
     expect(result.frozen).toBe(-4); // raw subtraction; engine clamps
     // Note: the function subtracts dt directly; external code clamps
   });
@@ -612,10 +700,7 @@ describe('combat scenarios: status effects edge cases', () => {
   });
 
   it('very small dt produces minimal effects', () => {
-    const result = processStatusEffects(
-      { hp: 100, poison: 10, frozen: 5, slowed: 3 },
-      0.001,
-    );
+    const result = processStatusEffects({ hp: 100, poison: 10, frozen: 5, slowed: 3 }, 0.001);
     expect(result.hp).toBeCloseTo(100, 1);
     expect(result.poison).toBeCloseTo(10, 1);
   });
@@ -645,10 +730,19 @@ describe('combat scenarios: target finding edge cases', () => {
 
   it('ranged unit uses rangedSearchRange (25)', () => {
     const ranged = makeEntity({
-      id: 63, team: 'ally', x: 0, z: 0, isRanged: true, range: 15,
+      id: 63,
+      team: 'ally',
+      x: 0,
+      z: 0,
+      isRanged: true,
+      range: 15,
     });
     const enemy = makeEntity({
-      id: 64, team: 'enemy', x: 20, z: 0, hp: 50,
+      id: 64,
+      team: 'enemy',
+      x: 20,
+      z: 0,
+      hp: 50,
     });
     const result = findCombatTargetPure(ranged, [enemy]);
     expect(result?.id).toBe(64);
@@ -656,10 +750,18 @@ describe('combat scenarios: target finding edge cases', () => {
 
   it('melee unit cannot find target at ranged distance', () => {
     const melee = makeEntity({
-      id: 65, team: 'ally', x: 0, z: 0, isRanged: false,
+      id: 65,
+      team: 'ally',
+      x: 0,
+      z: 0,
+      isRanged: false,
     });
     const enemy = makeEntity({
-      id: 66, team: 'enemy', x: 20, z: 0, hp: 50,
+      id: 66,
+      team: 'enemy',
+      x: 20,
+      z: 0,
+      hp: 50,
     });
     // meleeSearchRange = 8, enemy at 20 is out of range
     expect(findCombatTargetPure(melee, [enemy])).toBeUndefined();

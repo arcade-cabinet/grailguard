@@ -69,10 +69,7 @@ export function DoctrineScreen() {
           const canAfford = coins >= cost;
 
           return (
-            <div
-              key={node.nodeId}
-              className="rounded-2xl border border-[#8a6a44] bg-[#eadcc3] p-4"
-            >
+            <div key={node.nodeId} className="rounded-2xl border border-[#8a6a44] bg-[#eadcc3] p-4">
               <h3 className="text-xl font-bold text-[#3e2723]">
                 {node.title} (Lv. {level}/5)
               </h3>

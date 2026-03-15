@@ -61,9 +61,7 @@ export function HistoryScreen() {
       <div className="mt-4 flex flex-1 flex-col gap-3 overflow-auto pb-4">
         {sortedRuns.length === 0 ? (
           <div className="rounded-2xl border border-[#8a6a44] bg-[#f3e8d5] p-6">
-            <p className="text-center text-lg text-[#6e4e31]">
-              {t('history_empty')}
-            </p>
+            <p className="text-center text-lg text-[#6e4e31]">{t('history_empty')}</p>
           </div>
         ) : null}
 
@@ -76,12 +74,17 @@ export function HistoryScreen() {
             <div className="flex flex-row items-start justify-between">
               <div className="flex-1">
                 <h3 className="text-lg font-bold text-[#3e2723]">
-                  {t('history_wave_label', { wave: run.waveReached })} — {run.result === 'defeat' ? t('history_result_defeat') : t('history_result_abandoned')}
+                  {t('history_wave_label', { wave: run.waveReached })} —{' '}
+                  {run.result === 'defeat'
+                    ? t('history_result_defeat')
+                    : t('history_result_abandoned')}
                 </h3>
                 <p className="mt-1 text-sm text-[#6e4e31]">{formatDate(run.createdAt)}</p>
               </div>
               <div className="text-right">
-                <span className="text-xl font-bold text-[#c38115]">{t('history_coins', { coins: run.coinsEarned })}</span>
+                <span className="text-xl font-bold text-[#c38115]">
+                  {t('history_coins', { coins: run.coinsEarned })}
+                </span>
               </div>
             </div>
 

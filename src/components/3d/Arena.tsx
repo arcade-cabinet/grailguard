@@ -9,7 +9,6 @@
  * for projecting between screen coordinates and the ground plane.
  */
 import { Environment, useGLTF, useTexture } from '@react-three/drei';
-import { DETAIL_MODEL_PATHS, HDRI_PATH, PBR_TEXTURE_PATHS } from './modelPaths';
 import { useFrame } from '@react-three/fiber';
 import type { Entity } from 'koota';
 import { useQuery, useTrait } from 'koota/react';
@@ -39,6 +38,7 @@ import { ProjectileMesh } from './Entities/ProjectileMesh';
 import { ResourceCartMesh } from './Entities/ResourceCartMesh';
 import { UnitMesh } from './Entities/UnitMesh';
 import { WorldEffectMesh } from './Entities/WorldEffectMesh';
+import { DETAIL_MODEL_PATHS, HDRI_PATH, PBR_TEXTURE_PATHS } from './modelPaths';
 import { ParticlePool, useParticlePool } from './ParticlePool';
 import { Sanctuary } from './Sanctuary';
 
@@ -225,7 +225,10 @@ function EnvironmentScatter() {
   const treeLargeData = useMemo(() => extractMeshData(treeLargeGltf.scene), [treeLargeGltf]);
   const rocksSmallData = useMemo(() => extractMeshData(rocksSmallGltf.scene), [rocksSmallGltf]);
   const rocksLargeData = useMemo(() => extractMeshData(rocksLargeGltf.scene), [rocksLargeGltf]);
-  const crystalSmallData = useMemo(() => extractMeshData(crystalSmallGltf.scene), [crystalSmallGltf]);
+  const crystalSmallData = useMemo(
+    () => extractMeshData(crystalSmallGltf.scene),
+    [crystalSmallGltf],
+  );
   const dirtSmallData = useMemo(() => extractMeshData(dirtSmallGltf.scene), [dirtSmallGltf]);
 
   const initialized = useRef(false);

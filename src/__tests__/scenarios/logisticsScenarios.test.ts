@@ -50,12 +50,7 @@ describe('logistics scenarios: BFS pathfinding', () => {
 
   it('finds shortest path (BFS property)', () => {
     // Add a detour track alongside the straight one
-    const detourTrack = [
-      ...straightTrack,
-      { x: 0, z: 5 },
-      { x: 5, z: 5 },
-      { x: 10, z: 5 },
-    ];
+    const detourTrack = [...straightTrack, { x: 0, z: 5 }, { x: 5, z: 5 }, { x: 10, z: 5 }];
     const sourcePos = { x: -3, z: 0 };
     const path = findLogisticsPathPure(sourcePos, 'wood', detourTrack, [], sanctuaryPos);
     expect(path).not.toBeNull();
@@ -79,7 +74,13 @@ describe('logistics scenarios: BFS pathfinding', () => {
 
   it('returns null when tracks do not reach sanctuary', () => {
     // Tracks stop at x=20, sanctuary at x=50 (too far)
-    const shortTrack = [{ x: 0, z: 0 }, { x: 5, z: 0 }, { x: 10, z: 0 }, { x: 15, z: 0 }, { x: 20, z: 0 }];
+    const shortTrack = [
+      { x: 0, z: 0 },
+      { x: 5, z: 0 },
+      { x: 10, z: 0 },
+      { x: 15, z: 0 },
+      { x: 20, z: 0 },
+    ];
     const sourcePos = { x: -3, z: 0 };
     const path = findLogisticsPathPure(sourcePos, 'wood', shortTrack, [], { x: 50, z: 0 });
     expect(path).toBeNull();
@@ -94,7 +95,10 @@ describe('logistics scenarios: BFS pathfinding', () => {
       { x: 15, z: 0 },
     ];
     const sourcePos = { x: -3, z: 0 };
-    const path = findLogisticsPathPure(sourcePos, 'ore', trackToMint, mintPositions, { x: 100, z: 0 });
+    const path = findLogisticsPathPure(sourcePos, 'ore', trackToMint, mintPositions, {
+      x: 100,
+      z: 0,
+    });
     expect(path).not.toBeNull();
     // Last node should be the mint
     const lastNode = path![path!.length - 1];
@@ -112,7 +116,10 @@ describe('logistics scenarios: BFS pathfinding', () => {
     ];
     const sourcePos = { x: -3, z: 0 };
     // Sanctuary far away, but mint is close -- wood should NOT go to mint
-    const path = findLogisticsPathPure(sourcePos, 'wood', trackToMint, mintPositions, { x: 100, z: 0 });
+    const path = findLogisticsPathPure(sourcePos, 'wood', trackToMint, mintPositions, {
+      x: 100,
+      z: 0,
+    });
     // Should be null since wood can only go to sanctuary, which is unreachable
     expect(path).toBeNull();
   });
@@ -126,7 +133,10 @@ describe('logistics scenarios: BFS pathfinding', () => {
       { x: 15, z: 0 },
     ];
     const sourcePos = { x: -3, z: 0 };
-    const path = findLogisticsPathPure(sourcePos, 'gem', trackToMint, mintPositions, { x: 100, z: 0 });
+    const path = findLogisticsPathPure(sourcePos, 'gem', trackToMint, mintPositions, {
+      x: 100,
+      z: 0,
+    });
     expect(path).toBeNull();
   });
 

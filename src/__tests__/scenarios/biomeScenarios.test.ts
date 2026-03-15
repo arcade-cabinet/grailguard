@@ -7,8 +7,8 @@
  */
 
 import {
-  type BiomeSession,
   applyBiomeModifiers,
+  type BiomeSession,
   getAllBiomeIds,
   getBiomeConfig,
 } from '../../engine/systems/biomeSystem';

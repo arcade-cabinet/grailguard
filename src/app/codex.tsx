@@ -41,9 +41,7 @@ export function CodexScreen() {
             >
               {entry.discovered ? entry.entryId.replace(':', ' \u2022 ') : t('codex_unknown_entry')}
             </p>
-            <p
-              className={`mt-1 text-sm ${entry.discovered ? 'text-[#6e4e31]' : 'text-[#8e7b67]'}`}
-            >
+            <p className={`mt-1 text-sm ${entry.discovered ? 'text-[#6e4e31]' : 'text-[#8e7b67]'}`}>
               {entry.discovered
                 ? t('codex_category_label', { category: entry.category })
                 : t('codex_locked_hint')}

@@ -4,7 +4,7 @@
  *
  * These tests use Vitest with the mocked db/meta module.
  */
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const navigateMock = vi.fn();
 const purchaseBuildingUnlockMock = vi.fn();

@@ -8,13 +8,13 @@
 import { UNITS } from '../../engine/constants';
 import { createRng } from '../../engine/systems/rng';
 import {
-  type DifficultyTier,
   allocateWaveBudget,
   applyDifficultyModifiers,
   buildWaveQueue,
   calculateBuildTimer,
   calculateWaveBudget,
   calculateWaveCompletionReward,
+  type DifficultyTier,
   getBossVariant,
   getWaveLabel,
   isWaveComplete,
@@ -408,7 +408,11 @@ describe('wave scenarios: difficulty modifiers', () => {
   });
 
   it('pilgrim applied to goblin base stats', () => {
-    const goblinStats = { hp: UNITS.goblin.hp, damage: UNITS.goblin.damage, speed: UNITS.goblin.speed };
+    const goblinStats = {
+      hp: UNITS.goblin.hp,
+      damage: UNITS.goblin.damage,
+      speed: UNITS.goblin.speed,
+    };
     const result = applyDifficultyModifiers(goblinStats, 'pilgrim');
     expect(result.hp).toBe(Math.floor(UNITS.goblin.hp * 0.8));
     expect(result.damage).toBe(Math.floor(UNITS.goblin.damage * 0.8));

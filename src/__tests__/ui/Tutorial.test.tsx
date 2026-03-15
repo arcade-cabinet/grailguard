@@ -229,17 +229,13 @@ describe('Tutorial: accessibility', () => {
   it('overlay has aria-label matching current step text', () => {
     render(<Tutorial visible={true} onDismiss={vi.fn()} />);
     const alert = screen.getByRole('alert');
-    expect(alert.getAttribute('aria-label')).toBe(
-      'Place a wall on the road to block enemy paths.',
-    );
+    expect(alert.getAttribute('aria-label')).toBe('Place a wall on the road to block enemy paths.');
   });
 
   it('aria-label updates when step changes', () => {
     render(<Tutorial visible={true} onDismiss={vi.fn()} />);
     fireEvent.click(screen.getByLabelText('Next'));
     const alert = screen.getByRole('alert');
-    expect(alert.getAttribute('aria-label')).toBe(
-      'Place a militia hut nearby to spawn defenders.',
-    );
+    expect(alert.getAttribute('aria-label')).toBe('Place a militia hut nearby to spawn defenders.');
   });
 });

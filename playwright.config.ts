@@ -21,10 +21,7 @@ export default defineConfig({
   retries: isCI ? 2 : 0,
   timeout: 60_000,
 
-  reporter: [
-    ['list'],
-    ['html', { open: isCI ? 'never' : 'on-failure' }],
-  ],
+  reporter: [['list'], ['html', { open: isCI ? 'never' : 'on-failure' }]],
 
   expect: {
     timeout: 15_000,

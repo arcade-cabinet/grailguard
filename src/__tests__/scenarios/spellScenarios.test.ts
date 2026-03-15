@@ -114,10 +114,7 @@ describe('spell scenarios: Holy Nova', () => {
   });
 
   it('does not heal walls', () => {
-    const allies = [
-      makeWall(1, 5, 0, 300),
-      makeAlly(2, 10, 0, 50, 100),
-    ];
+    const allies = [makeWall(1, 5, 0, 300), makeAlly(2, 10, 0, 50, 100)];
     const result = computeSpellEffect('holy_nova', [], allies, sanctuaryPos);
     expect(result.healTargets).toHaveLength(1);
     expect(result.healTargets[0].id).toBe(2);
@@ -150,11 +147,7 @@ describe('spell scenarios: Holy Nova', () => {
 
 describe('spell scenarios: Zealous Haste', () => {
   it('resets cooldowns for all allies', () => {
-    const allies = [
-      makeAlly(1, 5, 0),
-      makeAlly(2, 10, 0),
-      makeAlly(3, 15, 0),
-    ];
+    const allies = [makeAlly(1, 5, 0), makeAlly(2, 10, 0), makeAlly(3, 15, 0)];
     const result = computeSpellEffect('zealous_haste', [], allies, sanctuaryPos);
     expect(result.resetCooldownTargets).toHaveLength(3);
     expect(result.resetCooldownTargets.map((t) => t.id)).toEqual([1, 2, 3]);
@@ -267,7 +260,12 @@ describe('spell scenarios: Meteor Strike', () => {
     const primary = makeEnemy(1, 5, 0);
     const inRange = makeEnemy(2, 10, 0); // distance 5 from primary, < 10
     const outRange = makeEnemy(3, 20, 0); // distance 15 from primary, >= 10
-    const result = computeSpellEffect('meteor_strike', [primary, inRange, outRange], [], sanctuaryPos);
+    const result = computeSpellEffect(
+      'meteor_strike',
+      [primary, inRange, outRange],
+      [],
+      sanctuaryPos,
+    );
     // Primary and inRange are within 10 of primary
     expect(result.damageTargets.length).toBeGreaterThanOrEqual(2);
     for (const dt of result.damageTargets) {
@@ -342,7 +340,12 @@ describe('spell scenarios: Divine Shield', () => {
   });
 
   it('does not deal damage', () => {
-    const result = computeSpellEffect('divine_shield', [makeEnemy(1, 5, 0)], [makeAlly(2, 5, 0)], sanctuaryPos);
+    const result = computeSpellEffect(
+      'divine_shield',
+      [makeEnemy(1, 5, 0)],
+      [makeAlly(2, 5, 0)],
+      sanctuaryPos,
+    );
     expect(result.damageTargets).toHaveLength(0);
   });
 
@@ -369,7 +372,12 @@ describe('spell scenarios: faith cost', () => {
     };
 
     for (const [spell, expectedCost] of Object.entries(costs)) {
-      const result = computeSpellEffect(spell, [makeEnemy(1, 5, 0)], [makeAlly(2, 5, 0)], sanctuaryPos);
+      const result = computeSpellEffect(
+        spell,
+        [makeEnemy(1, 5, 0)],
+        [makeAlly(2, 5, 0)],
+        sanctuaryPos,
+      );
       expect(result.faithCost).toBe(expectedCost);
     }
   });
@@ -504,7 +512,12 @@ describe('spell scenarios: all spell cooldowns', () => {
     };
 
     for (const [spell, expectedCd] of Object.entries(expectedCooldowns)) {
-      const result = computeSpellEffect(spell, [makeEnemy(1, 5, 0)], [makeAlly(2, 5, 0)], sanctuaryPos);
+      const result = computeSpellEffect(
+        spell,
+        [makeEnemy(1, 5, 0)],
+        [makeAlly(2, 5, 0)],
+        sanctuaryPos,
+      );
       expect(result.cooldown).toBe(expectedCd);
     }
   });

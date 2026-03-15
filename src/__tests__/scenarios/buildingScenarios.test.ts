@@ -32,45 +32,45 @@ const sanctuaryPos = { x: 25, z: 0 };
 
 describe('building scenarios: placement near road (<=4) only allows walls', () => {
   it('wall at distance 0 from road is valid', () => {
-    expect(
-      isPlacementValidPure('wall', { x: 0, z: 0 }, roadSamples, sanctuaryPos, [], []),
-    ).toBe(true);
+    expect(isPlacementValidPure('wall', { x: 0, z: 0 }, roadSamples, sanctuaryPos, [], [])).toBe(
+      true,
+    );
   });
 
   it('wall at distance 3 from road is valid', () => {
-    expect(
-      isPlacementValidPure('wall', { x: 0, z: 3 }, roadSamples, sanctuaryPos, [], []),
-    ).toBe(true);
+    expect(isPlacementValidPure('wall', { x: 0, z: 3 }, roadSamples, sanctuaryPos, [], [])).toBe(
+      true,
+    );
   });
 
   it('wall at distance 4 from road is valid', () => {
-    expect(
-      isPlacementValidPure('wall', { x: 0, z: 4 }, roadSamples, sanctuaryPos, [], []),
-    ).toBe(true);
+    expect(isPlacementValidPure('wall', { x: 0, z: 4 }, roadSamples, sanctuaryPos, [], [])).toBe(
+      true,
+    );
   });
 
   it('wall at distance 5 from road is rejected (>4)', () => {
-    expect(
-      isPlacementValidPure('wall', { x: 0, z: 5 }, roadSamples, sanctuaryPos, [], []),
-    ).toBe(false);
+    expect(isPlacementValidPure('wall', { x: 0, z: 5 }, roadSamples, sanctuaryPos, [], [])).toBe(
+      false,
+    );
   });
 
   it('hut at distance 3 from road is rejected (too close)', () => {
-    expect(
-      isPlacementValidPure('hut', { x: 0, z: 3 }, roadSamples, sanctuaryPos, [], []),
-    ).toBe(false);
+    expect(isPlacementValidPure('hut', { x: 0, z: 3 }, roadSamples, sanctuaryPos, [], [])).toBe(
+      false,
+    );
   });
 
   it('range at distance 5 from road is rejected (5 < 7)', () => {
-    expect(
-      isPlacementValidPure('range', { x: 0, z: 5 }, roadSamples, sanctuaryPos, [], []),
-    ).toBe(false);
+    expect(isPlacementValidPure('range', { x: 0, z: 5 }, roadSamples, sanctuaryPos, [], [])).toBe(
+      false,
+    );
   });
 
   it('sentry turret at distance 2 from road is rejected', () => {
-    expect(
-      isPlacementValidPure('sentry', { x: 0, z: 2 }, roadSamples, sanctuaryPos, [], []),
-    ).toBe(false);
+    expect(isPlacementValidPure('sentry', { x: 0, z: 2 }, roadSamples, sanctuaryPos, [], [])).toBe(
+      false,
+    );
   });
 });
 
@@ -80,39 +80,39 @@ describe('building scenarios: placement near road (<=4) only allows walls', () =
 
 describe('building scenarios: placement far from road (>=7)', () => {
   it('hut at distance 7 from road is valid', () => {
-    expect(
-      isPlacementValidPure('hut', { x: 0, z: 7 }, roadSamples, sanctuaryPos, [], []),
-    ).toBe(true);
+    expect(isPlacementValidPure('hut', { x: 0, z: 7 }, roadSamples, sanctuaryPos, [], [])).toBe(
+      true,
+    );
   });
 
   it('hut at distance 10 from road is valid', () => {
-    expect(
-      isPlacementValidPure('hut', { x: 0, z: 10 }, roadSamples, sanctuaryPos, [], []),
-    ).toBe(true);
+    expect(isPlacementValidPure('hut', { x: 0, z: 10 }, roadSamples, sanctuaryPos, [], [])).toBe(
+      true,
+    );
   });
 
   it('range at distance 8 from road is valid', () => {
-    expect(
-      isPlacementValidPure('range', { x: 0, z: 8 }, roadSamples, sanctuaryPos, [], []),
-    ).toBe(true);
+    expect(isPlacementValidPure('range', { x: 0, z: 8 }, roadSamples, sanctuaryPos, [], [])).toBe(
+      true,
+    );
   });
 
   it('temple at distance 15 from road is valid', () => {
-    expect(
-      isPlacementValidPure('temple', { x: 0, z: 15 }, roadSamples, sanctuaryPos, [], []),
-    ).toBe(true);
+    expect(isPlacementValidPure('temple', { x: 0, z: 15 }, roadSamples, sanctuaryPos, [], [])).toBe(
+      true,
+    );
   });
 
   it('keep at distance 7 from road is valid', () => {
-    expect(
-      isPlacementValidPure('keep', { x: 0, z: 7 }, roadSamples, sanctuaryPos, [], []),
-    ).toBe(true);
+    expect(isPlacementValidPure('keep', { x: 0, z: 7 }, roadSamples, sanctuaryPos, [], [])).toBe(
+      true,
+    );
   });
 
   it('sentry turret at distance 10 from road is valid', () => {
-    expect(
-      isPlacementValidPure('sentry', { x: 0, z: 10 }, roadSamples, sanctuaryPos, [], []),
-    ).toBe(true);
+    expect(isPlacementValidPure('sentry', { x: 0, z: 10 }, roadSamples, sanctuaryPos, [], [])).toBe(
+      true,
+    );
   });
 
   it('obelisk turret at distance 20 from road is valid', () => {
@@ -122,9 +122,9 @@ describe('building scenarios: placement far from road (>=7)', () => {
   });
 
   it('hut at distance 6 from road is rejected (6 < 7)', () => {
-    expect(
-      isPlacementValidPure('hut', { x: 0, z: 6 }, roadSamples, sanctuaryPos, [], []),
-    ).toBe(false);
+    expect(isPlacementValidPure('hut', { x: 0, z: 6 }, roadSamples, sanctuaryPos, [], [])).toBe(
+      false,
+    );
   });
 });
 
@@ -134,21 +134,21 @@ describe('building scenarios: placement far from road (>=7)', () => {
 
 describe('building scenarios: track placement', () => {
   it('track near road is valid', () => {
-    expect(
-      isPlacementValidPure('track', { x: 0, z: 1 }, roadSamples, sanctuaryPos, [], []),
-    ).toBe(true);
+    expect(isPlacementValidPure('track', { x: 0, z: 1 }, roadSamples, sanctuaryPos, [], [])).toBe(
+      true,
+    );
   });
 
   it('track far from road is valid', () => {
-    expect(
-      isPlacementValidPure('track', { x: 0, z: 50 }, roadSamples, sanctuaryPos, [], []),
-    ).toBe(true);
+    expect(isPlacementValidPure('track', { x: 0, z: 50 }, roadSamples, sanctuaryPos, [], [])).toBe(
+      true,
+    );
   });
 
   it('track on road is valid', () => {
-    expect(
-      isPlacementValidPure('track', { x: 5, z: 0 }, roadSamples, sanctuaryPos, [], []),
-    ).toBe(true);
+    expect(isPlacementValidPure('track', { x: 5, z: 0 }, roadSamples, sanctuaryPos, [], [])).toBe(
+      true,
+    );
   });
 
   it('track can overlap resource buildings (lumber, ore, gem, mint)', () => {
@@ -168,9 +168,9 @@ describe('building scenarios: track placement', () => {
   });
 
   it('track on sanctuary position is valid', () => {
-    expect(
-      isPlacementValidPure('track', sanctuaryPos, roadSamples, sanctuaryPos, [], []),
-    ).toBe(true);
+    expect(isPlacementValidPure('track', sanctuaryPos, roadSamples, sanctuaryPos, [], [])).toBe(
+      true,
+    );
   });
 });
 
@@ -209,22 +209,22 @@ describe('building scenarios: no overlapping', () => {
 
   it('wall units block building placement', () => {
     const walls = [{ x: 0, z: 3 }];
-    expect(
-      isPlacementValidPure('wall', { x: 0, z: 3 }, roadSamples, sanctuaryPos, [], walls),
-    ).toBe(false);
+    expect(isPlacementValidPure('wall', { x: 0, z: 3 }, roadSamples, sanctuaryPos, [], walls)).toBe(
+      false,
+    );
   });
 
   it('wall units within 5 units block placement', () => {
     const walls = [{ x: 0, z: 8 }];
-    expect(
-      isPlacementValidPure('hut', { x: 0, z: 10 }, roadSamples, sanctuaryPos, [], walls),
-    ).toBe(false);
+    expect(isPlacementValidPure('hut', { x: 0, z: 10 }, roadSamples, sanctuaryPos, [], walls)).toBe(
+      false,
+    );
   });
 
   it('sanctuary overlap is rejected for non-track buildings', () => {
-    expect(
-      isPlacementValidPure('hut', sanctuaryPos, roadSamples, sanctuaryPos, [], []),
-    ).toBe(false);
+    expect(isPlacementValidPure('hut', sanctuaryPos, roadSamples, sanctuaryPos, [], [])).toBe(
+      false,
+    );
   });
 });
 

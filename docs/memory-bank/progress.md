@@ -99,13 +99,14 @@ summary: "Implementation status, what works, what's left, known issues"
 
 ## Test Coverage (current)
 
-924 tests across 47 suites covering:
+933 tests across 48 suites covering:
 - **Engine subsystems:** waveSystem, combatSystem, buildingSystem, logisticsSystem, projectileSystem, vfxSystem, spellSystem, codexSystem (116 tests)
 - **Data configs:** All 12 JSON config files validated (101 tests)
 - **DB repos:** profileRepo, unlockRepo, runRepo, settingsRepo, doctrineRepo, codexRepo, bootstrapRepo (130 tests)
 - **Meta service:** bankRunRewards, settings, unlocks, run lifecycle (30 tests)
+- **DB persistence pipeline:** afterWrite calls persistDatabase + notifyDbChange, meta write functions trigger full pipeline (6 tests)
 - **AI:** enemyBrain flocking, playerGovernor GOAP, biomeSystem (44 tests)
-- **Integration:** gameEngine wave progression, serialize/hydrate, GOAP auto-play (3 tests)
+- **Integration:** gameEngine wave progression, serialize/hydrate, GOAP auto-play, finalizeRun persistence, victory detection, biome modifier application (6 tests)
 - **UI:** RadialMenu (10), HUD (37), Tutorial (23) component tests with full mock isolation (70 tests)
 - **Scenarios:** 6 comprehensive scenario suites (367 tests)
   - waveScenarios: enemy progression, boss variants, budget scaling, build timer, wave labels, difficulty modifiers
@@ -114,7 +115,7 @@ summary: "Implementation status, what works, what's left, known issues"
   - spellScenarios: all 7 spells (damage, AoE, faith cost, cooldown), eligibility, cooldown decay
   - biomeScenarios: all 4 biomes with modifier verification and cross-biome comparison
   - logisticsScenarios: BFS pathfinding, cart movement, delivery amounts, mint routing, edge cases
-- **E2E framework:** Playwright specs (gameFlow, metaScreens) + Maestro ready
+- **E2E framework:** Playwright specs (gameFlow with build-defend cycle + leave flow, metaScreens) + Maestro ready
 
 ## Architecture Notes
 

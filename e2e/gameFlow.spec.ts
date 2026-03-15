@@ -20,7 +20,7 @@ test.describe('Game Flow', () => {
     await page.goto('/grailguard/');
     await page.getByRole('button', { name: /embark/i }).click();
     await expect(page.getByRole('button', { name: /king's road/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /dark forest/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /frost peaks/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /start run/i })).toBeVisible();
   });
 

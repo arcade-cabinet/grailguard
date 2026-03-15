@@ -148,6 +148,7 @@ ios/
 # Testing
 e2e-results/
 test-results/
+playwright-report/
 
 # npm artifacts
 package-lock.json

@@ -163,12 +163,15 @@ function createScatterRng(seed: number) {
   };
 }
 
+/** Number of small rocks scattered along road edges for visual detail. */
+const ROAD_EDGE_ROCK_COUNT = 80;
+
 /**
  * GLB-model environment scatter: uses real tree.glb and boulder.glb models
- * via InstancedMesh for performant rendering of 100+ trees and 50+ rocks.
- * Positions are deterministically seeded from the run ID to ensure
- * reproducible scenery across sessions. Each instance gets slight scale
- * and rotation variation for a natural look.
+ * via InstancedMesh for performant rendering of 200+ trees, 100+ rocks,
+ * plus 80 small road-edge pebbles. Positions are deterministically seeded
+ * from the run ID to ensure reproducible scenery across sessions. Each
+ * instance gets slight scale and rotation variation for a natural look.
  */
 function EnvironmentScatter() {
   const session = useTrait(gameWorld, GameSession);
@@ -178,6 +181,7 @@ function EnvironmentScatter() {
 
   const treeRef = useRef<THREE.InstancedMesh>(null);
   const rockRef = useRef<THREE.InstancedMesh>(null);
+  const roadEdgeRef = useRef<THREE.InstancedMesh>(null);
 
   const { treeCount, rockCount, scatterRadius, minRoadClearance } = mapConfig.scenery;
   const mapSize = session?.mapSize ?? mapConfig.size;
@@ -216,7 +220,7 @@ function EnvironmentScatter() {
 
   useFrame(() => {
     if (initialized.current) return;
-    if (!treeRef.current || !rockRef.current) return;
+    if (!treeRef.current || !rockRef.current || !roadEdgeRef.current) return;
     if (!treeData.geo || !boulderData.geo) return;
 
     let seedNum = session?.runId ? Number.parseInt(session.runId.substring(0, 8), 16) : 12345;
@@ -227,7 +231,7 @@ function EnvironmentScatter() {
     let treeIdx = 0;
     let rockIdx = 0;
 
-    const candidates = treeCount + rockCount + 80;
+    const candidates = treeCount + rockCount + 200;
     for (let i = 0; i < candidates; i++) {
       const x = (random() - 0.5) * 2 * halfMap;
       const z = (random() - 0.5) * 2 * halfMap;
@@ -266,8 +270,31 @@ function EnvironmentScatter() {
       if (treeIdx >= treeCount && rockIdx >= rockCount) break;
     }
 
+    // Scatter small rocks along road edges for detail
+    let edgeIdx = 0;
+    for (let i = 0; i < ROAD_EDGE_ROCK_COUNT; i++) {
+      const t = random();
+      const roadPt = roadSpline.getPointAt(t);
+      const tangent = roadSpline.getTangentAt(t);
+      const perpX = -tangent.z;
+      const perpZ = tangent.x;
+      const len = Math.sqrt(perpX * perpX + perpZ * perpZ);
+      // Place 5-7 units from road center (just beyond the edge)
+      const offset = (5 + random() * 2) * (random() > 0.5 ? 1 : -1);
+      const ex = roadPt.x + (perpX / len) * offset;
+      const ez = roadPt.z + (perpZ / len) * offset;
+      const scale = 0.15 + random() * 0.25;
+      _scatterObj.position.set(ex, scale * 0.1, ez);
+      _scatterObj.rotation.set(random() * 0.5, random() * Math.PI * 2, random() * 0.5);
+      _scatterObj.scale.set(scale, scale * 0.6, scale);
+      _scatterObj.updateMatrix();
+      roadEdgeRef.current.setMatrixAt(edgeIdx, _scatterObj.matrix);
+      edgeIdx++;
+    }
+
     treeRef.current.instanceMatrix.needsUpdate = true;
     rockRef.current.instanceMatrix.needsUpdate = true;
+    roadEdgeRef.current.instanceMatrix.needsUpdate = true;
 
     initialized.current = true;
   });
@@ -286,6 +313,14 @@ function EnvironmentScatter() {
       <instancedMesh
         ref={rockRef}
         args={[boulderData.geo, boulderData.mat, rockCount]}
+        castShadow
+        receiveShadow
+        frustumCulled={false}
+      />
+      {/* Small rocks along road edges for detail */}
+      <instancedMesh
+        ref={roadEdgeRef}
+        args={[boulderData.geo, boulderData.mat, ROAD_EDGE_ROCK_COUNT]}
         castShadow
         receiveShadow
         frustumCulled={false}
@@ -315,21 +350,76 @@ function PBRTerrain() {
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]} receiveShadow>
       <planeGeometry args={[400, 400, 128, 128]} />
-      <meshStandardMaterial {...textures} displacementScale={0.4} />
+      <meshStandardMaterial {...textures} displacementScale={1.5} />
     </mesh>
   );
 }
 
 /**
- * PBR stone road -- applies PavingStones textures to the road TubeGeometry
- * that follows the procedural CatmullRom spline path. Road is raised above
- * the terrain (y=0.05) for clear visual separation, and includes darker
- * edge border strips for definition against the grass.
+ * Creates a flat ribbon BufferGeometry by sampling a CatmullRomCurve3 spline
+ * and extruding perpendicular left/right vertices on the XZ plane.
+ *
+ * @param spline - The road center-line spline.
+ * @param width - Total width of the ribbon in world units.
+ * @param segments - Number of cross-sections along the spline.
+ * @param yHeight - Y position of the ribbon surface.
+ * @returns A flat BufferGeometry strip suitable for road rendering.
+ */
+function createRoadGeometry(
+  spline: THREE.CatmullRomCurve3,
+  width: number,
+  segments: number,
+  yHeight: number,
+): THREE.BufferGeometry {
+  const positions: number[] = [];
+  const normals: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    const point = spline.getPointAt(t);
+    const tangent = spline.getTangentAt(t);
+
+    // Perpendicular to tangent on XZ plane
+    const perpX = -tangent.z;
+    const perpZ = tangent.x;
+    const len = Math.sqrt(perpX * perpX + perpZ * perpZ);
+    const nx = (perpX / len) * (width / 2);
+    const nz = (perpZ / len) * (width / 2);
+
+    // Left and right vertices
+    positions.push(point.x - nx, yHeight, point.z - nz);
+    positions.push(point.x + nx, yHeight, point.z + nz);
+
+    normals.push(0, 1, 0, 0, 1, 0);
+    uvs.push(t * segments * 0.5, 0, t * segments * 0.5, 1);
+
+    if (i < segments) {
+      const base = i * 2;
+      indices.push(base, base + 1, base + 2);
+      indices.push(base + 1, base + 3, base + 2);
+    }
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geo.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geo.setIndex(indices);
+  return geo;
+}
+
+/**
+ * PBR stone road -- flat ribbon geometry built from the procedural
+ * CatmullRom spline path. Uses perpendicular extrusion to create a proper
+ * flat road surface instead of cylindrical TubeGeometry. Includes a wider
+ * dark edge border strip beneath the main surface for visual definition.
  */
 function PBRRoad() {
   const session = useTrait(gameWorld, GameSession);
-  const [tubeGeo, setTubeGeo] = useState<THREE.TubeGeometry | null>(null);
-  const [edgeGeo, setEdgeGeo] = useState<THREE.TubeGeometry | null>(null);
+  const [roadGeo, setRoadGeo] = useState<THREE.BufferGeometry | null>(null);
+  const [edgeGeo, setEdgeGeo] = useState<THREE.BufferGeometry | null>(null);
 
   const roadTextures = useTexture(PBR_TEXTURE_PATHS.road);
 
@@ -342,20 +432,12 @@ function PBRRoad() {
   }, [roadTextures]);
 
   useEffect(() => {
-    // Main road surface -- raised clearly above terrain
-    const geometry = new THREE.TubeGeometry(roadSpline, 128, 4.0, 8, false);
-    const positions = geometry.attributes.position;
-    for (let index = 0; index < positions.count; index += 1) {
-      positions.setY(index, 0.3);
-    }
-    setTubeGeo(geometry);
+    // Main road surface -- flat ribbon at y=0.2
+    const geometry = createRoadGeometry(roadSpline, 8, 128, 0.2);
+    setRoadGeo(geometry);
 
-    // Edge border -- wider, darker strip underneath for clear definition
-    const edgeGeometry = new THREE.TubeGeometry(roadSpline, 128, 5.5, 8, false);
-    const edgePositions = edgeGeometry.attributes.position;
-    for (let index = 0; index < edgePositions.count; index += 1) {
-      edgePositions.setY(index, 0.15);
-    }
+    // Edge border -- wider, darker strip underneath for definition
+    const edgeGeometry = createRoadGeometry(roadSpline, 10, 128, 0.1);
     setEdgeGeo(edgeGeometry);
 
     return () => {
@@ -364,7 +446,7 @@ function PBRRoad() {
     };
   }, [session?.runId]);
 
-  if (!tubeGeo) return null;
+  if (!roadGeo) return null;
 
   return (
     <>
@@ -375,8 +457,8 @@ function PBRRoad() {
         </mesh>
       )}
       {/* Main road surface */}
-      <mesh geometry={tubeGeo} receiveShadow>
-        <meshStandardMaterial {...roadTextures} displacementScale={0.08} />
+      <mesh geometry={roadGeo} receiveShadow>
+        <meshStandardMaterial {...roadTextures} displacementScale={0} />
       </mesh>
     </>
   );
@@ -442,8 +524,8 @@ export function Arena({
         environmentRotation={[0, -Math.PI / 4, 0]}
         backgroundRotation={[0, -Math.PI / 4, 0]}
       />
-      {/* Depth fog — green-tinted to match grass, fades distant terrain */}
-      <fog attach="fog" args={['#5a7247', 60, 200]} />
+      {/* Depth fog — green-tinted to match grass, starts late to keep HDRI visible */}
+      <fog attach="fog" args={['#5a7247', 100, 350]} />
       <DayNightCycle wave={session?.wave ?? 1} />
       <EnvironmentScatter />
       <CameraController />

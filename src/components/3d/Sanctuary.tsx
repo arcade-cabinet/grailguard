@@ -1,13 +1,15 @@
 /**
  * @module Sanctuary
  *
- * Elaborate 3D model of the Holy Grail sanctuary at the road's end.
- * Features 4 corner towers with conical roofs, a central rotating grail
- * sphere, flickering torch lights, and health-based material degradation.
+ * 3D model of the Holy Grail sanctuary at the road's end. Uses the keep.glb
+ * asset for a high-quality visual. Features health-based material degradation
+ * (tinting toward red as HP drops) and a golden grail glow on top.
  */
+import { Clone, useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { useRef } from 'react';
 import * as THREE from 'three';
+import { BUILDING_MODEL_PATHS } from './modelPaths';
 
 /** Props for the Sanctuary component. */
 export interface SanctuaryProps {
@@ -19,108 +21,55 @@ export interface SanctuaryProps {
   maxHealth: number;
 }
 
-// Tower offsets from center
-const TOWER_OFFSETS: [number, number][] = [
-  [-3, -3],
-  [3, -3],
-  [-3, 3],
-  [3, 3],
-];
-
 const _healthColor = new THREE.Color();
-const _baseColor = new THREE.Color('#c0c0c0'); // silver stone
-const _damagedColor = new THREE.Color('#aa2222'); // deep red
+const _baseColor = new THREE.Color('#ffffff');
+const _damagedColor = new THREE.Color('#aa2222');
 
 /**
- * Elaborate Sanctuary with 4 corner towers (CylinderGeometry + ConeGeometry
- * roofs), a central rotating golden grail (SphereGeometry), flickering
- * torch PointLights at each tower top, and health-based color degradation.
+ * Sanctuary rendered using the keep.glb model with health-based material
+ * tinting. As health decreases, materials lerp toward a deep red.
+ * A golden point light on top simulates the Holy Grail glow.
  */
 export function Sanctuary({ position, health, maxHealth }: SanctuaryProps) {
-  const grailRef = useRef<THREE.Mesh>(null);
-  const torch0Ref = useRef<THREE.PointLight>(null);
-  const torch1Ref = useRef<THREE.PointLight>(null);
-  const torch2Ref = useRef<THREE.PointLight>(null);
-  const torch3Ref = useRef<THREE.PointLight>(null);
-  const wallMatRef = useRef<THREE.MeshStandardMaterial>(null);
+  const { scene } = useGLTF(BUILDING_MODEL_PATHS.keep);
+  const groupRef = useRef<THREE.Group>(null);
+  const materialsInitialized = useRef(false);
+  const originalColors = useRef<Map<string, THREE.Color>>(new Map());
 
-  const torchRefs = [torch0Ref, torch1Ref, torch2Ref, torch3Ref];
+  useFrame(() => {
+    if (!groupRef.current) return;
 
-  useFrame((state) => {
-    const time = state.clock.elapsedTime;
+    const ratio = Math.max(0, Math.min(1, health / maxHealth));
 
-    // Rotate grail continuously
-    if (grailRef.current) {
-      grailRef.current.rotation.y += 0.02;
-    }
+    // Capture original colors once, then tint based on health
+    groupRef.current.traverse((child) => {
+      if (child instanceof THREE.Mesh && child.material) {
+        const mat = child.material as THREE.MeshStandardMaterial;
+        if (!mat.color) return;
 
-    // Flicker torches with sin wave + slight phase offset per torch
-    for (let i = 0; i < torchRefs.length; i++) {
-      const torch = torchRefs[i].current;
-      if (torch) {
-        const flicker = 0.8 + 0.2 * Math.sin(time * 5 + i * 1.5);
-        torch.intensity = flicker;
+        const id = child.uuid;
+        if (!materialsInitialized.current) {
+          originalColors.current.set(id, mat.color.clone());
+        }
+
+        const orig = originalColors.current.get(id);
+        if (orig) {
+          _healthColor.copy(orig).lerp(_damagedColor, 1 - ratio);
+          mat.color.copy(_healthColor);
+        }
       }
-    }
+    });
 
-    // Health-based degradation: lerp wall color toward red
-    if (wallMatRef.current) {
-      const ratio = Math.max(0, Math.min(1, health / maxHealth));
-      _healthColor.copy(_baseColor).lerp(_damagedColor, 1 - ratio);
-      wallMatRef.current.color.copy(_healthColor);
+    if (!materialsInitialized.current) {
+      materialsInitialized.current = true;
     }
   });
 
   return (
-    <group position={position}>
-      {/* Base platform */}
-      <mesh position={[0, 0.25, 0]}>
-        <boxGeometry args={[10, 0.5, 10]} />
-        <meshStandardMaterial ref={wallMatRef} color="#c0c0c0" roughness={0.7} />
-      </mesh>
-
-      {/* 4 corner towers */}
-      {TOWER_OFFSETS.map(([ox, oz], idx) => (
-        <group key={`tower-${ox}-${oz}`} position={[ox, 0, oz]}>
-          {/* Tower body */}
-          <mesh position={[0, 2, 0]}>
-            <cylinderGeometry args={[1, 1, 4, 8]} />
-            <meshStandardMaterial color="#888888" roughness={0.8} />
-          </mesh>
-          {/* Conical roof */}
-          <mesh position={[0, 5, 0]}>
-            <coneGeometry args={[1.2, 2, 8]} />
-            <meshStandardMaterial color="#8b4513" roughness={0.6} />
-          </mesh>
-          {/* Torch light at tower top */}
-          <pointLight
-            ref={torchRefs[idx]}
-            position={[0, 4.5, 0]}
-            color="#ff8833"
-            intensity={0.8}
-            distance={12}
-            decay={2}
-          />
-        </group>
-      ))}
-
-      {/* Central grail sphere */}
-      <mesh ref={grailRef} position={[0, 3.5, 0]}>
-        <sphereGeometry args={[0.5, 16, 16]} />
-        <meshStandardMaterial
-          color="#ffd700"
-          metalness={0.9}
-          roughness={0.1}
-          emissive="#ffd700"
-          emissiveIntensity={0.3}
-        />
-      </mesh>
-
-      {/* Grail pedestal */}
-      <mesh position={[0, 1.5, 0]}>
-        <cylinderGeometry args={[0.4, 0.6, 2.5, 8]} />
-        <meshStandardMaterial color="#b8860b" roughness={0.5} metalness={0.6} />
-      </mesh>
+    <group position={position} ref={groupRef}>
+      <Clone object={scene} scale={[3, 3, 3]} castShadow receiveShadow />
+      {/* Golden glow for the grail on top */}
+      <pointLight position={[0, 5, 0]} color="#d4af37" intensity={2} distance={15} />
     </group>
   );
 }

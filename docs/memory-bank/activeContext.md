@@ -57,6 +57,7 @@ summary: "Current work focus, recent changes, active decisions, and next steps"
 28. **JSDoc coverage** -- All source files documented
 29. **Three-tier agent pointer chain** -- CLAUDE.md -> AGENTS.md -> docs/
 30. **Biome lint auto-fix** -- Clean lint across 64 files
+31. **Test coverage expansion** -- 924 tests across 47 suites (up from 497/39); 6 scenario suites + HUD/Tutorial component tests
 
 ## Active Decisions
 

@@ -2,12 +2,18 @@ import { defineConfig, devices } from '@playwright/test';
 
 const isCI = !!process.env.CI;
 
-/** GPU-accelerated WebGL/WebGPU flags for headless Chrome */
+/**
+ * GPU-accelerated WebGL flags for headed Chrome.
+ * CI runs headed under xvfb-run, which provides a virtual X11 display
+ * and activates the real GPU rendering pipeline (vs SwiftShader in headless).
+ */
 const GPU_ARGS = [
   '--no-sandbox',
-  '--use-angle=gl',
+  '--use-angle=default',
+  '--enable-features=WebGL,WebGL2',
   '--enable-webgl',
   '--ignore-gpu-blocklist',
+  '--use-gl=angle',
   '--mute-audio',
   '--disable-background-timer-throttling',
   '--disable-backgrounding-occluded-windows',
@@ -49,7 +55,7 @@ export default defineConfig({
       testIgnore: '**/components/**',
       use: {
         browserName: 'chromium',
-        headless: true,
+        headless: false,
         viewport: { width: 1280, height: 720 },
         launchOptions: {
           args: GPU_ARGS,
@@ -62,7 +68,7 @@ export default defineConfig({
       testIgnore: '**/components/**',
       use: {
         ...devices['iPhone 14'],
-        headless: true,
+        headless: false,
         launchOptions: { args: GPU_ARGS },
       },
     },

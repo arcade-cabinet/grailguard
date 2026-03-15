@@ -1,5 +1,20 @@
 import { expect, test } from '@playwright/test';
 
+/**
+ * Dismiss the tutorial overlay if it appears. Waits for the overlay to
+ * fully detach from the DOM before returning, ensuring no z-index:9999
+ * element blocks subsequent interactions.
+ */
+async function dismissTutorialIfVisible(page: import('@playwright/test').Page) {
+  const skipBtn = page.getByRole('button', { name: /skip tutorial/i });
+  const isVisible = await skipBtn.isVisible({ timeout: 8000 }).catch(() => false);
+  if (isVisible) {
+    await skipBtn.click({ force: true });
+    // Wait for the tutorial overlay (role="alert") to fully detach from DOM
+    await page.waitForSelector('[role="alert"]', { state: 'detached', timeout: 10000 });
+  }
+}
+
 test.describe('Game Flow', () => {
   test('app loads and shows main menu', async ({ page }) => {
     await page.goto('/grailguard/');
@@ -55,14 +70,7 @@ test.describe('Game Flow', () => {
     await startBtn.scrollIntoViewIfNeeded();
     await startBtn.click();
     await page.waitForURL(/\/game/);
-    // Dismiss tutorial if it appears — wait for overlay to fully unmount
-    const skipBtn = page.getByRole('button', { name: /skip tutorial/i });
-    if (await skipBtn.isVisible({ timeout: 8000 }).catch(() => false)) {
-      await skipBtn.click({ force: true });
-      // Wait for tutorial overlay to fully unmount
-      await expect(page.getByRole('alert')).toBeHidden({ timeout: 5000 }).catch(() => {});
-      await page.waitForTimeout(1500);
-    }
+    await dismissTutorialIfVisible(page);
     // Wait for build phase heading (confirms game engine is running)
     await expect(page.getByRole('heading', { name: /build phase/i })).toBeVisible({
       timeout: 15000,
@@ -87,13 +95,7 @@ test.describe('Game Flow', () => {
     await page.goto(
       '/grailguard/game?mode=fresh&biome=kings-road&challenge=pilgrim&spells=smite&mapSize=100',
     );
-    // Dismiss tutorial if it appears — wait for overlay to fully unmount
-    const skipBtn2 = page.getByRole('button', { name: /skip tutorial/i });
-    if (await skipBtn2.isVisible({ timeout: 8000 }).catch(() => false)) {
-      await skipBtn2.click({ force: true });
-      await expect(page.getByRole('alert')).toBeHidden({ timeout: 5000 }).catch(() => {});
-      await page.waitForTimeout(1500);
-    }
+    await dismissTutorialIfVisible(page);
     // Verify we are in the game (build phase heading visible)
     await expect(page.getByRole('heading', { name: /build phase/i })).toBeVisible({
       timeout: 15000,

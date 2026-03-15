@@ -4,7 +4,7 @@
  * TDD tests for the pure wave-system functions extracted from GameEngine.
  */
 
-import type { EnemyAffix, UnitType } from '../../../engine/constants';
+import type { UnitType } from '../../../engine/constants';
 import { createRng } from '../../../engine/systems/rng';
 import {
   allocateWaveBudget,

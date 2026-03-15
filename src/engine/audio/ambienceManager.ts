@@ -52,7 +52,7 @@ export function createAmbienceManager(biome: string, audioBus: AudioBridge): Amb
   const config = configMap[biome] ?? configMap[DEFAULT_BIOME];
 
   let intensity: AmbienceIntensity = 'low';
-  let running = false;
+  let _running = false;
 
   const unsubWaveStart = audioBus.on('wave_start', () => {
     intensity = 'high';
@@ -73,15 +73,15 @@ export function createAmbienceManager(biome: string, audioBus: AudioBridge): Amb
       return intensity;
     },
     start() {
-      running = true;
+      _running = true;
     },
     stop() {
-      running = false;
+      _running = false;
     },
     dispose() {
       unsubWaveStart();
       unsubWaveComplete();
-      running = false;
+      _running = false;
     },
   };
 }

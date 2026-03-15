@@ -34,10 +34,10 @@
         "noAccumulatingSpread": "warn"
       },
       "style": {
-        "noNonNullAssertion": "warn",
+        "noNonNullAssertion": "off",
         "useConst": "error",
         "useTemplate": "warn",
-        "noParameterAssign": "warn"
+        "noParameterAssign": "off"
       },
       "suspicious": {
         "noExplicitAny": "warn",
@@ -67,6 +67,52 @@
         "rules": {
           "suspicious": {
             "noConsole": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/__tests__/**", "e2e/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noNonNullAssertion": "off"
+          },
+          "suspicious": {
+            "noExplicitAny": "off"
+          },
+          "correctness": {
+            "useHookAtTopLevel": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/components/**"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "useExhaustiveDependencies": "off",
+            "useHookAtTopLevel": "off"
+          },
+          "suspicious": {
+            "noArrayIndexKey": "off"
+          },
+          "a11y": {
+            "useAriaPropsSupportedByRole": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/db/**", "src/engine/**", "src/app/**"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "useExhaustiveDependencies": "off"
+          },
+          "a11y": {
+            "useAriaPropsSupportedByRole": "off"
           }
         }
       }

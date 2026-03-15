@@ -68,6 +68,7 @@ export default defineConfig({
       testIgnore: '**/components/**',
       use: {
         ...devices['iPhone 14'],
+        browserName: 'chromium',
         headless: false,
         launchOptions: { args: GPU_ARGS },
       },

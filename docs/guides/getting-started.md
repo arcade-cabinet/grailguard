@@ -3,7 +3,7 @@ title: "Getting Started"
 domain: guides
 audience: developers
 reads-before: [../memory-bank/techContext.md]
-last-updated: 2026-03-13
+last-updated: 2026-03-14
 status: stable
 summary: "Dev setup, commands, testing, and contribution guidelines"
 ---
@@ -14,8 +14,9 @@ summary: "Dev setup, commands, testing, and contribution guidelines"
 
 - Node.js 20+
 - pnpm 10+
-- iOS Simulator (Xcode) or Android Emulator for mobile testing
 - A modern browser for web development
+- Xcode (for iOS builds via Capacitor)
+- Android Studio (for Android builds via Capacitor)
 
 ## Setup
 
@@ -28,17 +29,29 @@ pnpm install
 ## Development
 
 ```bash
-pnpm start          # Expo dev server (choose platform)
-pnpm web            # Web dev server directly
-pnpm ios            # iOS simulator
-pnpm android        # Android emulator
+pnpm dev             # Vite dev server (web)
+pnpm build           # Production build (typecheck + vite build)
+pnpm preview         # Preview production build locally
+```
+
+### Native (Capacitor)
+
+After building for web (`pnpm build`), sync and open in native IDEs:
+
+```bash
+npx cap sync
+npx cap open ios     # Open in Xcode
+npx cap open android # Open in Android Studio
 ```
 
 ## Testing
 
 ```bash
-pnpm test           # Run Jest test suite
-pnpm test:coverage  # Jest with coverage report
+pnpm test            # Run Vitest test suite
+pnpm test:watch      # Vitest in watch mode
+pnpm test:coverage   # Vitest with coverage report
+pnpm test:e2e        # Run Playwright end-to-end tests
+pnpm test:e2e:ui     # Playwright with interactive UI
 ```
 
 Test files live in `src/__tests__/` organized by domain:
@@ -46,6 +59,7 @@ Test files live in `src/__tests__/` organized by domain:
 - `db/metaService.test.ts` -- Persistence service tests
 - `app/metaScreens.test.tsx` -- Screen component tests
 - `e2e/goapPlayer.test.ts` -- AI behavior tests
+- `scenarios/waveScenarios.test.ts` -- Wave balance tests
 
 ## Code Quality
 
@@ -62,14 +76,14 @@ pnpm typecheck      # TypeScript type-check (tsc --noEmit)
 pnpm db:generate    # Generate Drizzle ORM migrations
 ```
 
-Schema is defined in `src/db/schema.ts`. Migrations run automatically on app start via `DatabaseProvider.tsx`.
+Schema is defined in `src/db/schema.ts`. The database uses sql.js (a WebAssembly SQLite build) with Drizzle ORM. Migrations run automatically on app start via `DatabaseProvider.tsx`.
 
 ## Key Conventions
 
 1. **pnpm only** -- Never use npm or yarn
 2. **Biome only** -- Never use ESLint or Prettier
-3. **No DOM APIs** -- React Native environment, use RN primitives
+3. **No DOM APIs in engine code** -- Engine logic is framework-agnostic
 4. **No `useState` for animation** -- Use `useFrame` + `useRef` for per-frame updates
 5. **Engine logic in `src/engine/`** -- Never put game logic in React components
-6. **DB access via `src/db/`** -- Never query SQLite directly from UI components
+6. **DB access via `src/db/`** -- Never query sql.js directly from UI components
 7. **Named exports** -- Prefer named exports over `export default`

@@ -109,7 +109,7 @@ export function SettingsScreen() {
         type="button"
         onClick={() => navigate(-1)}
         className="mx-auto mt-auto rounded-2xl border border-[#a88a44] bg-[#4a3b22] px-8 py-3"
-        aria-label="Return to court"
+        aria-label={t('a11y_return_to_court')}
       >
         <span className="text-lg font-bold text-[#f7ebd0]">{t('btn_return_to_court')}</span>
       </button>

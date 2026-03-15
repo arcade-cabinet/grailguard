@@ -368,7 +368,6 @@ describe('wave scenarios: wave labels', () => {
 
   it('early waves have small labels, late waves have large labels', () => {
     const earlyBudget = calculateWaveBudget(1);
-    const _midBudget = calculateWaveBudget(8);
     const lateBudget = calculateWaveBudget(15);
 
     // Early wave should be Scout Party

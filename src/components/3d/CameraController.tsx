@@ -3,7 +3,7 @@
  *
  * Perspective camera controller that reads game phase from ECS and smoothly
  * transitions between viewport presets (overview for build, action for defend).
- * Camera is positioned at a ~30-degree angle from horizontal for a
+ * Camera is positioned at a ~40-degree angle from horizontal for a
  * Kingdom-Rush-style bird's-eye view with visible horizon and HDRI sky.
  * Camera shake still applies on top of preset positions.
  *

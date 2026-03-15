@@ -8,8 +8,8 @@ const config: CapacitorConfig = {
     minVersion: '16.0',
   },
   server: {
-    // Allow loading local assets
-    allowNavigation: ['*'],
+    // Restrict navigation to local assets only
+    allowNavigation: [],
   },
 };
 

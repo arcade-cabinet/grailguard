@@ -97,7 +97,6 @@ export function findCombatTargetPure(
     // Enemies prioritize walls when close
     if (unit.team === 'enemy' && cu.type === 'wall' && dist < wallPriorityRange) {
       bestTarget = candidate;
-      bestDistance = dist;
       break;
     }
 

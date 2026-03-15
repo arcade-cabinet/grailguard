@@ -93,8 +93,10 @@ export function DoctrineScreen() {
                   }`}
                   aria-label={
                     isMaxed
-                      ? `${node.title} maxed`
-                      : `${level > 0 ? 'Upgrade' : 'Consecrate'} ${node.title} for ${cost} coins`
+                      ? t('a11y_doctrine_maxed', { title: node.title })
+                      : level > 0
+                        ? t('a11y_doctrine_upgrade', { title: node.title, cost })
+                        : t('a11y_doctrine_consecrate', { title: node.title, cost })
                   }
                   aria-disabled={isMaxed || !canAfford}
                 >
@@ -116,7 +118,7 @@ export function DoctrineScreen() {
         type="button"
         onClick={() => navigate(-1)}
         className="mx-auto rounded-2xl border border-[#a88a44] bg-[#4a3b22] px-8 py-3"
-        aria-label="Return to court"
+        aria-label={t('a11y_return_to_court')}
       >
         <span className="text-lg font-bold text-[#f7ebd0]">{t('btn_return_to_court')}</span>
       </button>

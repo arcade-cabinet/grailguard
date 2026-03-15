@@ -69,7 +69,15 @@ export function HistoryScreen() {
           <div
             key={run.runId}
             className="rounded-2xl border border-[#8a6a44] bg-[#f3e8d5] p-4"
-            aria-label={`Run: Wave ${run.waveReached}, ${run.result === 'defeat' ? 'Defeated' : 'Abandoned'}, ${run.coinsEarned} coins earned, ${run.biome} biome`}
+            aria-label={t('a11y_run_summary', {
+              wave: run.waveReached,
+              result:
+                run.result === 'defeat'
+                  ? t('history_result_defeat')
+                  : t('history_result_abandoned'),
+              coins: run.coinsEarned,
+              biome: run.biome,
+            })}
           >
             <div className="flex flex-row items-start justify-between">
               <div className="flex-1">

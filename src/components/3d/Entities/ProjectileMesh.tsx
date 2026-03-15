@@ -22,7 +22,10 @@ const TRAIL_LENGTH = 5;
  */
 export function ProjectileMesh({ entity }: { entity: Entity }) {
   const groupRef = useRef<THREE.Group>(null);
-  const trailRef = useRef<THREE.Vector3[]>([]);
+  const trailRef = useRef<THREE.Vector3[]>(
+    Array.from({ length: TRAIL_LENGTH }, () => new THREE.Vector3()),
+  );
+  const trailCountRef = useRef(0);
   const trailMeshesRef = useRef<THREE.Mesh[]>([]);
 
   useFrame(() => {
@@ -32,15 +35,20 @@ export function ProjectileMesh({ entity }: { entity: Entity }) {
 
     groupRef.current.position.set(position.x, position.y, position.z);
 
-    // Update trail history
+    // Update trail history using pre-allocated ring buffer (shift existing entries forward)
     const trail = trailRef.current;
-    trail.unshift(new THREE.Vector3(position.x, position.y, position.z));
-    if (trail.length > TRAIL_LENGTH) trail.pop();
+    const count = Math.min(trailCountRef.current, TRAIL_LENGTH - 1);
+    for (let i = count; i > 0; i--) {
+      trail[i].copy(trail[i - 1]);
+    }
+    trail[0].set(position.x, position.y, position.z);
+    if (trailCountRef.current < TRAIL_LENGTH) trailCountRef.current++;
 
     // Update trail mesh positions and opacity
+    const activeCount = trailCountRef.current;
     for (let i = 0; i < trailMeshesRef.current.length; i++) {
       const mesh = trailMeshesRef.current[i];
-      if (trail[i + 1]) {
+      if (i + 1 < activeCount) {
         mesh.position.set(
           trail[i + 1].x - position.x,
           trail[i + 1].y - position.y,

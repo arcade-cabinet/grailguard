@@ -133,5 +133,10 @@
   "wave_complete_title": "Wave {wave} Complete!",
   "wave_complete_gold_bonus": "+{amount}g",
   "wave_complete_interest": "+{amount}g ({rate}% interest)",
-  "wave_complete_early_bonus": "+{amount}g early start"
+  "wave_complete_early_bonus": "+{amount}g early start",
+  "a11y_return_to_court": "Return to court",
+  "a11y_run_summary": "Run: Wave {wave}, {result}, {coins} coins earned, {biome} biome",
+  "a11y_doctrine_maxed": "{title} maxed",
+  "a11y_doctrine_upgrade": "Upgrade {title} for {cost} coins",
+  "a11y_doctrine_consecrate": "Consecrate {title} for {cost} coins"
 }

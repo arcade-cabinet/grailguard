@@ -3,14 +3,14 @@ title: "Persistence Architecture"
 domain: architecture
 audience: db-agents
 reads-before: [../memory-bank/systemPatterns.md]
-last-updated: 2026-03-13
+last-updated: 2026-03-14
 status: stable
-summary: "SQLite schema, Drizzle ORM repos, snapshot serialization, and data flow"
+summary: "sql.js schema, Drizzle ORM repos, snapshot serialization, and data flow"
 ---
 
 # Persistence Architecture
 
-All durable state lives in SQLite via `expo-sqlite` + `drizzle-orm`. The database is initialized by `DatabaseProvider.tsx` which runs migrations and seeds on app start.
+All durable state lives in SQLite via `sql.js` (WebAssembly SQLite) + `drizzle-orm`. The database is initialized by `DatabaseProvider.tsx` which runs migrations and seeds on app start. The database binary is persisted to `localStorage` so data survives page reloads.
 
 ## Schema (`src/db/schema.ts`)
 
@@ -47,6 +47,10 @@ Each domain has a focused repo file under `src/db/repos/`:
 - **Async operations**: `purchaseBuildingUnlock()`, `bankRunRewards()`, `saveActiveRunRecord()`, etc.
 
 UI components call meta.ts functions. Meta.ts delegates to the appropriate repo.
+
+## Storage Backend
+
+The database uses **sql.js**, a WebAssembly build of SQLite that runs entirely in the browser. The database binary is serialized and persisted to `localStorage` after each write transaction. On Capacitor native builds, the `@capacitor-community/sqlite` plugin provides native SQLite access with filesystem persistence.
 
 ## Active Run Serialization
 
